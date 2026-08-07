@@ -45,3 +45,14 @@ export interface BuildStep {
   title: string;
   icon: string;
 }
+
+export interface CartItem {
+  id: string;
+  slug: string;
+  name: string;
+  price: number; // in IDR, per unit
+  image: string;
+  category?: string;
+  unit?: string;
+  quantity: number;
+}

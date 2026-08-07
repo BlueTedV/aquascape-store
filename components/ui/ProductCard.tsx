@@ -1,12 +1,34 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { Check, Plus } from "lucide-react";
 import { Product } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
+import { useCart } from "@/lib/cart-context";
 import StarRating from "./StarRating";
 import Badge from "./Badge";
 
 export default function ProductCard({ product }: { product: Product }) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  const handleAddToCart = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      category: product.category,
+    });
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1800);
+  };
+
   return (
     <div className="group relative rounded-lg bg-background-white p-stack-md shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
       {product.badge && <Badge type={product.badge} />}
@@ -41,9 +63,10 @@ export default function ProductCard({ product }: { product: Product }) {
       <button
         type="button"
         aria-label={`Add ${product.name} to cart`}
+        onClick={handleAddToCart}
         className="absolute bottom-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-on-primary opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100"
       >
-        <Plus size={20} />
+        {added ? <Check size={20} /> : <Plus size={20} />}
       </button>
     </div>
   );

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Heart, ShoppingCart, User, Menu, X } from "lucide-react";
+import { useCart } from "@/lib/cart-context";
 
 const navLinks: Array<{ label: string; href: string; category?: string }> = [
   { label: "Home", href: "/" },
@@ -19,6 +20,7 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { itemCount } = useCart();
 
   return (
     <nav className="glass-nav fixed top-0 z-50 w-full shadow-md transition-colors duration-300">
@@ -80,13 +82,18 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
           >
             <Heart size={20} />
           </button>
-          <button
-            type="button"
+          <Link
+            href="/cart"
             aria-label="Cart"
             className="relative rounded-full p-2 text-on-surface-variant transition-colors hover:text-primary"
           >
             <ShoppingCart size={20} />
-          </button>
+            {itemCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-on-primary">
+                {itemCount > 99 ? "99+" : itemCount}
+              </span>
+            )}
+          </Link>
           <Link
             href="/account"
             aria-label="Account"

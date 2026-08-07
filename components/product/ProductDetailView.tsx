@@ -3,9 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CheckCircle2, Heart, Minus, Plus, ShoppingCart, Star, Truck } from "lucide-react";
+import { Check, CheckCircle2, Heart, Minus, Plus, ShoppingCart, Star, Truck } from "lucide-react";
 import { ProductDetail } from "@/data/product-details";
 import { formatIDR } from "@/lib/format";
+import { useCart } from "@/lib/cart-context";
 
 type ProductDetailViewProps = {
   product: ProductDetail;
@@ -13,6 +14,24 @@ type ProductDetailViewProps = {
 };
 
 function RelatedProductCard({ product }: { product: ProductDetail }) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  const handleAddToCart = (event: React.MouseEvent) => {
+    event.preventDefault();
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      category: product.category,
+      unit: product.unit,
+    });
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1800);
+  };
+
   return (
     <article className="group overflow-hidden rounded bg-background-white shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-soft-hover">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[1.2/1] bg-surface-container">
@@ -43,9 +62,10 @@ function RelatedProductCard({ product }: { product: ProductDetail }) {
           <button
             type="button"
             aria-label={`Add ${product.name} to cart`}
+            onClick={handleAddToCart}
             className="flex h-7 w-7 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary-fixed"
           >
-            <Plus size={15} />
+            {added ? <Check size={15} /> : <Plus size={15} />}
           </button>
         </div>
       </div>
@@ -57,11 +77,22 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
   const [activeImage, setActiveImage] = useState(product.gallery[0]);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const { addItem } = useCart();
 
   const total = useMemo(() => product.price * quantity, [product.price, quantity]);
   const stockLabel = product.stock > 0 ? `${product.stock} in stock` : "Out of stock";
 
   const addToCart = () => {
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      category: product.category,
+      unit: product.unit,
+      quantity,
+    });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2200);
   };

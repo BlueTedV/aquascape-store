@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { Product, ProductBadge } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
+import { useCart } from "@/lib/cart-context";
 
 type CategorySlug =
   | "all"
@@ -435,11 +437,28 @@ function CatalogHero({
   );
 }
 function ProductTile({ product }: { product: CatalogProduct }) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
   const badge = product.onSale
     ? "Sale"
     : product.arrival
       ? "New Arrival"
       : product.badge;
+
+  const handleAddToCart = (event: React.MouseEvent) => {
+    event.preventDefault();
+    addItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      category: product.category,
+      unit: product.unit,
+    });
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 1800);
+  };
 
   return (
     <article className="group relative overflow-hidden rounded-lg bg-background-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
@@ -503,9 +522,10 @@ function ProductTile({ product }: { product: CatalogProduct }) {
           <button
             type="button"
             aria-label={`Add ${product.name} to cart`}
+            onClick={handleAddToCart}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary transition-colors hover:bg-primary-container"
           >
-            <ShoppingBasket size={18} />
+            {added ? <Check size={18} /> : <ShoppingBasket size={18} />}
           </button>
         </div>
       </div>
