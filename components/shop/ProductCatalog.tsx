@@ -1,0 +1,888 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ShoppingBasket,
+  SlidersHorizontal,
+  Star,
+} from "lucide-react";
+import { Product, ProductBadge } from "@/lib/types";
+import { formatIDR } from "@/lib/format";
+
+type CategorySlug =
+  | "all"
+  | "plants"
+  | "hardscape"
+  | "fish"
+  | "shrimp"
+  | "equipment"
+  | "others";
+type SortOption = "popular" | "newest" | "price-asc" | "price-desc" | "rating";
+type StatusFilter = "available" | "sale" | "new";
+
+type CatalogProduct = Product & {
+  categorySlug: Exclude<CategorySlug, "all">;
+  collection: string;
+  brand: string;
+  stock: number;
+  onSale?: boolean;
+  compareAtPrice?: number;
+  unit?: string;
+  arrival?: boolean;
+  tags: string[];
+};
+
+interface ProductCatalogProps {
+  initialCategory?: string;
+  initialBadge?: ProductBadge;
+  initialTag?: string;
+}
+
+const categoryTabs: { label: string; value: CategorySlug }[] = [
+  { label: "All", value: "all" },
+  { label: "Plants", value: "plants" },
+  { label: "Hardscape", value: "hardscape" },
+  { label: "Fish", value: "fish" },
+  { label: "Shrimp", value: "shrimp" },
+  { label: "Equipment", value: "equipment" },
+  { label: "Others", value: "others" },
+];
+
+const collectionsByCategory: Record<CategorySlug, string[]> = {
+  all: ["Dragon Stone", "Seiryu Stone", "Spider Wood", "Tissue Culture", "Stem Plants", "Lighting", "Filtration", "CO2 System", "Neocaridina", "Tetra", "Substrates", "Tools"],
+  plants: ["Stem Plants", "Carpeting Plants", "Moss", "Tissue Culture"],
+  hardscape: ["Dragon Stone", "Seiryu Stone", "Spider Wood", "Driftwood"],
+  fish: ["Tetra", "Rasbora", "Corydoras", "Algae Eaters"],
+  shrimp: ["Neocaridina", "Caridina", "Breeding Packs", "Food & Minerals"],
+  equipment: ["Lighting", "Filtration", "CO2 System", "Tanks"],
+  others: ["Substrates", "Fertilizers", "Water Care", "Tools"],
+};
+
+const heroSlides = [
+  {
+    eyebrow: "Weekend sale",
+    title: "Hardscape bundles up to 25% off",
+    body: "Curated stone and wood packs for nano tanks through 90P layouts.",
+    cta: "Shop Sale Items",
+    filter: "sale" as StatusFilter,
+    image: "https://picsum.photos/seed/aqua-sale-hardscape/1600/520",
+  },
+  {
+    eyebrow: "Fresh arrival",
+    title: "New tissue culture plants landed",
+    body: "Clean, pest-free cups for carpeting, moss walls, and high-light stems.",
+    cta: "See New Items",
+    filter: "new" as StatusFilter,
+    image: "https://picsum.photos/seed/aqua-new-plants/1600/520",
+  },
+  {
+    eyebrow: "Promo kit",
+    title: "CO2 and lighting starter combos",
+    body: "Balanced gear sets selected for reliable plant growth and clean displays.",
+    cta: "Explore Equipment",
+    category: "equipment" as CategorySlug,
+    image: "https://picsum.photos/seed/aqua-promo-equipment/1600/520",
+  },
+];
+
+const catalogProducts: CatalogProduct[] = [
+  {
+    id: "prod-1",
+    slug: "premium-dragon-stone",
+    name: "Premium Dragon Stone",
+    category: "Hardscape",
+    categorySlug: "hardscape",
+    collection: "Dragon Stone",
+    brand: "Aqua Studio",
+    price: 85000,
+    compareAtPrice: 110000,
+    rating: 4.9,
+    reviewCount: 24,
+    image: "https://picsum.photos/seed/aqua-premium-dragon-stone/600/480",
+    badge: "New",
+    featured: true,
+    stock: 24,
+    onSale: true,
+    unit: "kg",
+    arrival: true,
+    tags: ["Iwagumi", "NatureAquarium", "NanoTank"],
+  },
+  {
+    id: "prod-2",
+    slug: "spider-wood-medium",
+    name: "Spider Wood Medium",
+    category: "Hardscape",
+    categorySlug: "hardscape",
+    collection: "Spider Wood",
+    brand: "ADA",
+    price: 125000,
+    rating: 4.7,
+    reviewCount: 15,
+    image: "https://picsum.photos/seed/aqua-spider-wood-medium/600/480",
+    featured: true,
+    stock: 15,
+    tags: ["NatureAquarium", "JungleStyle", "Woodscape"],
+  },
+  {
+    id: "prod-3",
+    slug: "hc-cuba-tissue-culture",
+    name: "HC Cuba Tissue Culture",
+    category: "Plants",
+    categorySlug: "plants",
+    collection: "Tissue Culture",
+    brand: "Twinstar",
+    price: 45000,
+    rating: 5,
+    reviewCount: 18,
+    image: "https://picsum.photos/seed/aqua-hc-cuba-cup/600/480",
+    badge: "Best Seller",
+    stock: 36,
+    unit: "cup",
+    tags: ["DutchStyle", "Iwagumi", "CarpetPlants"],
+  },
+  {
+    id: "prod-4",
+    slug: "studio-pro-led-60cm",
+    name: "Studio Pro LED 60cm",
+    category: "Equipment",
+    categorySlug: "equipment",
+    collection: "Lighting",
+    brand: "Aqua Studio",
+    price: 1450000,
+    compareAtPrice: 1650000,
+    rating: 4.8,
+    reviewCount: 31,
+    image: "https://picsum.photos/seed/aqua-studio-pro-led-60cm/600/480",
+    badge: "Premium",
+    featured: true,
+    stock: 8,
+    onSale: true,
+    tags: ["DutchStyle", "NatureAquarium", "HighTech"],
+  },
+  {
+    id: "prod-5",
+    slug: "crystalflow-filter-300",
+    name: "CrystalFlow Filter 300",
+    category: "Equipment",
+    categorySlug: "equipment",
+    collection: "Filtration",
+    brand: "UNS",
+    price: 2890000,
+    rating: 4.9,
+    reviewCount: 20,
+    image: "https://picsum.photos/seed/aqua-filter-300/600/480",
+    stock: 5,
+    tags: ["NatureAquarium", "HighTech", "CleanLayout"],
+  },
+  {
+    id: "prod-6",
+    slug: "red-cherry-shrimp-grade-a",
+    name: "Red Cherry Shrimp Grade A",
+    category: "Shrimp",
+    categorySlug: "shrimp",
+    collection: "Neocaridina",
+    brand: "Aqua Studio",
+    price: 12000,
+    rating: 4.8,
+    reviewCount: 42,
+    image: "https://picsum.photos/seed/aqua-red-cherry-shrimp/600/480",
+    badge: "New",
+    stock: 60,
+    unit: "pc",
+    arrival: true,
+    tags: ["JungleStyle", "NatureAquarium", "NanoTank"],
+  },
+  {
+    id: "prod-7",
+    slug: "seiryu-stone-layout-pack",
+    name: "Seiryu Stone Layout Pack",
+    category: "Hardscape",
+    categorySlug: "hardscape",
+    collection: "Seiryu Stone",
+    brand: "ADA",
+    price: 245000,
+    rating: 4.8,
+    reviewCount: 19,
+    image: "https://picsum.photos/seed/aqua-seiryu-stone-pack/600/480",
+    stock: 18,
+    unit: "5kg",
+    tags: ["Iwagumi", "NatureAquarium", "StoneLayout"],
+  },
+  {
+    id: "prod-8",
+    slug: "rotala-hra-stem-bunch",
+    name: "Rotala H'Ra Stem Bunch",
+    category: "Plants",
+    categorySlug: "plants",
+    collection: "Stem Plants",
+    brand: "Aqua Studio",
+    price: 42000,
+    rating: 4.6,
+    reviewCount: 33,
+    image: "https://picsum.photos/seed/aqua-rotala-hra-bunch/600/480",
+    stock: 22,
+    unit: "bunch",
+    tags: ["DutchStyle", "JungleStyle", "StemPlants"],
+  },
+  {
+    id: "prod-9",
+    slug: "cardinal-tetra-school-10",
+    name: "Cardinal Tetra School 10",
+    category: "Fish",
+    categorySlug: "fish",
+    collection: "Tetra",
+    brand: "Aqua Studio",
+    price: 250000,
+    compareAtPrice: 290000,
+    rating: 4.9,
+    reviewCount: 51,
+    image: "https://picsum.photos/seed/aqua-cardinal-tetra-school/600/480",
+    stock: 12,
+    onSale: true,
+    tags: ["NatureAquarium", "CommunityTank", "SchoolingFish"],
+  },
+  {
+    id: "prod-10",
+    slug: "amazonia-aquasoil-9l",
+    name: "Amazonia Aquasoil 9L",
+    category: "Substrate",
+    categorySlug: "others",
+    collection: "Substrates",
+    brand: "ADA",
+    price: 680000,
+    rating: 5,
+    reviewCount: 156,
+    image: "https://picsum.photos/seed/aqua-amazonia-soil-9l/600/480",
+    badge: "Best Seller",
+    featured: true,
+    stock: 21,
+    tags: ["Iwagumi", "DutchStyle", "PlantedTank"],
+  },
+  {
+    id: "prod-11",
+    slug: "inline-co2-diffuser-pro",
+    name: "Inline CO2 Diffuser Pro",
+    category: "Equipment",
+    categorySlug: "equipment",
+    collection: "CO2 System",
+    brand: "UNS",
+    price: 320000,
+    rating: 4.7,
+    reviewCount: 27,
+    image: "https://picsum.photos/seed/aqua-inline-co2-diffuser/600/480",
+    badge: "New",
+    stock: 14,
+    arrival: true,
+    tags: ["DutchStyle", "NatureAquarium", "HighTech"],
+  },
+  {
+    id: "prod-12",
+    slug: "precision-planting-tweezers",
+    name: "Precision Planting Tweezers",
+    category: "Tools",
+    categorySlug: "others",
+    collection: "Tools",
+    brand: "Aqua Studio",
+    price: 95000,
+    rating: 4.5,
+    reviewCount: 17,
+    image: "https://picsum.photos/seed/aqua-planting-tweezers/600/480",
+    stock: 30,
+    tags: ["DutchStyle", "Iwagumi", "PlantingTools"],
+  },
+];
+
+const maxCatalogPrice = Math.max(
+  ...catalogProducts.map((product) => product.price),
+);
+const brands = ["ADA", "Aqua Studio", "UNS", "Twinstar"];
+const statusOptions: { label: string; value: StatusFilter }[] = [
+  { label: "Available", value: "available" },
+  { label: "On Sale", value: "sale" },
+  { label: "New Arrival", value: "new" },
+];
+
+function normalizeTag(tag: string) {
+  return tag.replace(/^#/, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+function getInitialQuery(tag: string | undefined) {
+  if (!tag) return "";
+  return `#${tag.replace(/^#/, "")}`;
+}
+
+function getQueryParts(query: string) {
+  const tagMatches = query.match(/#[\w-]+/g) ?? [];
+  const tagQueries = tagMatches.map(normalizeTag).filter(Boolean);
+  const textQuery = query.replace(/#[\w-]+/g, " ").trim().toLowerCase();
+
+  return { tagQueries, textQuery };
+}
+
+function getSafeCategory(value: string | undefined): CategorySlug {
+  return categoryTabs.some((category) => category.value === value)
+    ? (value as CategorySlug)
+    : "all";
+}
+
+function CatalogHero({
+  onCategorySelect,
+  onStatusSelect,
+}: {
+  onCategorySelect: (category: CategorySlug) => void;
+  onStatusSelect: (status: StatusFilter) => void;
+}) {
+  const [active, setActive] = useState(0);
+  const slide = heroSlides[active];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActive((current) => (current + 1) % heroSlides.length);
+    }, 5500);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const move = (direction: -1 | 1) => {
+    setActive((current) =>
+      (current + direction + heroSlides.length) % heroSlides.length,
+    );
+  };
+
+  const applySlide = () => {
+    if (slide.category) {
+      onCategorySelect(slide.category);
+    }
+    if (slide.filter) {
+      onStatusSelect(slide.filter);
+    }
+  };
+
+  return (
+    <section className="relative h-[380px] overflow-hidden bg-inverse-surface sm:h-[420px] lg:h-[460px]">
+      <div className="absolute inset-0">
+        <Image
+          key={slide.image}
+          src={slide.image}
+          alt="Aquascaping promotion"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-80 transition-opacity duration-500"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/10" />
+      </div>
+
+      <div className="relative mx-auto flex h-full max-w-container items-end px-edge-margin-mobile pb-stack-lg pt-28 md:px-edge-margin-desktop">
+        <div className="max-w-2xl text-white">
+          <p className="font-sans text-label-md uppercase tracking-wider text-primary-fixed">
+            {slide.eyebrow}
+          </p>
+          <h1 className="mt-3 line-clamp-2 font-display text-display-lg-mobile md:text-display-lg">
+            {slide.title}
+          </h1>
+          <p className="mt-stack-md line-clamp-2 max-w-xl text-body-md text-white/85 md:text-body-lg">
+            {slide.body}
+          </p>
+          <button
+            type="button"
+            onClick={applySlide}
+            className="mt-stack-lg rounded bg-primary px-7 py-3 text-label-md text-on-primary shadow-lg transition-colors hover:bg-primary-container"
+          >
+            {slide.cta}
+          </button>
+        </div>
+
+        <div className="absolute bottom-stack-lg right-edge-margin-mobile flex items-center gap-2 md:right-edge-margin-desktop">
+          <button
+            type="button"
+            aria-label="Previous promotion"
+            onClick={() => move(-1)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-primary transition-colors hover:bg-white"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            type="button"
+            aria-label="Next promotion"
+            onClick={() => move(1)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-primary transition-colors hover:bg-white"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+
+        <div className="absolute bottom-4 left-edge-margin-mobile flex gap-2 md:left-edge-margin-desktop">
+          {heroSlides.map((item, index) => (
+            <button
+              key={item.title}
+              type="button"
+              aria-label={`Show ${item.eyebrow}`}
+              onClick={() => setActive(index)}
+              className={`h-2.5 rounded-full transition-all ${
+                active === index ? "w-8 bg-primary-fixed" : "w-2.5 bg-white/60"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+function ProductTile({ product }: { product: CatalogProduct }) {
+  const badge = product.onSale
+    ? "Sale"
+    : product.arrival
+      ? "New Arrival"
+      : product.badge;
+
+  return (
+    <article className="group relative overflow-hidden rounded-lg bg-background-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
+      <Link
+        href={`/product/${product.slug}`}
+        className="relative block aspect-[4/3] overflow-hidden bg-surface-container"
+      >
+        <Image
+          src={product.image}
+          alt={product.name}
+          fill
+          sizes="(min-width: 1280px) 260px, (min-width: 768px) 33vw, 100vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        {badge && (
+          <span className="absolute left-3 top-3 rounded-full bg-primary-fixed px-2.5 py-1 text-[10px] font-bold uppercase text-on-primary-fixed">
+            {badge}
+          </span>
+        )}
+      </Link>
+
+      <div className="p-4">
+        <div className="mb-2 flex items-center justify-between gap-2 text-[11px] uppercase text-on-surface-variant">
+          <span>{product.category}</span>
+          <span className="flex items-center gap-1 text-price-green">
+            <Star size={12} className="fill-price-green" />
+            {product.rating.toFixed(1)}
+          </span>
+        </div>
+        <Link href={`/product/${product.slug}`}>
+          <h3 className="min-h-11 font-display text-body-md font-bold leading-snug text-on-surface transition-colors group-hover:text-primary">
+            {product.name}
+          </h3>
+        </Link>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {product.tags.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-surface-container-low px-2 py-1 text-[11px] font-bold text-on-surface-variant"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div>
+            <div className="font-sans text-body-md font-bold text-price-green">
+              {formatIDR(product.price)}
+              {product.unit && (
+                <span className="text-xs font-normal text-on-surface-variant">
+                  / {product.unit}
+                </span>
+              )}
+            </div>
+            {product.compareAtPrice && (
+              <div className="mt-1 text-xs text-on-surface-variant line-through">
+                {formatIDR(product.compareAtPrice)}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            aria-label={`Add ${product.name} to cart`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary transition-colors hover:bg-primary-container"
+          >
+            <ShoppingBasket size={18} />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function ProductCatalog({
+  initialCategory = "all",
+  initialBadge,
+  initialTag,
+}: ProductCatalogProps) {
+  const [category, setCategory] = useState<CategorySlug>(
+    getSafeCategory(initialCategory),
+  );
+  const [collection, setCollection] = useState("all");
+  const [query, setQuery] = useState(getInitialQuery(initialTag));
+  const [sort, setSort] = useState<SortOption>("popular");
+  const [maxPrice, setMaxPrice] = useState(maxCatalogPrice);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<StatusFilter[]>(
+    initialBadge === "New" ? ["new"] : ["available"],
+  );
+  const [visibleCount, setVisibleCount] = useState(12);
+
+
+  const collections = collectionsByCategory[category];
+
+  const setCategoryAndReset = (nextCategory: CategorySlug) => {
+    setCategory(nextCategory);
+    setCollection("all");
+    setVisibleCount(12);
+  };
+
+  const toggleBrand = (brand: string) => {
+    setSelectedBrands((current) =>
+      current.includes(brand)
+        ? current.filter((item) => item !== brand)
+        : [...current, brand],
+    );
+  };
+
+  const toggleStatus = (status: StatusFilter) => {
+    setSelectedStatuses((current) =>
+      current.includes(status)
+        ? current.filter((item) => item !== status)
+        : [...current, status],
+    );
+  };
+
+  const filteredProducts = useMemo(() => {
+    const { tagQueries, textQuery } = getQueryParts(query);
+
+    const hasTagQuery = tagQueries.length > 0;
+
+    return catalogProducts
+      .filter((product) => {
+        const matchesCategory =
+          hasTagQuery || category === "all" || product.categorySlug === category;
+        const matchesCollection =
+          hasTagQuery || collection === "all" || product.collection === collection;
+        const matchesBrand =
+          selectedBrands.length === 0 || selectedBrands.includes(product.brand);
+        const matchesStatus =
+          selectedStatuses.length === 0 ||
+          selectedStatuses.some((status) => {
+            if (status === "available") return product.stock > 0;
+            if (status === "sale") return Boolean(product.onSale);
+            return Boolean(product.arrival || product.badge === "New");
+          });
+        const matchesPrice = product.price <= maxPrice;
+        const productTags = product.tags.map(normalizeTag);
+        const matchesTags =
+          tagQueries.length === 0 ||
+          tagQueries.every((tag) => productTags.includes(tag));
+        const matchesQuery =
+          !textQuery ||
+          [
+            product.name,
+            product.category,
+            product.collection,
+            product.brand,
+            product.badge ?? "",
+            ...product.tags,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(textQuery);
+
+        return (
+          matchesCategory &&
+          matchesCollection &&
+          matchesBrand &&
+          matchesStatus &&
+          matchesPrice &&
+          matchesTags &&
+          matchesQuery
+        );
+      })
+      .sort((a, b) => {
+        if (sort === "newest") {
+          return Number(Boolean(b.arrival)) - Number(Boolean(a.arrival));
+        }
+        if (sort === "price-asc") return a.price - b.price;
+        if (sort === "price-desc") return b.price - a.price;
+        if (sort === "rating") {
+          return b.rating - a.rating || b.reviewCount - a.reviewCount;
+        }
+        return b.reviewCount - a.reviewCount;
+      });
+  }, [category, collection, maxPrice, query, selectedBrands, selectedStatuses, sort]);
+
+  const shownProducts = filteredProducts.slice(0, visibleCount);
+  const activeCollectionCount = collection === "all" ? 0 : 1;
+  const activeFilterCount =
+    activeCollectionCount +
+    selectedBrands.length +
+    selectedStatuses.length +
+    (maxPrice < maxCatalogPrice ? 1 : 0) +
+    (query.trim() ? 1 : 0);
+
+  const resetFilters = () => {
+    setCollection("all");
+    setQuery("");
+    setSort("popular");
+    setMaxPrice(maxCatalogPrice);
+    setSelectedBrands([]);
+    setSelectedStatuses(["available"]);
+    setVisibleCount(12);
+  };
+
+  const getCollectionCount = (item: string) =>
+    catalogProducts.filter((product) => {
+      const categoryMatch = category === "all" || product.categorySlug === category;
+      return categoryMatch && product.collection === item;
+    }).length;
+  return (
+    <>
+      <CatalogHero
+        onCategorySelect={setCategoryAndReset}
+        onStatusSelect={(status) => setSelectedStatuses([status])}
+      />
+
+      <section className="bg-surface-container-low pb-section-gap-mobile md:pb-section-gap">
+        <div className="mx-auto max-w-container px-edge-margin-mobile md:px-edge-margin-desktop">
+          <div className="sticky top-[60px] z-30 -mx-edge-margin-mobile border-b border-outline-variant/40 bg-background-white/95 px-edge-margin-mobile py-3 backdrop-blur md:-mx-edge-margin-desktop md:px-edge-margin-desktop">
+            <div className="no-scrollbar flex items-center gap-3 overflow-x-auto">
+              {categoryTabs.map((tab) => {
+                const selected = category === tab.value;
+
+                return (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => setCategoryAndReset(tab.value)}
+                    className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+                      selected
+                        ? "bg-primary text-on-primary"
+                        : "bg-surface-container-low text-on-surface hover:bg-primary-fixed hover:text-on-primary-fixed"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid gap-gutter pt-stack-lg lg:grid-cols-[240px_1fr]">
+            <aside className="rounded-lg bg-background-white p-stack-md shadow-soft lg:sticky lg:top-32">
+              <div className="mb-stack-md flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 font-display text-body-lg font-bold text-on-surface">
+                  <SlidersHorizontal size={18} className="text-primary" />
+                  Filters
+                </div>
+                {activeFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="text-sm font-bold text-primary hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-stack-lg">
+
+                <div>
+                  <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
+                    Collections
+                  </span>
+                  <div className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => setCollection("all")}
+                      className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors ${
+                        collection === "all"
+                          ? "bg-primary-fixed text-on-primary-fixed"
+                          : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+                      }`}
+                    >
+                      All collections
+                      <span className="text-xs text-on-surface-variant">
+                        {catalogProducts.filter(
+                          (product) =>
+                            category === "all" || product.categorySlug === category,
+                        ).length}
+                      </span>
+                    </button>
+                    {collections.filter((item) => getCollectionCount(item) > 0).map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setCollection(item)}
+                        className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors ${
+                          collection === item
+                            ? "bg-primary-fixed text-on-primary-fixed"
+                            : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+                        }`}
+                      >
+                        {item}
+                        <span className="text-xs text-on-surface-variant">
+                          {getCollectionCount(item)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="block">
+                  <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
+                    Price Range
+                  </span>
+                  <input
+                    type="range"
+                    min={10000}
+                    max={maxCatalogPrice}
+                    step={25000}
+                    value={maxPrice}
+                    onChange={(event) => setMaxPrice(Number(event.target.value))}
+                    className="w-full accent-primary"
+                  />
+                  <div className="mt-2 flex items-center justify-between text-xs font-bold text-on-surface">
+                    <span>Rp 0</span>
+                    <span>{formatIDR(maxPrice)}</span>
+                  </div>
+                </label>
+
+                <div>
+                  <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
+                    Options
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {statusOptions.map((option) => {
+                      const selected = selectedStatuses.includes(option.value);
+
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => toggleStatus(option.value)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+                            selected
+                              ? "border-primary bg-primary text-on-primary"
+                              : "border-outline-variant bg-background-white text-on-surface hover:border-primary hover:text-primary"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
+                    Brand
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {brands.map((brand) => {
+                      const selected = selectedBrands.includes(brand);
+
+                      return (
+                        <button
+                          key={brand}
+                          type="button"
+                          onClick={() => toggleBrand(brand)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+                            selected
+                              ? "border-primary bg-primary text-on-primary"
+                              : "border-outline-variant bg-background-white text-on-surface hover:border-primary hover:text-primary"
+                          }`}
+                        >
+                          {brand}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            <div>
+              <div className="mb-stack-md space-y-stack-md">
+                <label className="flex w-full items-center gap-3 rounded-lg bg-background-white px-4 py-3 shadow-soft ring-1 ring-outline-variant/40 focus-within:ring-primary">
+                  <Search size={18} className="shrink-0 text-primary" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search products or tags like #DutchStyle"
+                    className="w-full bg-transparent text-body-md text-on-surface outline-none placeholder:text-on-surface-variant/70"
+                  />
+                </label>
+                <div className="flex flex-col gap-stack-md sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-on-surface-variant">
+                    Showing {shownProducts.length} of {filteredProducts.length} products
+                  </p>
+                  <label className="flex w-full items-center justify-between gap-3 rounded bg-background-white px-3 py-2 text-sm font-bold text-on-surface shadow-soft sm:w-auto">
+                    Sort by:
+                  <select
+                    value={sort}
+                    onChange={(event) => setSort(event.target.value as SortOption)}
+                    className="bg-transparent text-sm font-bold text-on-surface outline-none"
+                  >
+                    <option value="popular">Popularity</option>
+                    <option value="newest">Newest</option>
+                    <option value="price-asc">Price: Low</option>
+                    <option value="price-desc">Price: High</option>
+                    <option value="rating">Rating</option>
+                  </select>
+                </label>
+              </div>
+
+              </div>
+
+              {shownProducts.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 xl:grid-cols-3">
+                    {shownProducts.map((product) => (
+                      <ProductTile key={product.id} product={product} />
+                    ))}
+                  </div>
+                  {shownProducts.length < filteredProducts.length && (
+                    <div className="mt-stack-lg flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleCount((count) => count + 6)}
+                        className="rounded border border-outline-variant bg-background-white px-6 py-3 text-label-md text-primary shadow-soft transition-colors hover:bg-primary-fixed"
+                      >
+                        Load More Products
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-lg bg-background-white p-stack-lg text-center shadow-soft">
+                  <h3 className="font-display text-headline-md text-on-surface">
+                    No products match those filters
+                  </h3>
+                  <p className="mt-2 text-body-md text-on-surface-variant">
+                    Try another collection, brand, or status option.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="mt-stack-md rounded bg-primary px-6 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                  >
+                    Reset Catalog
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
