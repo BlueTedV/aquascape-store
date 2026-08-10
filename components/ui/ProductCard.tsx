@@ -6,18 +6,18 @@ import { useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { Product } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
-import { useCart } from "@/lib/cart-context";
+import { useAuthCart } from "@/lib/use-auth-cart";
 import StarRating from "./StarRating";
 import Badge from "./Badge";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { addItem } = useCart();
+  const { addItem } = useAuthCart();
   const [added, setAdded] = useState(false);
 
-  const handleAddToCart = (event: React.MouseEvent) => {
+  const handleAddToCart = async (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    addItem({
+    const wasAdded = await addItem({
       id: product.id,
       slug: product.slug,
       name: product.name,
@@ -25,12 +25,15 @@ export default function ProductCard({ product }: { product: Product }) {
       image: product.image,
       category: product.category,
     });
+
+    if (!wasAdded) return;
+
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };
 
   return (
-    <div className="group relative rounded-lg bg-background-white p-stack-md shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
+    <div className="group relative flex h-full flex-col rounded-lg bg-background-white p-stack-md shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
       {product.badge && <Badge type={product.badge} />}
 
       <Link
@@ -47,16 +50,16 @@ export default function ProductCard({ product }: { product: Product }) {
       </Link>
 
       <Link href={`/product/${product.slug}`}>
-        <h3 className="mb-1 line-clamp-1 font-display text-body-lg font-bold text-on-surface">
+        <h3 className="mb-1 line-clamp-2 min-h-14 font-display text-body-lg font-bold leading-snug text-on-surface">
           {product.name}
         </h3>
       </Link>
 
-      <div className="mb-2">
+      <div className="mb-2 min-h-6">
         <StarRating rating={product.rating} reviewCount={product.reviewCount} />
       </div>
 
-      <p className="font-sans text-price-display text-price-green">
+      <p className="mt-auto pr-12 font-sans text-price-display text-price-green">
         {formatIDR(product.price)}
       </p>
 

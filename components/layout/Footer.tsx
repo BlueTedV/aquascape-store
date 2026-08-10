@@ -20,7 +20,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-gutter md:grid-cols-4">
           <div className="space-y-stack-md">
             <div className="font-display text-headline-md font-bold text-primary-fixed">
-              AQUA STUDIO
+              AQUAKU SHOP
             </div>
             <p className="font-sans text-body-md opacity-80">
               Premium aquascaping materials and biological integrity. Designing
@@ -88,7 +88,7 @@ export default function Footer() {
 
         <div className="mt-stack-lg flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-stack-md md:flex-row">
           <p className="font-sans text-sm opacity-60">
-            © {new Date().getFullYear()} Aqua Studio Indonesia.
+            Ã‚&copy; {new Date().getFullYear()} Aquaku Shop Indonesia.
           </p>
           <div className="flex gap-6 text-sm opacity-60">
             {legalLinks.map((link) => (

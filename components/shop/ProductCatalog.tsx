@@ -12,9 +12,10 @@ import {
   SlidersHorizontal,
   Star,
 } from "lucide-react";
-import { Product, ProductBadge } from "@/lib/types";
+import { ProductBadge } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
-import { useCart } from "@/lib/cart-context";
+import { useAuthCart } from "@/lib/use-auth-cart";
+import { DbProduct } from "@/lib/api/products";
 
 type CategorySlug =
   | "all"
@@ -27,22 +28,14 @@ type CategorySlug =
 type SortOption = "popular" | "newest" | "price-asc" | "price-desc" | "rating";
 type StatusFilter = "available" | "sale" | "new";
 
-type CatalogProduct = Product & {
-  categorySlug: Exclude<CategorySlug, "all">;
-  collection: string;
-  brand: string;
-  stock: number;
-  onSale?: boolean;
-  compareAtPrice?: number;
-  unit?: string;
-  arrival?: boolean;
-  tags: string[];
-};
+type CatalogProduct = DbProduct;
 
 interface ProductCatalogProps {
+  products: CatalogProduct[];
   initialCategory?: string;
   initialBadge?: ProductBadge;
   initialTag?: string;
+  initialQuery?: string;
 }
 
 const categoryTabs: { label: string; value: CategorySlug }[] = [
@@ -92,217 +85,6 @@ const heroSlides = [
   },
 ];
 
-const catalogProducts: CatalogProduct[] = [
-  {
-    id: "prod-1",
-    slug: "premium-dragon-stone",
-    name: "Premium Dragon Stone",
-    category: "Hardscape",
-    categorySlug: "hardscape",
-    collection: "Dragon Stone",
-    brand: "Aqua Studio",
-    price: 85000,
-    compareAtPrice: 110000,
-    rating: 4.9,
-    reviewCount: 24,
-    image: "https://picsum.photos/seed/aqua-premium-dragon-stone/600/480",
-    badge: "New",
-    featured: true,
-    stock: 24,
-    onSale: true,
-    unit: "kg",
-    arrival: true,
-    tags: ["Iwagumi", "NatureAquarium", "NanoTank"],
-  },
-  {
-    id: "prod-2",
-    slug: "spider-wood-medium",
-    name: "Spider Wood Medium",
-    category: "Hardscape",
-    categorySlug: "hardscape",
-    collection: "Spider Wood",
-    brand: "ADA",
-    price: 125000,
-    rating: 4.7,
-    reviewCount: 15,
-    image: "https://picsum.photos/seed/aqua-spider-wood-medium/600/480",
-    featured: true,
-    stock: 15,
-    tags: ["NatureAquarium", "JungleStyle", "Woodscape"],
-  },
-  {
-    id: "prod-3",
-    slug: "hc-cuba-tissue-culture",
-    name: "HC Cuba Tissue Culture",
-    category: "Plants",
-    categorySlug: "plants",
-    collection: "Tissue Culture",
-    brand: "Twinstar",
-    price: 45000,
-    rating: 5,
-    reviewCount: 18,
-    image: "https://picsum.photos/seed/aqua-hc-cuba-cup/600/480",
-    badge: "Best Seller",
-    stock: 36,
-    unit: "cup",
-    tags: ["DutchStyle", "Iwagumi", "CarpetPlants"],
-  },
-  {
-    id: "prod-4",
-    slug: "studio-pro-led-60cm",
-    name: "Studio Pro LED 60cm",
-    category: "Equipment",
-    categorySlug: "equipment",
-    collection: "Lighting",
-    brand: "Aqua Studio",
-    price: 1450000,
-    compareAtPrice: 1650000,
-    rating: 4.8,
-    reviewCount: 31,
-    image: "https://picsum.photos/seed/aqua-studio-pro-led-60cm/600/480",
-    badge: "Premium",
-    featured: true,
-    stock: 8,
-    onSale: true,
-    tags: ["DutchStyle", "NatureAquarium", "HighTech"],
-  },
-  {
-    id: "prod-5",
-    slug: "crystalflow-filter-300",
-    name: "CrystalFlow Filter 300",
-    category: "Equipment",
-    categorySlug: "equipment",
-    collection: "Filtration",
-    brand: "UNS",
-    price: 2890000,
-    rating: 4.9,
-    reviewCount: 20,
-    image: "https://picsum.photos/seed/aqua-filter-300/600/480",
-    stock: 5,
-    tags: ["NatureAquarium", "HighTech", "CleanLayout"],
-  },
-  {
-    id: "prod-6",
-    slug: "red-cherry-shrimp-grade-a",
-    name: "Red Cherry Shrimp Grade A",
-    category: "Shrimp",
-    categorySlug: "shrimp",
-    collection: "Neocaridina",
-    brand: "Aqua Studio",
-    price: 12000,
-    rating: 4.8,
-    reviewCount: 42,
-    image: "https://picsum.photos/seed/aqua-red-cherry-shrimp/600/480",
-    badge: "New",
-    stock: 60,
-    unit: "pc",
-    arrival: true,
-    tags: ["JungleStyle", "NatureAquarium", "NanoTank"],
-  },
-  {
-    id: "prod-7",
-    slug: "seiryu-stone-layout-pack",
-    name: "Seiryu Stone Layout Pack",
-    category: "Hardscape",
-    categorySlug: "hardscape",
-    collection: "Seiryu Stone",
-    brand: "ADA",
-    price: 245000,
-    rating: 4.8,
-    reviewCount: 19,
-    image: "https://picsum.photos/seed/aqua-seiryu-stone-pack/600/480",
-    stock: 18,
-    unit: "5kg",
-    tags: ["Iwagumi", "NatureAquarium", "StoneLayout"],
-  },
-  {
-    id: "prod-8",
-    slug: "rotala-hra-stem-bunch",
-    name: "Rotala H'Ra Stem Bunch",
-    category: "Plants",
-    categorySlug: "plants",
-    collection: "Stem Plants",
-    brand: "Aqua Studio",
-    price: 42000,
-    rating: 4.6,
-    reviewCount: 33,
-    image: "https://picsum.photos/seed/aqua-rotala-hra-bunch/600/480",
-    stock: 22,
-    unit: "bunch",
-    tags: ["DutchStyle", "JungleStyle", "StemPlants"],
-  },
-  {
-    id: "prod-9",
-    slug: "cardinal-tetra-school-10",
-    name: "Cardinal Tetra School 10",
-    category: "Fish",
-    categorySlug: "fish",
-    collection: "Tetra",
-    brand: "Aqua Studio",
-    price: 250000,
-    compareAtPrice: 290000,
-    rating: 4.9,
-    reviewCount: 51,
-    image: "https://picsum.photos/seed/aqua-cardinal-tetra-school/600/480",
-    stock: 12,
-    onSale: true,
-    tags: ["NatureAquarium", "CommunityTank", "SchoolingFish"],
-  },
-  {
-    id: "prod-10",
-    slug: "amazonia-aquasoil-9l",
-    name: "Amazonia Aquasoil 9L",
-    category: "Substrate",
-    categorySlug: "others",
-    collection: "Substrates",
-    brand: "ADA",
-    price: 680000,
-    rating: 5,
-    reviewCount: 156,
-    image: "https://picsum.photos/seed/aqua-amazonia-soil-9l/600/480",
-    badge: "Best Seller",
-    featured: true,
-    stock: 21,
-    tags: ["Iwagumi", "DutchStyle", "PlantedTank"],
-  },
-  {
-    id: "prod-11",
-    slug: "inline-co2-diffuser-pro",
-    name: "Inline CO2 Diffuser Pro",
-    category: "Equipment",
-    categorySlug: "equipment",
-    collection: "CO2 System",
-    brand: "UNS",
-    price: 320000,
-    rating: 4.7,
-    reviewCount: 27,
-    image: "https://picsum.photos/seed/aqua-inline-co2-diffuser/600/480",
-    badge: "New",
-    stock: 14,
-    arrival: true,
-    tags: ["DutchStyle", "NatureAquarium", "HighTech"],
-  },
-  {
-    id: "prod-12",
-    slug: "precision-planting-tweezers",
-    name: "Precision Planting Tweezers",
-    category: "Tools",
-    categorySlug: "others",
-    collection: "Tools",
-    brand: "Aqua Studio",
-    price: 95000,
-    rating: 4.5,
-    reviewCount: 17,
-    image: "https://picsum.photos/seed/aqua-planting-tweezers/600/480",
-    stock: 30,
-    tags: ["DutchStyle", "Iwagumi", "PlantingTools"],
-  },
-];
-
-const maxCatalogPrice = Math.max(
-  ...catalogProducts.map((product) => product.price),
-);
-const brands = ["ADA", "Aqua Studio", "UNS", "Twinstar"];
 const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: "Available", value: "available" },
   { label: "On Sale", value: "sale" },
@@ -437,7 +219,7 @@ function CatalogHero({
   );
 }
 function ProductTile({ product }: { product: CatalogProduct }) {
-  const { addItem } = useCart();
+  const { addItem } = useAuthCart();
   const [added, setAdded] = useState(false);
   const badge = product.onSale
     ? "Sale"
@@ -445,9 +227,9 @@ function ProductTile({ product }: { product: CatalogProduct }) {
       ? "New Arrival"
       : product.badge;
 
-  const handleAddToCart = (event: React.MouseEvent) => {
+  const handleAddToCart = async (event: React.MouseEvent) => {
     event.preventDefault();
-    addItem({
+    const wasAdded = await addItem({
       id: product.id,
       slug: product.slug,
       name: product.name,
@@ -456,12 +238,15 @@ function ProductTile({ product }: { product: CatalogProduct }) {
       category: product.category,
       unit: product.unit,
     });
+
+    if (!wasAdded) return;
+
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };
 
   return (
-    <article className="group relative overflow-hidden rounded-lg bg-background-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-lg bg-background-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
       <Link
         href={`/product/${product.slug}`}
         className="relative block aspect-[4/3] overflow-hidden bg-surface-container"
@@ -480,7 +265,7 @@ function ProductTile({ product }: { product: CatalogProduct }) {
         )}
       </Link>
 
-      <div className="p-4">
+      <div className="flex flex-1 flex-col p-4">
         <div className="mb-2 flex items-center justify-between gap-2 text-[11px] uppercase text-on-surface-variant">
           <span>{product.category}</span>
           <span className="flex items-center gap-1 text-price-green">
@@ -489,11 +274,11 @@ function ProductTile({ product }: { product: CatalogProduct }) {
           </span>
         </div>
         <Link href={`/product/${product.slug}`}>
-          <h3 className="min-h-11 font-display text-body-md font-bold leading-snug text-on-surface transition-colors group-hover:text-primary">
+          <h3 className="line-clamp-2 min-h-12 font-display text-body-md font-bold leading-snug text-on-surface transition-colors group-hover:text-primary">
             {product.name}
           </h3>
         </Link>
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex min-h-[58px] content-start flex-wrap gap-1.5">
           {product.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
@@ -503,7 +288,7 @@ function ProductTile({ product }: { product: CatalogProduct }) {
             </span>
           ))}
         </div>
-        <div className="mt-3 flex items-end justify-between gap-3">
+        <div className="mt-auto flex min-h-[52px] items-end justify-between gap-3 pt-3">
           <div>
             <div className="font-sans text-body-md font-bold text-price-green">
               {formatIDR(product.price)}
@@ -534,15 +319,26 @@ function ProductTile({ product }: { product: CatalogProduct }) {
 }
 
 export default function ProductCatalog({
+  products,
   initialCategory = "all",
   initialBadge,
   initialTag,
+  initialQuery,
 }: ProductCatalogProps) {
+  const maxCatalogPrice = useMemo(
+    () => Math.max(1, ...products.map((product) => product.price)),
+    [products],
+  );
+  const brands = useMemo(
+    () => Array.from(new Set(products.map((product) => product.brand))).sort(),
+    [products],
+  );
+
   const [category, setCategory] = useState<CategorySlug>(
     getSafeCategory(initialCategory),
   );
   const [collection, setCollection] = useState("all");
-  const [query, setQuery] = useState(getInitialQuery(initialTag));
+  const [query, setQuery] = useState(initialQuery ?? getInitialQuery(initialTag));
   const [sort, setSort] = useState<SortOption>("popular");
   const [maxPrice, setMaxPrice] = useState(maxCatalogPrice);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -581,7 +377,7 @@ export default function ProductCatalog({
 
     const hasTagQuery = tagQueries.length > 0;
 
-    return catalogProducts
+    return products
       .filter((product) => {
         const matchesCategory =
           hasTagQuery || category === "all" || product.categorySlug === category;
@@ -636,7 +432,7 @@ export default function ProductCatalog({
         }
         return b.reviewCount - a.reviewCount;
       });
-  }, [category, collection, maxPrice, query, selectedBrands, selectedStatuses, sort]);
+  }, [category, collection, maxPrice, products, query, selectedBrands, selectedStatuses, sort]);
 
   const shownProducts = filteredProducts.slice(0, visibleCount);
   const activeCollectionCount = collection === "all" ? 0 : 1;
@@ -658,7 +454,7 @@ export default function ProductCatalog({
   };
 
   const getCollectionCount = (item: string) =>
-    catalogProducts.filter((product) => {
+    products.filter((product) => {
       const categoryMatch = category === "all" || product.categorySlug === category;
       return categoryMatch && product.collection === item;
     }).length;
@@ -730,7 +526,7 @@ export default function ProductCatalog({
                     >
                       All collections
                       <span className="text-xs text-on-surface-variant">
-                        {catalogProducts.filter(
+                        {products.filter(
                           (product) =>
                             category === "all" || product.categorySlug === category,
                         ).length}

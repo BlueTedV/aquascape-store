@@ -1,12 +1,14 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Check, CheckCircle2, Heart, Minus, Plus, ShoppingCart, Star, Truck } from "lucide-react";
-import { ProductDetail } from "@/data/product-details";
+import { ProductDetail } from "@/lib/api/products";
 import { formatIDR } from "@/lib/format";
-import { useCart } from "@/lib/cart-context";
+import { useAuthCart } from "@/lib/use-auth-cart";
+
+const DESCRIPTION_PREVIEW_LENGTH = 330;
 
 type ProductDetailViewProps = {
   product: ProductDetail;
@@ -14,12 +16,12 @@ type ProductDetailViewProps = {
 };
 
 function RelatedProductCard({ product }: { product: ProductDetail }) {
-  const { addItem } = useCart();
+  const { addItem } = useAuthCart();
   const [added, setAdded] = useState(false);
 
-  const handleAddToCart = (event: React.MouseEvent) => {
+  const handleAddToCart = async (event: React.MouseEvent) => {
     event.preventDefault();
-    addItem({
+    const wasAdded = await addItem({
       id: product.id,
       slug: product.slug,
       name: product.name,
@@ -28,12 +30,15 @@ function RelatedProductCard({ product }: { product: ProductDetail }) {
       category: product.category,
       unit: product.unit,
     });
+
+    if (!wasAdded) return;
+
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };
 
   return (
-    <article className="group overflow-hidden rounded bg-background-white shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-soft-hover">
+    <article className="group flex h-full flex-col overflow-hidden rounded bg-background-white shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-soft-hover">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[1.2/1] bg-surface-container">
         <Image
           src={product.image}
@@ -48,16 +53,16 @@ function RelatedProductCard({ product }: { product: ProductDetail }) {
           </span>
         )}
       </Link>
-      <div className="p-3">
+      <div className="flex flex-1 flex-col p-3">
         <p className="text-[10px] font-bold uppercase text-on-surface-variant">
           {product.collection}
         </p>
         <Link href={`/product/${product.slug}`}>
-          <h3 className="mt-1 min-h-9 font-display text-sm font-bold leading-snug text-on-surface group-hover:text-primary">
+          <h3 className="mt-1 line-clamp-2 min-h-10 font-display text-sm font-bold leading-snug text-on-surface group-hover:text-primary">
             {product.name}
           </h3>
         </Link>
-        <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="mt-auto flex min-h-10 items-center justify-between gap-2 pt-3">
           <p className="text-sm font-bold text-price-green">{formatIDR(product.price)}</p>
           <button
             type="button"
@@ -77,13 +82,19 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
   const [activeImage, setActiveImage] = useState(product.gallery[0]);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
-  const { addItem } = useCart();
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const { addItem } = useAuthCart();
 
   const total = useMemo(() => product.price * quantity, [product.price, quantity]);
   const stockLabel = product.stock > 0 ? `${product.stock} in stock` : "Out of stock";
+  const isLongDescription = product.description.length > DESCRIPTION_PREVIEW_LENGTH;
+  const shownDescription =
+    isLongDescription && !descriptionExpanded
+      ? `${product.description.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd()}...`
+      : product.description;
 
-  const addToCart = () => {
-    addItem({
+  const addToCart = async () => {
+    const wasAdded = await addItem({
       id: product.id,
       slug: product.slug,
       name: product.name,
@@ -93,6 +104,9 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
       unit: product.unit,
       quantity,
     });
+
+    if (!wasAdded) return;
+
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2200);
   };
@@ -181,9 +195,18 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
             {product.unit && <span className="ml-1 text-xs font-normal text-on-surface-variant">/ {product.unit}</span>}
           </p>
 
-          <p className="mt-4 text-sm leading-6 text-on-surface-variant">
-            {product.description}
-          </p>
+          <div className="mt-4 text-sm leading-6 text-on-surface-variant">
+            <p>{shownDescription}</p>
+            {isLongDescription && (
+              <button
+                type="button"
+                onClick={() => setDescriptionExpanded((value) => !value)}
+                className="mt-2 text-xs font-bold uppercase text-primary transition-colors hover:text-primary-container"
+              >
+                {descriptionExpanded ? "Show less" : "Click to see more"}
+              </button>
+            )}
+          </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
             {product.tags.map((tag) => (

@@ -1,6 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductCatalog from "@/components/shop/ProductCatalog";
+import { getProducts } from "@/lib/api/products";
 import { ProductBadge } from "@/lib/types";
 
 type ShopPageProps = {
@@ -8,6 +11,7 @@ type ShopPageProps = {
     category?: string | string[];
     badge?: string | string[];
     tag?: string | string[];
+    q?: string | string[];
   }>;
 };
 
@@ -28,16 +32,20 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const initialCategory = getParam(params?.category);
   const initialBadge = getBadge(getParam(params?.badge));
   const initialTag = getParam(params?.tag);
+  const initialQuery = getParam(params?.q);
+  const products = await getProducts();
 
   return (
     <>
       <Navbar activeCategory={initialCategory} />
       <main className="bg-surface-container-low">
         <ProductCatalog
-          key={`${initialCategory ?? "all"}-${initialBadge ?? "all"}-${initialTag ?? "none"}`}
+          key={`${initialCategory ?? "all"}-${initialBadge ?? "all"}-${initialTag ?? "none"}-${initialQuery ?? "none"}`}
+          products={products}
           initialCategory={initialCategory}
           initialBadge={initialBadge}
           initialTag={initialTag}
+          initialQuery={initialQuery}
         />
       </main>
       <Footer />

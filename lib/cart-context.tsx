@@ -11,7 +11,7 @@ import {
 } from "react";
 import { CartItem } from "./types";
 
-const STORAGE_KEY = "aqua-studio-cart";
+const STORAGE_KEY = "aquaku-shop-cart";
 
 type AddCartInput = Omit<CartItem, "quantity"> & { quantity?: number };
 
@@ -36,7 +36,7 @@ function readStoredCart(): CartItem[] {
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    console.error("Aqua Studio: failed to read cart from storage", error);
+    console.error("Aquaku Shop: failed to read cart from storage", error);
     return [];
   }
 }
@@ -47,7 +47,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load any previously saved cart once, on first mount in the browser.
   // localStorage isn't available during SSR, so this intentionally runs
-  // post-mount and causes one extra render — the standard pattern for
+  // post-mount and causes one extra render â€” the standard pattern for
   // hydrating client-only persisted state.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -61,7 +61,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch (error) {
-      console.error("Aqua Studio: failed to save cart to storage", error);
+      console.error("Aquaku Shop: failed to save cart to storage", error);
     }
   }, [items, isHydrated]);
 
@@ -73,7 +73,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const parsed = event.newValue ? JSON.parse(event.newValue) : [];
         setItems(Array.isArray(parsed) ? parsed : []);
       } catch (error) {
-        console.error("Aqua Studio: failed to sync cart across tabs", error);
+        console.error("Aquaku Shop: failed to sync cart across tabs", error);
       }
     }
 

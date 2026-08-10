@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { login, register, storeSession } from "@/lib/api/auth";
 
 type AuthMode = "login" | "register";
 
@@ -30,37 +30,18 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
     const password = String(formData.get("password") ?? "");
     const fullName = String(formData.get("fullName") ?? "").trim();
     const phone = String(formData.get("phone") ?? "").trim();
-    const supabase = createClient();
 
     try {
-      if (isRegister) {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
-            data: {
-              full_name: fullName,
-              phone,
-            },
-          },
-        });
+      const session = isRegister
+        ? await register({ email, password, fullName, phone })
+        : await login({ email, password });
 
-        if (signUpError) throw signUpError;
-
-        if (!data.session) {
-          setMessage("Account created. Check your email to confirm your signup before logging in.");
-          return;
-        }
-      } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (signInError) throw signInError;
+      if (!session.accessToken) {
+        setMessage("Account created. Check your email to confirm your signup before logging in.");
+        return;
       }
 
+      storeSession(session);
       router.push(redirectTo);
       router.refresh();
     } catch (authError) {
@@ -174,7 +155,7 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
       </form>
 
       <p className="mt-stack-lg text-center text-body-md text-on-surface-variant">
-        {isRegister ? "Already have an account?" : "New to Aqua Studio?"} {" "}
+        {isRegister ? "Already have an account?" : "New to Aquaku Shop?"} {" "}
         <Link
           href={isRegister ? "/login" : "/register"}
           className="font-bold text-primary hover:underline"

@@ -1,4 +1,4 @@
-# Aqua Studio — Aquascaping Homepage
+# Aquaku Shop â€” Aquascaping Homepage
 
 A Next.js (App Router) + TypeScript + Tailwind rebuild of the "Verdant Waters"
 Stitch homepage design: sticky nav, hero, brand story, category grid,
@@ -32,26 +32,26 @@ a quick check on https://nextjs.org/blog for anything newer than 16.2.12.
 
 ### Round 2: the remaining `npm audit` findings
 
-After the 14 → 16 upgrade, the critical middleware-bypass and high RSC DoS
+After the 14 â†’ 16 upgrade, the critical middleware-bypass and high RSC DoS
 issues are gone. What's left (all "high") are three *nested* dependencies
 that Next.js and the ESLint plugin chain bundle internally and haven't bumped
 yet on their end:
 
-- **`brace-expansion`** (DoS) — pulled in transitively by ESLint's plugin
-  chain (`eslint-config-next` → `eslint-plugin-*` → `minimatch`). Dev/lint
+- **`brace-expansion`** (DoS) â€” pulled in transitively by ESLint's plugin
+  chain (`eslint-config-next` â†’ `eslint-plugin-*` â†’ `minimatch`). Dev/lint
   tooling only; never runs against untrusted input in normal use.
-- **`postcss`** (XSS / source-map path traversal) — bundled *inside*
+- **`postcss`** (XSS / source-map path traversal) â€” bundled *inside*
   `next`'s own `node_modules`, separate from the `postcss` we use directly
   for Tailwind. This is a known, widely-reported issue where Next.js pins an
-  old internal postcss version — see
+  old internal postcss version â€” see
   [vercel/next.js#93234](https://github.com/vercel/next.js/issues/93234).
-- **`sharp`** (inherited libvips CVEs) — also bundled inside `next`, used by
+- **`sharp`** (inherited libvips CVEs) â€” also bundled inside `next`, used by
   `next/image`'s built-in optimizer. This one matters more if you self-host
   with `next start`, since it does run at request time (on Vercel, image
   optimization happens on Vercel's infrastructure instead).
 
 **Do not run `npm audit fix --force`.** Its suggested fix downgrades `next`
-all the way to `9.3.3` and reintroduces every issue from Round 1 — that's
+all the way to `9.3.3` and reintroduces every issue from Round 1 â€” that's
 npm's resolver picking the nearest version *outside* the flagged range, not
 an actual safe version.
 
@@ -68,7 +68,7 @@ without touching the top-level `next`/`eslint` versions:
 }
 ```
 
-After `npm install`, re-run `npm audit` — it should come back clean. If a
+After `npm install`, re-run `npm audit` â€” it should come back clean. If a
 newer Next.js patch has since bundled fixed versions itself, npm may report
 these overrides as unnecessary/no-ops, which is fine to leave in place.
 
@@ -102,7 +102,7 @@ tailwind.config.ts    Color, type scale, spacing, and radius tokens from DESIGN.
 Everything on the page is rendered from the arrays in `data/*.ts`, typed
 against the interfaces in `lib/types.ts`. To connect a real backend or CMS,
 replace the contents of those files with fetch calls (e.g. in a Server
-Component) that return the same shapes — the components themselves don't
+Component) that return the same shapes â€” the components themselves don't
 need to change.
 
 ## Placeholder images
@@ -110,7 +110,7 @@ need to change.
 Every image currently points to **picsum.photos** with a fixed seed (e.g.
 `.../seed/aqua-hero/1600/1000`) purely so the layout has something realistic
 to render out of the box. Swap these for your own product photography before
-launch — `next.config.mjs` only whitelists `picsum.photos` for
+launch â€” `next.config.mjs` only whitelists `picsum.photos` for
 `next/image`, so add your real image host(s) to `images.remotePatterns`
 when you do.
 
@@ -118,16 +118,16 @@ when you do.
 
 All colors, type sizes, spacing, and border radii in `tailwind.config.ts`
 are transcribed directly from the original `DESIGN.md` ("Verdant Waters")
-so the visual language stays consistent if you extend the site — e.g. use
+so the visual language stays consistent if you extend the site â€” e.g. use
 `font-display text-headline-lg text-primary` for a section heading, or
 `shadow-soft` / `shadow-soft-hover` for the card elevation system.
 
 ## Notes on this build
 
 - This delivers the **homepage only** (as scoped). Category, product-detail,
-  cart, and checkout pages aren't built yet — the nav and "Shop Now" /
+  cart, and checkout pages aren't built yet â€” the nav and "Shop Now" /
   "View All Products" links point to routes like `/shop`, `/category/plants`,
   `/product/[slug]` that you can build next using the same data layer.
 - The "Bringing Nature Home" section was rewritten with more specific,
-  concrete copy plus a stat strip and a founder pull-quote — all placeholder
+  concrete copy plus a stat strip and a founder pull-quote â€” all placeholder
   content, so edit `components/home/AboutSection.tsx` with your real story.

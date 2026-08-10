@@ -4,9 +4,9 @@ import Footer from "@/components/layout/Footer";
 import CartView from "@/components/cart/CartView";
 
 export const metadata: Metadata = {
-  title: "Your Cart | Aqua Studio",
+  title: "Your Cart | Aquaku Shop",
   description:
-    "Review the plants, hardscape, and equipment in your Aqua Studio cart before checkout.",
+    "Review the plants, hardscape, and equipment in your Aquaku Shop cart before checkout.",
 };
 
 export default function CartPage() {

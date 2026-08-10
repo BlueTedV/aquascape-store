@@ -1,9 +1,11 @@
-import { featuredProducts } from "@/data/products";
+import { getFeaturedProducts } from "@/lib/api/products";
 import ProductCard from "@/components/ui/ProductCard";
 import SectionHeading from "@/components/ui/SectionHeading";
 import SectionReveal from "@/components/ui/SectionReveal";
 
-export default function FeaturedProducts() {
+export default async function FeaturedProducts() {
+  const featuredProducts = await getFeaturedProducts();
+
   return (
     <SectionReveal
       as="section"

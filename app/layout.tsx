@@ -18,7 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Aqua Studio | Premium Aquascaping & Biological Integrity",
+  title: "Aquaku Shop | Premium Aquascaping & Biological Integrity",
   description:
     "Premium aquatic plants, hardscape, fish, shrimp, and professional aquascaping equipment for the modern hobbyist. Shipping across Indonesia.",
 };
@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${poppins.variable} ${inter.variable}`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${poppins.variable} ${inter.variable}`}>
       <body>
         <CartProvider>{children}</CartProvider>
       </body>
