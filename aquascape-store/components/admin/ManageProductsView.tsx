@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, PackagePlus, Save, Search, Star, ToggleLeft } from "lucide-react";
+import { CheckCircle2, Loader2, PackagePlus, Save, Search, Star, ToggleLeft, Upload } from "lucide-react";
 import {
   AdminCategory,
   ProductAdminInput,
@@ -12,6 +12,7 @@ import {
   getAdminCategories,
   getAdminProducts,
   updateAdminProduct,
+  uploadAdminImage,
 } from "@/lib/api/admin";
 import { getCurrentAccount } from "@/lib/api/auth";
 import { ProductDetail } from "@/lib/api/products";
@@ -53,7 +54,7 @@ const emptyForm: FormState = {
   compareAtPrice: "",
   rating: "0",
   reviewCount: "0",
-  image: "https://picsum.photos/seed/aquaku-new-product/900/720",
+  image: "/images/products/product-placeholder.svg",
   badge: "",
   featured: false,
   stock: "1",
@@ -155,6 +156,7 @@ export default function ManageProductsView() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<"main" | "gallery" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -220,6 +222,50 @@ export default function ManageProductsView() {
     });
     setMessage(null);
     setError(null);
+  };
+
+  const uploadMainImage = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading("main");
+    setMessage(null);
+    setError(null);
+
+    try {
+      const uploaded = await uploadAdminImage(file);
+      setField("image", uploaded.url);
+      setField("gallery", form.gallery.trim() ? form.gallery : uploaded.url);
+      setMessage("Main image uploaded.");
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Image upload failed.");
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const uploadGalleryImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading("gallery");
+    setMessage(null);
+    setError(null);
+
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (const file of Array.from(files)) {
+        const uploaded = await uploadAdminImage(file);
+        uploadedUrls.push(uploaded.url);
+      }
+
+      setField(
+        "gallery",
+        [...textToLines(form.gallery), ...uploadedUrls].join("\n"),
+      );
+      setMessage(`${uploadedUrls.length} gallery image${uploadedUrls.length === 1 ? "" : "s"} uploaded.`);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Gallery upload failed.");
+    } finally {
+      setUploading(null);
+    }
   };
 
   const saveProduct = async (event: FormEvent<HTMLFormElement>) => {
@@ -382,8 +428,20 @@ export default function ManageProductsView() {
               <input type="number" min="0" value={form.compareAtPrice} onChange={(event) => setField("compareAtPrice", event.target.value)} className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
             </label>
             <label className="block md:col-span-2">
-              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Main Image URL</span>
-              <input required type="url" value={form.image} onChange={(event) => setField("image", event.target.value)} className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
+              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Main Image</span>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <input required value={form.image} onChange={(event) => setField("image", event.target.value)} placeholder="Upload an image or paste a URL/path" className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded border border-outline-variant bg-background-white px-4 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary-fixed">
+                  {uploading === "main" ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                  Upload
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(event) => uploadMainImage(event.target.files?.[0])}
+                  />
+                </label>
+              </div>
             </label>
           </div>
 
@@ -452,8 +510,19 @@ export default function ManageProductsView() {
               <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={5} className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
             </label>
             <label className="block">
-              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Gallery URLs</span>
-              <textarea value={form.gallery} onChange={(event) => setField("gallery", event.target.value)} rows={6} placeholder="One image URL per line" className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
+              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Gallery Images</span>
+              <textarea value={form.gallery} onChange={(event) => setField("gallery", event.target.value)} rows={6} placeholder="One image URL or local path per line" className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
+              <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded border border-outline-variant bg-background-white px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary-fixed">
+                {uploading === "gallery" ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                Upload Gallery Images
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="sr-only"
+                  onChange={(event) => uploadGalleryImages(event.target.files)}
+                />
+              </label>
             </label>
             <label className="block">
               <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Specifications</span>

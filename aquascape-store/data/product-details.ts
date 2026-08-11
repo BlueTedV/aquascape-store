@@ -84,13 +84,13 @@ const descriptions: Record<string, string> = {
 };
 
 const seeds: Seed[] = [
-  { id: "prod-1", slug: "premium-dragon-stone", name: "Premium Dragon Stone", category: "Hardscape", categorySlug: "hardscape", collection: "Dragon Stone", brand: "Aquaku Shop", price: 85000, compareAtPrice: 110000, rating: 4.9, reviewCount: 24, image: "https://picsum.photos/seed/aqua-premium-dragon-stone/900/720", badge: "New", featured: true, stock: 24, unit: "kg", onSale: true, arrival: true, tags: ["Iwagumi", "NatureAquarium", "NanoTank"], description: "Also known as Ohko Stone, Dragon Stone is prized for its rugged, dragon-scaled texture and warm brown tones. Each piece is selected for layout depth, strong character, and natural aquascape flow." },
-  { id: "prod-2", slug: "spider-wood-medium", name: "Spider Wood Medium", category: "Hardscape", categorySlug: "hardscape", collection: "Spider Wood", brand: "ADA", price: 125000, rating: 4.7, reviewCount: 15, image: "https://picsum.photos/seed/aqua-spider-wood-medium/900/720", featured: true, stock: 15, tags: ["NatureAquarium", "JungleStyle", "Woodscape"] },
-  { id: "prod-3", slug: "hc-cuba-tissue-culture", name: "HC Cuba Tissue Culture", category: "Plants", categorySlug: "plants", collection: "Tissue Culture", brand: "Twinstar", price: 45000, rating: 5, reviewCount: 18, image: "https://picsum.photos/seed/aqua-hc-cuba-cup/900/720", badge: "Best Seller", stock: 36, unit: "cup", tags: ["DutchStyle", "Iwagumi", "CarpetPlants"] },
-  { id: "prod-4", slug: "studio-pro-led-60cm", name: "Studio Pro LED 60cm", category: "Equipment", categorySlug: "equipment", collection: "Lighting", brand: "Aquaku Shop", price: 1450000, compareAtPrice: 1650000, rating: 4.8, reviewCount: 31, image: "https://picsum.photos/seed/aquaku-shop-pro-led-60cm/900/720", badge: "Premium", featured: true, stock: 8, onSale: true, tags: ["DutchStyle", "NatureAquarium", "HighTech"] },
-  { id: "prod-6", slug: "red-cherry-shrimp-grade-a", name: "Red Cherry Shrimp Grade A", category: "Shrimp", categorySlug: "shrimp", collection: "Neocaridina", brand: "Aquaku Shop", price: 12000, rating: 4.8, reviewCount: 42, image: "https://picsum.photos/seed/aqua-red-cherry-shrimp/900/720", badge: "New", stock: 60, unit: "pc", arrival: true, tags: ["JungleStyle", "NatureAquarium", "NanoTank"] },
-  { id: "prod-9", slug: "cardinal-tetra-school-10", name: "Cardinal Tetra School 10", category: "Fish", categorySlug: "fish", collection: "Tetra", brand: "Aquaku Shop", price: 250000, compareAtPrice: 290000, rating: 4.9, reviewCount: 51, image: "https://picsum.photos/seed/aqua-cardinal-tetra-school/900/720", stock: 12, onSale: true, tags: ["NatureAquarium", "CommunityTank", "SchoolingFish"] },
-  { id: "prod-10", slug: "amazonia-aquasoil-9l", name: "Amazonia Aquasoil 9L", category: "Substrate", categorySlug: "others", collection: "Substrates", brand: "ADA", price: 680000, rating: 5, reviewCount: 156, image: "https://picsum.photos/seed/aqua-amazonia-soil-9l/900/720", badge: "Best Seller", featured: true, stock: 21, tags: ["Iwagumi", "DutchStyle", "PlantedTank"] },
+  { id: "prod-1", slug: "premium-dragon-stone", name: "Premium Dragon Stone", category: "Hardscape", categorySlug: "hardscape", collection: "Dragon Stone", brand: "Aquaku Shop", price: 85000, compareAtPrice: 110000, rating: 4.9, reviewCount: 24, image: "/images/products/product-placeholder.svg", badge: "New", featured: true, stock: 24, unit: "kg", onSale: true, arrival: true, tags: ["Iwagumi", "NatureAquarium", "NanoTank"], description: "Also known as Ohko Stone, Dragon Stone is prized for its rugged, dragon-scaled texture and warm brown tones. Each piece is selected for layout depth, strong character, and natural aquascape flow." },
+  { id: "prod-2", slug: "spider-wood-medium", name: "Spider Wood Medium", category: "Hardscape", categorySlug: "hardscape", collection: "Spider Wood", brand: "ADA", price: 125000, rating: 4.7, reviewCount: 15, image: "/images/products/product-placeholder.svg", featured: true, stock: 15, tags: ["NatureAquarium", "JungleStyle", "Woodscape"] },
+  { id: "prod-3", slug: "hc-cuba-tissue-culture", name: "HC Cuba Tissue Culture", category: "Plants", categorySlug: "plants", collection: "Tissue Culture", brand: "Twinstar", price: 45000, rating: 5, reviewCount: 18, image: "/images/products/product-placeholder.svg", badge: "Best Seller", stock: 36, unit: "cup", tags: ["DutchStyle", "Iwagumi", "CarpetPlants"] },
+  { id: "prod-4", slug: "studio-pro-led-60cm", name: "Studio Pro LED 60cm", category: "Equipment", categorySlug: "equipment", collection: "Lighting", brand: "Aquaku Shop", price: 1450000, compareAtPrice: 1650000, rating: 4.8, reviewCount: 31, image: "/images/products/product-placeholder.svg", badge: "Premium", featured: true, stock: 8, onSale: true, tags: ["DutchStyle", "NatureAquarium", "HighTech"] },
+  { id: "prod-6", slug: "red-cherry-shrimp-grade-a", name: "Red Cherry Shrimp Grade A", category: "Shrimp", categorySlug: "shrimp", collection: "Neocaridina", brand: "Aquaku Shop", price: 12000, rating: 4.8, reviewCount: 42, image: "/images/products/product-placeholder.svg", badge: "New", stock: 60, unit: "pc", arrival: true, tags: ["JungleStyle", "NatureAquarium", "NanoTank"] },
+  { id: "prod-9", slug: "cardinal-tetra-school-10", name: "Cardinal Tetra School 10", category: "Fish", categorySlug: "fish", collection: "Tetra", brand: "Aquaku Shop", price: 250000, compareAtPrice: 290000, rating: 4.9, reviewCount: 51, image: "/images/products/product-placeholder.svg", stock: 12, onSale: true, tags: ["NatureAquarium", "CommunityTank", "SchoolingFish"] },
+  { id: "prod-10", slug: "amazonia-aquasoil-9l", name: "Amazonia Aquasoil 9L", category: "Substrate", categorySlug: "others", collection: "Substrates", brand: "ADA", price: 680000, rating: 5, reviewCount: 156, image: "/images/products/product-placeholder.svg", badge: "Best Seller", featured: true, stock: 21, tags: ["Iwagumi", "DutchStyle", "PlantedTank"] },
 ];
 
 function titleFromSlug(slug: string) {
@@ -109,9 +109,9 @@ function inferCategory(slug: string) {
 function galleryFor(slug: string, image: string) {
   return [
     image,
-    `https://picsum.photos/seed/${slug}-detail-a/900/720`,
-    `https://picsum.photos/seed/${slug}-detail-b/900/720`,
-    `https://picsum.photos/seed/${slug}-layout/900/720`,
+    `/images/products/product-placeholder.svg`,
+    `/images/products/product-placeholder.svg`,
+    `/images/products/product-placeholder.svg`,
   ];
 }
 
@@ -128,7 +128,7 @@ function normalize(product: Seed): ProductDetail {
 function fallbackProduct(slug: string): ProductDetail {
   const inferred = inferCategory(slug);
   const key = inferred.categorySlug in descriptions ? inferred.categorySlug : "others";
-  const image = `https://picsum.photos/seed/aqua-${slug}/900/720`;
+  const image = `/images/products/product-placeholder.svg`;
 
   return {
     id: `mock-${slug}`,

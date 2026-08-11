@@ -7,7 +7,7 @@ export const aquascapeStyles: AquascapeStyle[] = [
     name: "Iwagumi",
     description:
       "Minimalist stone-led layouts built on odd-numbered rock groupings and carpeting plants.",
-    image: "https://picsum.photos/seed/aqua-iwagumi/800/900",
+    image: "/images/home/style-iwagumi.svg",
   },
   {
     id: "style-nature",
@@ -15,7 +15,7 @@ export const aquascapeStyles: AquascapeStyle[] = [
     name: "Nature Aquarium",
     description:
       "Amano-inspired scapes balancing driftwood, moss, and schooling fish for a natural forest feel.",
-    image: "https://picsum.photos/seed/aqua-nature/800/900",
+    image: "/images/home/style-nature.svg",
   },
   {
     id: "style-dutch",
@@ -23,7 +23,7 @@ export const aquascapeStyles: AquascapeStyle[] = [
     name: "Dutch Style",
     description:
       "Dense, terraced plant 'streets' arranged for color and texture contrast, no hardscape required.",
-    image: "https://picsum.photos/seed/aqua-dutch/800/900",
+    image: "/images/home/style-dutch.svg",
   },
   {
     id: "style-jungle",
@@ -31,6 +31,6 @@ export const aquascapeStyles: AquascapeStyle[] = [
     name: "Jungle Style",
     description:
       "Wild, low-maintenance growth with tall stems and broad leaves for a shadowy, overgrown look.",
-    image: "https://picsum.photos/seed/aqua-jungle/800/900",
+    image: "/images/home/style-jungle.svg",
   },
 ];

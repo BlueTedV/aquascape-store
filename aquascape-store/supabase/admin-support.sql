@@ -8,6 +8,18 @@ alter table public.products
 
 alter table public.profiles
   add column if not exists role text not null default 'customer';
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'product-images',
+  'product-images',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
 do $$
 begin
@@ -34,7 +46,7 @@ alter default privileges in schema public grant select on tables to anon, authen
 alter default privileges in schema public grant select, insert, update on tables to service_role;
 
 -- Bootstrap admin access by using one of these options:
--- 1. Add your email to ADMIN_EMAILS in Laravel .env, for example ADMIN_EMAILS=you@example.com
+-- 1. Add one or more emails to ADMIN_EMAILS in Laravel .env, for example ADMIN_EMAILS=you@example.com,partner@example.com
 -- 2. Or run this after replacing the email:
 -- update public.profiles set role = 'admin' where id = (
 --   select id from auth.users where email = 'you@example.com' limit 1

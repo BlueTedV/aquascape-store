@@ -72,9 +72,9 @@ class ProductContent
     {
         return [
             $image,
-            "https://picsum.photos/seed/{$slug}-detail-a/900/720",
-            "https://picsum.photos/seed/{$slug}-detail-b/900/720",
-            "https://picsum.photos/seed/{$slug}-layout/900/720",
+            '/images/products/product-detail-a.svg',
+            '/images/products/product-detail-b.svg',
+            '/images/products/product-layout.svg',
         ];
     }
 }

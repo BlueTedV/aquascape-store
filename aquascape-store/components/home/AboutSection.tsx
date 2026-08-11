@@ -15,7 +15,7 @@ export default function AboutSection() {
         <div className="grid grid-cols-1 items-center gap-gutter md:grid-cols-2">
           <div className="overflow-hidden rounded-lg shadow-soft">
             <Image
-              src="https://picsum.photos/seed/aqua-about/900/700"
+              src="/images/home/about.svg"
               alt="A finished planted aquarium on a minimalist wood stand in a home living room"
               width={900}
               height={700}

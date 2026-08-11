@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Aquaku Shop Story">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#314d2f"/>
+      <stop offset="1" stop-color="#92b88b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <path d="M0 610 C180 520 290 660 450 585 C620 505 700 630 870 560 C1010 502 1080 550 1200 492 L1200 800 L0 800 Z" fill="#071f12" opacity="0.72"/>
+  <path d="M110 625 C230 525 330 660 470 570 C590 495 705 585 830 525 C975 455 1070 495 1160 430" fill="none" stroke="#e7f6df" stroke-width="14" stroke-linecap="round" opacity="0.38"/>
+  <circle cx="230" cy="210" r="80" fill="#e7f6df" opacity="0.18"/>
+  <text x="70" y="115" fill="#ffffff" font-family="Arial, sans-serif" font-size="44" font-weight="700">Aquaku Shop Story</text>
+  <text x="70" y="170" fill="#ffffff" font-family="Arial, sans-serif" font-size="24" opacity="0.8">Replace this local asset with your own shop photo</text>
+</svg>

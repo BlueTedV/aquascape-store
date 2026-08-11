@@ -34,6 +34,34 @@ type ApiResponse<T> = {
 };
 
 const API_URL = (process.env.AQUAKU_API_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
+const PRODUCT_IMAGE_PLACEHOLDER = "/images/products/product-placeholder.svg";
+
+function normalizeImage(image: string | null | undefined) {
+  if (!image || image.includes("picsum.photos") || image.includes("fastly.picsum.photos")) {
+    return PRODUCT_IMAGE_PLACEHOLDER;
+  }
+
+  return image;
+}
+
+function normalizeProduct<T extends ApiProduct>(product: T): T {
+  return {
+    ...product,
+    image: normalizeImage(product.image),
+  };
+}
+
+function normalizeProductDetail(product: ProductDetail): ProductDetail {
+  const normalized = normalizeProduct(product);
+  const gallery = product.gallery
+    .map((image) => normalizeImage(image))
+    .filter((image, index, images) => image && images.indexOf(image) === index);
+
+  return {
+    ...normalized,
+    gallery: gallery.length > 0 ? gallery : [normalized.image],
+  };
+}
 
 async function fetchApi<T>(path: string, fallback: T): Promise<T> {
   try {
@@ -58,23 +86,28 @@ async function fetchApi<T>(path: string, fallback: T): Promise<T> {
 }
 
 export async function getProducts(): Promise<ApiProduct[]> {
-  return fetchApi<ApiProduct[]>("/api/products", []);
+  const products = await fetchApi<ApiProduct[]>("/api/products", []);
+  return products.map(normalizeProduct);
 }
 
 export async function getFeaturedProducts(limit = 4): Promise<ApiProduct[]> {
-  return fetchApi<ApiProduct[]>(`/api/products/featured?limit=${limit}`, []);
+  const products = await fetchApi<ApiProduct[]>(`/api/products/featured?limit=${limit}`, []);
+  return products.map(normalizeProduct);
 }
 
 export async function getProductDetailBySlug(slug: string): Promise<ProductDetail | null> {
-  return fetchApi<ProductDetail | null>(`/api/products/${encodeURIComponent(slug)}`, null);
+  const product = await fetchApi<ProductDetail | null>(`/api/products/${encodeURIComponent(slug)}`, null);
+  return product ? normalizeProductDetail(product) : null;
 }
 
 export async function getRelatedProductDetails(
   product: ProductDetail,
   limit = 4,
 ): Promise<ProductDetail[]> {
-  return fetchApi<ProductDetail[]>(
+  const products = await fetchApi<ProductDetail[]>(
     `/api/products/${encodeURIComponent(product.slug)}/related?limit=${limit}`,
     [],
   );
+
+  return products.map(normalizeProductDetail);
 }

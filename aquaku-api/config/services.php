@@ -41,6 +41,7 @@ return [
         'service_role_key' => env('SUPABASE_SERVICE_ROLE_KEY'),
         'key' => env('SUPABASE_SERVICE_ROLE_KEY', env('SUPABASE_PUBLISHABLE_KEY')),
         'admin_emails' => array_filter(array_map('trim', explode(',', env('ADMIN_EMAILS', '')))),
+        'storage_bucket' => env('SUPABASE_STORAGE_BUCKET', 'product-images'),
     ],
 
 ];

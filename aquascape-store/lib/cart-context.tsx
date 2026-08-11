@@ -12,6 +12,19 @@ import {
 import { CartItem } from "./types";
 
 const STORAGE_KEY = "aquaku-shop-cart";
+const PRODUCT_IMAGE_PLACEHOLDER = "/images/products/product-placeholder.svg";
+
+function normalizeImage(image: string | null | undefined): string {
+  if (
+    !image ||
+    typeof image !== "string" ||
+    image.includes("picsum.photos") ||
+    image.includes("fastly.picsum.photos")
+  ) {
+    return PRODUCT_IMAGE_PLACEHOLDER;
+  }
+  return image;
+}
 
 type AddCartInput = Omit<CartItem, "quantity"> & { quantity?: number };
 
@@ -34,7 +47,16 @@ function readStoredCart(): CartItem[] {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter((item) => item && typeof item === "object" && item.id && item.name)
+      .map((item) => ({
+        ...item,
+        image: normalizeImage(item.image),
+        price: Number(item.price || 0),
+        quantity: Math.max(1, Number(item.quantity || 1)),
+      }));
   } catch (error) {
     console.error("Aquaku Shop: failed to read cart from storage", error);
     return [];
@@ -46,11 +68,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Load any previously saved cart once, on first mount in the browser.
-  // localStorage isn't available during SSR, so this intentionally runs
-  // post-mount and causes one extra render â€” the standard pattern for
-  // hydrating client-only persisted state.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(readStoredCart());
     setIsHydrated(true);
   }, []);
@@ -71,7 +89,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (event.key !== STORAGE_KEY) return;
       try {
         const parsed = event.newValue ? JSON.parse(event.newValue) : [];
-        setItems(Array.isArray(parsed) ? parsed : []);
+        const normalized = Array.isArray(parsed)
+          ? parsed.map((item) => ({
+              ...item,
+              image: normalizeImage(item.image),
+            }))
+          : [];
+        setItems(normalized);
       } catch (error) {
         console.error("Aquaku Shop: failed to sync cart across tabs", error);
       }
@@ -83,6 +107,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback((item: AddCartInput) => {
     const quantity = Math.max(1, item.quantity ?? 1);
+    const normalizedItem = {
+      ...item,
+      image: normalizeImage(item.image),
+    };
 
     setItems((current) => {
       const existing = current.find((line) => line.id === item.id);
@@ -90,12 +118,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (existing) {
         return current.map((line) =>
           line.id === item.id
-            ? { ...line, quantity: line.quantity + quantity }
+            ? { ...line, quantity: line.quantity + quantity, image: normalizedItem.image }
             : line,
         );
       }
 
-      return [...current, { ...item, quantity }];
+      return [...current, { ...normalizedItem, quantity }];
     });
   }, []);
 

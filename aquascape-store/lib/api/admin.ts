@@ -13,6 +13,12 @@ export type ProductSpecInput = {
   value: string;
 };
 
+export type AdminUploadResult = {
+  bucket: string;
+  path: string;
+  url: string;
+};
+
 export type ProductAdminInput = {
   name: string;
   slug?: string;
@@ -55,5 +61,14 @@ export async function updateAdminProduct(id: string, input: ProductAdminInput) {
   return authenticatedRequest<ProductDetail>(`/api/admin/products/${encodeURIComponent(id)}`, {
     method: "PUT",
     body: JSON.stringify(input),
+  });
+}
+export async function uploadAdminImage(file: File) {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  return authenticatedRequest<AdminUploadResult>("/api/admin/uploads/images", {
+    method: "POST",
+    body: formData,
   });
 }

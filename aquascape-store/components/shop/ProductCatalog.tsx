@@ -65,7 +65,7 @@ const heroSlides = [
     body: "Curated stone and wood packs for nano tanks through 90P layouts.",
     cta: "Shop Sale Items",
     filter: "sale" as StatusFilter,
-    image: "https://picsum.photos/seed/aqua-sale-hardscape/1600/520",
+    image: "/images/home/promo-sale.svg",
   },
   {
     eyebrow: "Fresh arrival",
@@ -73,7 +73,7 @@ const heroSlides = [
     body: "Clean, pest-free cups for carpeting, moss walls, and high-light stems.",
     cta: "See New Items",
     filter: "new" as StatusFilter,
-    image: "https://picsum.photos/seed/aqua-new-plants/1600/520",
+    image: "/images/home/promo-new.svg",
   },
   {
     eyebrow: "Promo kit",
@@ -81,7 +81,7 @@ const heroSlides = [
     body: "Balanced gear sets selected for reliable plant growth and clean displays.",
     cta: "Explore Equipment",
     category: "equipment" as CategorySlug,
-    image: "https://picsum.photos/seed/aqua-promo-equipment/1600/520",
+    image: "/images/home/promo-equipment.svg",
   },
 ];
 

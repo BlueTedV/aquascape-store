@@ -73,23 +73,31 @@ export default function CartView() {
 
       <div className="mt-stack-lg grid gap-gutter lg:grid-cols-[1fr_360px]">
         <div className="space-y-stack-md">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex flex-col gap-4 rounded-lg bg-background-white p-4 shadow-soft sm:flex-row sm:items-center"
-            >
-              <Link
-                href={`/product/${item.slug}`}
-                className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-md bg-surface-container"
+          {items.map((item) => {
+            const imageSrc =
+              !item.image ||
+              item.image.includes("picsum.photos") ||
+              item.image.includes("fastly.picsum.photos")
+                ? "/images/products/product-placeholder.svg"
+                : item.image;
+
+            return (
+              <div
+                key={item.id}
+                className="flex flex-col gap-4 rounded-lg bg-background-white p-4 shadow-soft sm:flex-row sm:items-center"
               >
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  sizes="96px"
-                  className="object-cover"
-                />
-              </Link>
+                <Link
+                  href={`/product/${item.slug}`}
+                  className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-md bg-surface-container"
+                >
+                  <Image
+                    src={imageSrc}
+                    alt={item.name}
+                    fill
+                    sizes="96px"
+                    className="object-cover"
+                  />
+                </Link>
 
               <div className="min-w-0 flex-1">
                 {item.category && (
@@ -150,7 +158,8 @@ export default function CartView() {
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
 
           <div className="flex items-center justify-between gap-4 pt-2">
             <Link

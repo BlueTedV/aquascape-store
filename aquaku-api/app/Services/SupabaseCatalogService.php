@@ -214,6 +214,28 @@ class SupabaseCatalogService
             ]);
     }
 
+    private function normalizeImage(?string $image): string
+    {
+        $image = trim((string) $image);
+
+        if ($image === '' || str_contains($image, 'picsum.photos') || str_contains($image, 'fastly.picsum.photos')) {
+            return '/images/products/product-placeholder.svg';
+        }
+
+        return $image;
+    }
+
+    private function normalizeGallery(array $gallery, string $mainImage): array
+    {
+        return collect($gallery)
+            ->map(fn ($image) => $this->normalizeImage(is_string($image) ? $image : null))
+            ->filter(fn ($image) => $image !== '' && $image !== '/images/products/product-placeholder.svg')
+            ->prepend($mainImage)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     private function mapProduct(array $row): array
     {
         $categorySlug = (string) ($row['category_slug'] ?? 'others');
@@ -230,7 +252,7 @@ class SupabaseCatalogService
             'compareAtPrice' => $row['compare_at_price'] !== null ? (int) $row['compare_at_price'] : null,
             'rating' => (float) $row['rating'],
             'reviewCount' => (int) $row['review_count'],
-            'image' => (string) $row['image_url'],
+            'image' => $this->normalizeImage($row['image_url'] ?? null),
             'badge' => $row['badge'],
             'featured' => (bool) $row['featured'],
             'stock' => (int) $row['stock'],
@@ -250,6 +272,8 @@ class SupabaseCatalogService
 
         if (! is_array($gallery) || count(array_filter($gallery)) === 0) {
             $gallery = ProductContent::galleryFor($product['slug'], $product['image']);
+        } else {
+            $gallery = $this->normalizeGallery($gallery, $product['image']);
         }
 
         if (! is_array($specs) || count($specs) === 0) {

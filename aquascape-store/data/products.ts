@@ -9,7 +9,7 @@ export const products: Product[] = [
     price: 1450000,
     rating: 5,
     reviewCount: 24,
-    image: "https://picsum.photos/seed/aqua-tank-60p/600/600",
+    image: "/images/products/product-placeholder.svg",
     badge: "Premium",
     featured: true,
   },
@@ -21,7 +21,7 @@ export const products: Product[] = [
     price: 45000,
     rating: 4,
     reviewCount: 12,
-    image: "https://picsum.photos/seed/aqua-rotala/600/600",
+    image: "/images/products/product-placeholder.svg",
     featured: true,
   },
   {
@@ -32,7 +32,7 @@ export const products: Product[] = [
     price: 2890000,
     rating: 5,
     reviewCount: 48,
-    image: "https://picsum.photos/seed/aqua-light/600/600",
+    image: "/images/products/product-placeholder.svg",
     featured: true,
   },
   {
@@ -43,7 +43,7 @@ export const products: Product[] = [
     price: 680000,
     rating: 5,
     reviewCount: 156,
-    image: "https://picsum.photos/seed/aqua-soil/600/600",
+    image: "/images/products/product-placeholder.svg",
     badge: "Best Seller",
     featured: true,
   },
@@ -55,7 +55,7 @@ export const products: Product[] = [
     price: 385000,
     rating: 5,
     reviewCount: 63,
-    image: "https://picsum.photos/seed/aqua-dragonstone/600/600",
+    image: "/images/products/product-placeholder.svg",
   },
   {
     id: "prod-6",
@@ -65,7 +65,7 @@ export const products: Product[] = [
     price: 150000,
     rating: 5,
     reviewCount: 38,
-    image: "https://picsum.photos/seed/aqua-crs/600/600",
+    image: "/images/products/product-placeholder.svg",
     badge: "New",
   },
   {
@@ -76,7 +76,7 @@ export const products: Product[] = [
     price: 250000,
     rating: 5,
     reviewCount: 91,
-    image: "https://picsum.photos/seed/aqua-tetra/600/600",
+    image: "/images/products/product-placeholder.svg",
   },
   {
     id: "prod-8",
@@ -86,7 +86,7 @@ export const products: Product[] = [
     price: 320000,
     rating: 4,
     reviewCount: 27,
-    image: "https://picsum.photos/seed/aqua-co2/600/600",
+    image: "/images/products/product-placeholder.svg",
     badge: "New",
   },
 ];
