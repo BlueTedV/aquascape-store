@@ -182,12 +182,16 @@ class SupabaseOrderService
         })->all();
     }
 
-    public function updateOrderStatus(string $id, string $status, ?string $paymentStatus = null): array
+    public function updateOrderStatus(string $id, string $status, ?string $paymentStatus = null, ?string $trackingNumber = null): array
     {
         $updatePayload = [
             'order_status' => $status,
             'updated_at' => now()->toIso8601String(),
         ];
+
+        if ($trackingNumber !== null) {
+            $updatePayload['shipping_resi'] = trim($trackingNumber);
+        }
 
         if ($paymentStatus) {
             $updatePayload['payment_status'] = $paymentStatus;
@@ -245,6 +249,7 @@ class SupabaseOrderService
             'orderStatus' => (string) $order['order_status'],
             'subtotal' => (int) $order['subtotal'],
             'totalAmount' => (int) $order['total_amount'],
+            'trackingNumber' => $order['shipping_resi'] ?? null,
             'notes' => $order['notes'] ?? null,
             'createdAt' => (string) $order['created_at'],
             'items' => array_map(function (array $item) {

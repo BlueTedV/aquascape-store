@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, Copy, ShoppingBag, Truck, CreditCard, Clock, ArrowRight } from "lucide-react";
+import { CheckCircle2, Copy, ShoppingBag, Truck, CreditCard, Clock, ArrowRight, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { Order } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
@@ -19,6 +19,22 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const steps = [
+    { key: "pending", title: "Order Placed", desc: "Verified" },
+    { key: "processing", title: "Processing", desc: "Packing & Plant Care" },
+    { key: "shipped", title: "On The Way", desc: "Handed to Courier" },
+    { key: "completed", title: "Delivered", desc: "Package Received" },
+  ];
+
+  const currentStepIndex =
+    order.orderStatus === "pending"
+      ? 0
+      : order.orderStatus === "processing"
+        ? 1
+        : order.orderStatus === "shipped"
+          ? 2
+          : 3;
 
   return (
     <div className="mx-auto max-w-container px-edge-margin-mobile pb-20 pt-24 md:px-edge-margin-desktop">
@@ -42,8 +58,95 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
       </div>
 
       <div className="mx-auto mt-stack-lg grid max-w-4xl gap-gutter lg:grid-cols-[1fr_360px]">
-        {/* Left Column: Payment Details & Items */}
+        {/* Left Column: Tracking & Payment Details & Items */}
         <div className="space-y-stack-md">
+          {/* Live Delivery & Resi Tracking Card */}
+          <div className="rounded-lg border border-primary/30 bg-background-white p-stack-md shadow-soft">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/40 pb-3">
+              <div className="flex items-center gap-2 text-primary font-display text-body-lg font-bold">
+                <Truck size={20} />
+                <span>
+                  {order.orderStatus === "completed" ? "Order Delivered & Completed" : "Live Package Tracking"}
+                </span>
+              </div>
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary uppercase">
+                {order.orderStatus}
+              </span>
+            </div>
+
+            {/* Resi Banner */}
+            {order.trackingNumber ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-purple-50 p-4 border border-purple-200">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Shipping Resi / Waybill No.</p>
+                  <p className="font-mono text-base font-bold text-purple-950 mt-0.5">{order.trackingNumber}</p>
+                  <p className="text-xs text-purple-700 mt-0.5">Courier: <strong>{order.courier}</strong></p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(order.trackingNumber || "");
+                      alert("Shipping Resi copied to clipboard!");
+                    }}
+                    className="flex items-center gap-1.5 rounded bg-background-white px-3 py-1.5 text-xs font-bold text-purple-900 border border-purple-300 hover:bg-purple-100 shadow-xs"
+                  >
+                    <Copy size={13} />
+                    Copy Resi
+                  </button>
+                  <a
+                    href={`https://www.cekresi.com/?noresi=${encodeURIComponent(order.trackingNumber)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 rounded bg-purple-700 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-purple-800 shadow-xs"
+                  >
+                    <span>Track Live</span>
+                    <ExternalLink size={13} />
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg bg-surface-container-low p-3.5 text-xs text-on-surface-variant">
+                Shipping Resi (Waybill) will be assigned as soon as the courier picks up your package.
+              </div>
+            )}
+
+            {/* Stepper */}
+            <div className="my-6 px-2">
+              <div className="relative flex items-center justify-between">
+                <div className="absolute left-0 top-1/2 -z-0 h-1 w-full -translate-y-1/2 bg-outline-variant/40" />
+                <div
+                  className="absolute left-0 top-1/2 -z-0 h-1 -translate-y-1/2 bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+                />
+
+                {steps.map((step, idx) => {
+                  const isFinished = idx <= currentStepIndex;
+                  const isCurrent = idx === currentStepIndex;
+
+                  return (
+                    <div key={step.key} className="relative z-10 flex flex-col items-center text-center">
+                      <div
+                        className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all ${
+                          isFinished
+                            ? "border-emerald-500 bg-emerald-500 text-white shadow-sm"
+                            : "border-outline-variant/60 bg-background-white text-on-surface-variant"
+                        } ${isCurrent ? "ring-4 ring-emerald-100" : ""}`}
+                      >
+                        {isFinished ? <CheckCircle2 size={18} /> : <Clock size={16} />}
+                      </div>
+                      <div className="mt-2 hidden sm:block">
+                        <p className={`text-xs font-bold ${isFinished ? "text-on-surface" : "text-on-surface-variant/60"}`}>
+                          {step.title}
+                        </p>
+                        <p className="text-[10px] text-on-surface-variant">{step.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
           {/* Payment Instructions Card */}
           <div className="rounded-lg border border-primary/20 bg-background-white p-stack-md shadow-soft">
             <div className="flex items-center gap-2.5 text-primary">

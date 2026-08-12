@@ -18,10 +18,14 @@ CREATE TABLE IF NOT EXISTS public.orders (
   subtotal integer NOT NULL DEFAULT 0,
   total_amount integer NOT NULL DEFAULT 0,
   notes text,
+  shipping_resi text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT orders_pkey PRIMARY KEY (id)
 );
+
+-- Migration statement if table already exists
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_resi text;
 
 CREATE TABLE IF NOT EXISTS public.order_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -81,9 +81,15 @@ class OrderController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:pending,processing,shipped,completed,cancelled'],
             'paymentStatus' => ['nullable', 'string', 'in:unpaid,paid,refunded'],
+            'trackingNumber' => ['nullable', 'string', 'max:255'],
         ]);
 
-        return $this->respond(fn () => $this->orders->updateOrderStatus($id, $validated['status'], $validated['paymentStatus'] ?? null));
+        return $this->respond(fn () => $this->orders->updateOrderStatus(
+            $id,
+            $validated['status'],
+            $validated['paymentStatus'] ?? null,
+            $validated['trackingNumber'] ?? null
+        ));
     }
 
     private function respond(callable $callback, int $status = 200): JsonResponse

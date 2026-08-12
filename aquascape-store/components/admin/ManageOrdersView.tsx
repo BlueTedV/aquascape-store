@@ -55,6 +55,14 @@ export default function ManageOrdersView() {
     );
   });
 
+  const [resiInput, setResiInput] = useState("");
+
+  useEffect(() => {
+    if (selectedOrder) {
+      setResiInput(selectedOrder.trackingNumber ?? "");
+    }
+  }, [selectedOrder?.id]);
+
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedOrder) return;
     setUpdating(true);
@@ -62,12 +70,30 @@ export default function ManageOrdersView() {
     setError(null);
 
     try {
-      const updated = await updateOrderStatus(selectedOrder.id, newStatus);
+      const updated = await updateOrderStatus(selectedOrder.id, newStatus, undefined, resiInput);
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       setSelectedOrder(updated);
       setMessage(`Order #${updated.orderNumber} status updated to ${newStatus.toUpperCase()}`);
     } catch (err: any) {
       setError(err.message || "Failed to update order status.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleSaveResi = async () => {
+    if (!selectedOrder) return;
+    setUpdating(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      const updated = await updateOrderStatus(selectedOrder.id, selectedOrder.orderStatus, undefined, resiInput);
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+      setSelectedOrder(updated);
+      setMessage(`Shipping Resi updated for order #${updated.orderNumber}`);
+    } catch (err: any) {
+      setError(err.message || "Failed to save shipping resi.");
     } finally {
       setUpdating(false);
     }
@@ -241,6 +267,27 @@ export default function ManageOrdersView() {
                   <p className="text-on-surface-variant">
                     {selectedOrder.shippingCity}, {selectedOrder.shippingPostalCode}
                   </p>
+
+                  <div className="mt-3 border-t border-outline-variant/60 pt-3">
+                    <label className="block text-[11px] font-bold text-on-surface-variant">Shipping Resi (Waybill No.)</label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={resiInput}
+                        onChange={(e) => setResiInput(e.target.value)}
+                        placeholder="e.g. JNE123456789"
+                        className="w-full rounded border border-outline-variant bg-background-white px-2.5 py-1 text-xs font-mono text-on-surface outline-none focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveResi}
+                        disabled={updating}
+                        className="shrink-0 rounded bg-primary px-3 py-1 text-[11px] font-bold text-on-primary hover:bg-primary/90 disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 

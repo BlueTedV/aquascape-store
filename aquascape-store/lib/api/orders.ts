@@ -28,6 +28,7 @@ export interface Order {
   orderStatus: "pending" | "processing" | "shipped" | "completed" | "cancelled";
   subtotal: number;
   totalAmount: number;
+  trackingNumber?: string | null;
   notes?: string;
   createdAt: string;
   items: OrderItem[];
@@ -136,6 +137,7 @@ export async function updateOrderStatus(
   id: string,
   status: string,
   paymentStatus?: string,
+  trackingNumber?: string | null,
 ): Promise<Order> {
   const response = await fetch(`${API_URL}/api/admin/orders/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
@@ -143,7 +145,7 @@ export async function updateOrderStatus(
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify({ status, paymentStatus }),
+    body: JSON.stringify({ status, paymentStatus, trackingNumber }),
   });
 
   const data = await response.json();

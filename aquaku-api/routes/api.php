@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AdminUploadController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
@@ -39,6 +40,8 @@ Route::prefix('products')->group(function (): void {
     Route::get('/featured', [ProductController::class, 'featured']);
     Route::get('/{slug}', [ProductController::class, 'show']);
     Route::get('/{slug}/related', [ProductController::class, 'related']);
+    Route::get('/{slug}/reviews', [ReviewController::class, 'index']);
+    Route::post('/{slug}/reviews', [ReviewController::class, 'store']);
 });
 
 Route::post('/orders/checkout', [OrderController::class, 'checkout']);

@@ -7,6 +7,7 @@ import { Check, CheckCircle2, Heart, Minus, Plus, ShoppingCart, Star, Truck } fr
 import { ProductDetail } from "@/lib/api/products";
 import { formatIDR } from "@/lib/format";
 import { useAuthCart } from "@/lib/use-auth-cart";
+import ProductReviewsSection from "./ProductReviewsSection";
 
 const DESCRIPTION_PREVIEW_LENGTH = 330;
 
@@ -288,6 +289,13 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
           </section>
         </div>
       </section>
+
+      <ProductReviewsSection
+        productSlug={product.slug}
+        productName={product.name}
+        initialRating={product.rating}
+        initialReviewCount={product.reviewCount}
+      />
 
       <section className="mt-20">
         <div className="mb-5 flex items-end justify-between gap-4">

@@ -155,10 +155,14 @@ class SupabaseAuthService
 
     public function userFromToken(string $accessToken): array
     {
-        return $this->authRequest($accessToken)
-            ->get('/auth/v1/user')
-            ->throw()
-            ->json();
+        try {
+            return $this->authRequest($accessToken)
+                ->get('/auth/v1/user')
+                ->throw()
+                ->json();
+        } catch (\Throwable $e) {
+            abort(401, 'Invalid or expired authentication session.');
+        }
     }
 
     public function isAdmin(array $user, ?array $profile = null): bool

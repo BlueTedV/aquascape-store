@@ -23,6 +23,7 @@ import {
 import {
   Account,
   getCurrentAccount,
+  getStoredSession,
   logout,
   updateProfile,
   updateShippingAddress,
@@ -47,26 +48,36 @@ export default function AccountView() {
   useEffect(() => {
     let mounted = true;
 
+    if (!getStoredSession()?.accessToken) {
+      setLoading(false);
+      setLoadingOrders(false);
+      router.replace("/login?redirect=/account");
+      return;
+    }
+
     getCurrentAccount()
       .then((data) => {
-        if (mounted) setAccount(data);
+        if (!mounted) return;
+        setAccount(data);
+        setLoading(false);
+
+        getUserOrders()
+          .then((orderData) => {
+            if (mounted) setOrders(orderData);
+          })
+          .catch(() => {
+            if (mounted) setOrders([]);
+          })
+          .finally(() => {
+            if (mounted) setLoadingOrders(false);
+          });
       })
       .catch(() => {
-        router.replace("/login?redirect=/account");
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    getUserOrders()
-      .then((data) => {
-        if (mounted) setOrders(data);
-      })
-      .catch((err) => {
-        console.error("Could not fetch user orders", err);
-      })
-      .finally(() => {
-        if (mounted) setLoadingOrders(false);
+        if (mounted) {
+          setLoading(false);
+          setLoadingOrders(false);
+          router.replace("/login?redirect=/account");
+        }
       });
 
     return () => {
@@ -579,6 +590,33 @@ function ActiveDeliveryCard({ order }: { order: Order }) {
           <p className="mt-0.5 text-xs text-on-surface-variant">
             Courier: <strong className="text-on-surface">{order.courier}</strong> • Destination: {order.shippingCity}
           </p>
+
+          {order.trackingNumber && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="rounded bg-purple-100 px-2.5 py-1 font-mono text-xs font-bold text-purple-900 border border-purple-300 flex items-center gap-1.5">
+                <Truck size={13} className="text-purple-700" />
+                Resi: {order.trackingNumber}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(order.trackingNumber || "");
+                  alert("Resi code copied to clipboard!");
+                }}
+                className="rounded border border-outline-variant bg-background-white px-2 py-1 text-[11px] font-bold text-on-surface hover:bg-surface-container"
+              >
+                Copy Resi
+              </button>
+              <a
+                href={`https://www.cekresi.com/?noresi=${encodeURIComponent(order.trackingNumber)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20"
+              >
+                Track Package <ExternalLink size={11} />
+              </a>
+            </div>
+          )}
         </div>
 
         <div className="text-right">

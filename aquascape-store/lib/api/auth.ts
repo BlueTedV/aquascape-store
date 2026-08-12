@@ -126,6 +126,14 @@ async function requestApi<T>(path: string, init: RequestInit = {}, authenticated
   const payload = (await response.json().catch(() => ({}))) as ApiResponse<T>;
 
   if (!response.ok) {
+    if (
+      response.status === 401 ||
+      response.status === 403 ||
+      payload.message?.toLowerCase().includes("jwt") ||
+      payload.message?.toLowerCase().includes("authentication")
+    ) {
+      clearStoredSession();
+    }
     throw new Error(payload.message ?? "Request failed.");
   }
 
