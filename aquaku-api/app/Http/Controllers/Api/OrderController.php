@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\MidtransService;
 use App\Services\SupabaseAuthService;
 use App\Services\SupabaseOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class OrderController extends Controller
@@ -14,6 +16,7 @@ class OrderController extends Controller
     public function __construct(
         private readonly SupabaseOrderService $orders,
         private readonly SupabaseAuthService $auth,
+        private readonly MidtransService $midtrans,
     ) {}
 
     public function checkout(Request $request): JsonResponse
@@ -90,6 +93,92 @@ class OrderController extends Controller
             $validated['paymentStatus'] ?? null,
             $validated['trackingNumber'] ?? null
         ));
+    }
+
+    public function midtransNotification(Request $request): JsonResponse
+    {
+        $payload = $request->all();
+
+        Log::info('Received Midtrans notification', ['payload' => $payload]);
+
+        $orderId = $payload['order_id'] ?? null;
+        $transactionStatus = $payload['transaction_status'] ?? null;
+        $fraudStatus = $payload['fraud_status'] ?? null;
+        $paymentType = $payload['payment_type'] ?? null;
+
+        // Handle Midtrans Dashboard test pings or empty test requests
+        if (! $orderId || ! $transactionStatus) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Midtrans notification webhook endpoint is active.',
+            ], 200);
+        }
+
+        // Verify signature if signature_key is present
+        if (! empty($payload['signature_key']) && $this->midtrans->isConfigured()) {
+            if (! $this->midtrans->verifyNotificationSignature($payload)) {
+                Log::warning('Invalid Midtrans notification signature key', ['payload' => $payload]);
+
+                // Still return 200 for dummy test order numbers to satisfy dashboard tests if needed
+                if (! str_starts_with((string) $orderId, 'AQ-')) {
+                    return response()->json(['status' => 'ok', 'message' => 'Test ping acknowledged'], 200);
+                }
+
+                return response()->json(['message' => 'Invalid signature key'], 403);
+            }
+        }
+
+        $paymentStatus = 'unpaid';
+        $orderStatus = 'pending';
+
+        if ($transactionStatus === 'capture') {
+            if ($paymentType === 'credit_card') {
+                if ($fraudStatus === 'challenge') {
+                    $paymentStatus = 'challenge';
+                    $orderStatus = 'pending';
+                } else {
+                    $paymentStatus = 'paid';
+                    $orderStatus = 'processing';
+                }
+            } else {
+                $paymentStatus = 'paid';
+                $orderStatus = 'processing';
+            }
+        } elseif ($transactionStatus === 'settlement') {
+            $paymentStatus = 'paid';
+            $orderStatus = 'processing';
+        } elseif ($transactionStatus === 'pending') {
+            $paymentStatus = 'unpaid';
+            $orderStatus = 'pending';
+        } elseif ($transactionStatus === 'deny') {
+            $paymentStatus = 'failed';
+            $orderStatus = 'cancelled';
+        } elseif ($transactionStatus === 'expire') {
+            $paymentStatus = 'expired';
+            $orderStatus = 'cancelled';
+        } elseif ($transactionStatus === 'cancel') {
+            $paymentStatus = 'cancelled';
+            $orderStatus = 'cancelled';
+        } elseif (in_array($transactionStatus, ['refund', 'partial_refund'], true)) {
+            $paymentStatus = 'refunded';
+            $orderStatus = 'cancelled';
+        }
+
+        $updatedOrder = $this->orders->updateOrderStatusByOrderNumber($orderId, $orderStatus, $paymentStatus);
+
+        if (! $updatedOrder) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Payment status updated successfully',
+            'data' => [
+                'orderNumber' => $orderId,
+                'paymentStatus' => $paymentStatus,
+                'orderStatus' => $orderStatus,
+            ],
+        ]);
     }
 
     private function respond(callable $callback, int $status = 200): JsonResponse

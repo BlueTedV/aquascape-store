@@ -46,5 +46,6 @@ Route::prefix('products')->group(function (): void {
 
 Route::post('/orders/checkout', [OrderController::class, 'checkout']);
 Route::get('/orders/{orderNumber}', [OrderController::class, 'show']);
+Route::post('/midtrans/notification', [OrderController::class, 'midtransNotification']);
 
 Route::get('/categories', [ProductController::class, 'categories']);

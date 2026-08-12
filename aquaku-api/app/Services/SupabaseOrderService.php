@@ -13,10 +13,13 @@ class SupabaseOrderService
 
     private string $key;
 
-    public function __construct()
+    private MidtransService $midtrans;
+
+    public function __construct(?MidtransService $midtrans = null)
     {
         $this->url = rtrim((string) config('services.supabase.url'), '/');
         $this->key = (string) config('services.supabase.key');
+        $this->midtrans = $midtrans ?? new MidtransService;
 
         if ($this->url === '' || $this->key === '') {
             throw new RuntimeException('Supabase API configuration is missing.');
@@ -220,6 +223,16 @@ class SupabaseOrderService
         return $this->mapOrder($order, $items);
     }
 
+    public function updateOrderStatusByOrderNumber(string $orderNumber, string $status, ?string $paymentStatus = null): ?array
+    {
+        $order = $this->getOrderByNumber($orderNumber);
+        if (! $order) {
+            return null;
+        }
+
+        return $this->updateOrderStatus($order['id'], $status, $paymentStatus);
+    }
+
     private function request(): PendingRequest
     {
         return Http::baseUrl($this->url)
@@ -266,9 +279,18 @@ class SupabaseOrderService
             }, $items),
         ];
 
-        if (in_array($res['paymentMethod'], ['bank_transfer', 'qris', 'credit_card'], true)) {
-            $res['midtransSnapToken'] = 'SNAP-' . strtoupper(md5($res['orderNumber']));
-            $res['midtransRedirectUrl'] = 'https://app.sandbox.midtrans.com/snap/v2/vtweb/' . $res['midtransSnapToken'];
+        if (in_array($res['paymentMethod'], ['bank_transfer', 'qris', 'credit_card'], true) && $res['paymentStatus'] === 'unpaid') {
+            if ($this->midtrans->isConfigured()) {
+                $snapResult = $this->midtrans->createSnapTransaction($res);
+                if ($snapResult) {
+                    $res['midtransSnapToken'] = $snapResult['snapToken'];
+                    $res['midtransRedirectUrl'] = $snapResult['redirectUrl'];
+                }
+            } else {
+                // Fallback for dev mode when MIDTRANS_SERVER_KEY is not configured yet
+                $res['midtransSnapToken'] = 'SNAP-' . strtoupper(md5($res['orderNumber']));
+                $res['midtransRedirectUrl'] = 'https://app.sandbox.midtrans.com/snap/v2/vtweb/' . $res['midtransSnapToken'];
+            }
         }
 
         return $res;

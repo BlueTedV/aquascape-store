@@ -23,6 +23,7 @@ import { useCart } from "@/lib/cart-context";
 import { formatIDR } from "@/lib/format";
 import { createCheckoutOrder, Order } from "@/lib/api/orders";
 import { getCurrentAccount } from "@/lib/api/auth";
+import MidtransSnapScript from "@/components/checkout/MidtransSnapScript";
 
 const COURIERS = [
   {
@@ -136,6 +137,38 @@ export default function CheckoutView() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePayWithSnap = (targetOrder?: Order) => {
+    const orderToPay = targetOrder || createdOrder;
+    const snapToken = orderToPay?.midtransSnapToken;
+    if (!snapToken) return;
+
+    if (typeof window !== "undefined" && window.snap) {
+      window.snap.pay(snapToken, {
+        onSuccess: (result) => {
+          console.log("Snap payment success", result);
+          if (orderToPay) {
+            router.push(`/checkout/success/${encodeURIComponent(orderToPay.orderNumber)}`);
+          }
+        },
+        onPending: (result) => {
+          console.log("Snap payment pending", result);
+          if (orderToPay) {
+            router.push(`/checkout/success/${encodeURIComponent(orderToPay.orderNumber)}`);
+          }
+        },
+        onError: (result) => {
+          console.error("Snap payment error", result);
+          setErrorMessage("Payment process encountered an issue. You can retry payment anytime.");
+        },
+        onClose: () => {
+          console.log("Snap popup closed");
+        },
+      });
+    } else if (orderToPay?.midtransRedirectUrl) {
+      window.open(orderToPay.midtransRedirectUrl, "_blank");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -172,6 +205,12 @@ export default function CheckoutView() {
       clearCart();
       setCreatedOrder(order);
       setShowSuccessModal(true);
+
+      if (order.midtransSnapToken) {
+        setTimeout(() => {
+          handlePayWithSnap(order);
+        }, 400);
+      }
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message || "Something went wrong while placing your order. Please try again.");
@@ -210,6 +249,7 @@ export default function CheckoutView() {
 
   return (
     <div className="mx-auto max-w-container px-edge-margin-mobile pb-20 pt-24 md:px-edge-margin-desktop">
+      <MidtransSnapScript />
       <Breadcrumb />
 
       <h1 className="font-display text-headline-lg text-on-surface">Checkout</h1>
@@ -610,6 +650,17 @@ export default function CheckoutView() {
 
             {/* Action Buttons */}
             <div className="mt-6 space-y-2.5">
+              {createdOrder.midtransSnapToken && createdOrder.paymentStatus === "unpaid" && (
+                <button
+                  type="button"
+                  onClick={() => handlePayWithSnap(createdOrder)}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded bg-emerald-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
+                >
+                  <Sparkles size={16} />
+                  Pay Now with Midtrans
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
