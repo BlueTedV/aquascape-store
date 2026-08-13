@@ -18,6 +18,8 @@ import {
   ShoppingBag,
   ExternalLink,
   Sparkles,
+  XCircle,
+  RotateCcw,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatIDR } from "@/lib/format";
@@ -99,6 +101,8 @@ export default function CheckoutView() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showFailedModal, setShowFailedModal] = useState(false);
+  const [failedMessage, setFailedMessage] = useState<string>("");
 
   // Auto-fill logged in user account info
   useEffect(() => {
@@ -137,47 +141,54 @@ export default function CheckoutView() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePayWithSnap = (targetOrder?: Order) => {
-    const orderToPay = targetOrder || createdOrder;
-    const snapToken = orderToPay?.midtransSnapToken;
+  const openSnapPayment = (order: Order): Promise<"success" | "pending" | "error" | "close"> => {
+    return new Promise((resolve) => {
+      const snapToken = order.midtransSnapToken;
 
-    if (!snapToken) {
-      setErrorMessage("Midtrans API Error: No Snap Payment Token was returned from the server.");
-      return;
-    }
+      if (!snapToken) {
+        resolve("error");
+        return;
+      }
 
-    if (typeof window !== "undefined" && window.snap) {
-      window.snap.pay(snapToken, {
-        onSuccess: (result) => {
-          console.log("Snap payment success", result);
-          if (orderToPay) {
-            router.push(`/checkout/success/${encodeURIComponent(orderToPay.orderNumber)}`);
-          }
-        },
-        onPending: (result) => {
-          console.log("Snap payment pending", result);
-          if (orderToPay) {
-            router.push(`/checkout/success/${encodeURIComponent(orderToPay.orderNumber)}`);
-          }
-        },
-        onError: (result) => {
-          console.error("Snap payment error", result);
-          setErrorMessage(`Midtrans Payment Failed: ${result?.status_message || "Transaction error"}`);
-        },
-        onClose: () => {
-          console.log("Snap popup closed");
-        },
-      });
-    } else if (orderToPay?.midtransRedirectUrl) {
-      window.open(orderToPay.midtransRedirectUrl, "_blank");
+      if (typeof window !== "undefined" && window.snap) {
+        window.snap.pay(snapToken, {
+          onSuccess: () => resolve("success"),
+          onPending: () => resolve("pending"),
+          onError: () => resolve("error"),
+          onClose: () => resolve("close"),
+        });
+      } else if (order.midtransRedirectUrl) {
+        // Fallback: open redirect URL and treat as pending
+        window.open(order.midtransRedirectUrl, "_blank");
+        resolve("pending");
+      } else {
+        resolve("error");
+      }
+    });
+  };
+
+  const handleRetryPayment = async () => {
+    if (!createdOrder) return;
+    setShowFailedModal(false);
+
+    const result = await openSnapPayment(createdOrder);
+    if (result === "success" || result === "pending") {
+      setShowSuccessModal(true);
     } else {
-      setErrorMessage("Midtrans Frontend Error: Midtrans Snap script (window.snap) is not loaded. Please verify NEXT_PUBLIC_MIDTRANS_CLIENT_KEY in .env.local.");
+      setFailedMessage(
+        result === "close"
+          ? "You closed the payment window before completing the transaction."
+          : "The payment could not be processed. Please try again."
+      );
+      setShowFailedModal(true);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setShowFailedModal(false);
+    setShowSuccessModal(false);
 
     if (items.length === 0) {
       setErrorMessage("Your cart is empty.");
@@ -210,12 +221,27 @@ export default function CheckoutView() {
 
       clearCart();
       setCreatedOrder(order);
-      setShowSuccessModal(true);
 
-      if (order.midtransSnapToken) {
-        setTimeout(() => {
-          handlePayWithSnap(order);
-        }, 400);
+      // For Midtrans payment methods, open Snap FIRST — user must pay before seeing success
+      const isMidtrans = ["bank_transfer", "qris", "credit_card"].includes(order.paymentMethod);
+
+      if (isMidtrans && order.midtransSnapToken) {
+        setIsLoading(false);
+        const result = await openSnapPayment(order);
+
+        if (result === "success" || result === "pending") {
+          setShowSuccessModal(true);
+        } else {
+          setFailedMessage(
+            result === "close"
+              ? "You closed the payment window before completing the transaction."
+              : "The payment could not be processed. Please try again."
+          );
+          setShowFailedModal(true);
+        }
+      } else {
+        // COD or no Midtrans token — show success directly
+        setShowSuccessModal(true);
       }
     } catch (err: any) {
       console.error(err);
@@ -233,7 +259,7 @@ export default function CheckoutView() {
     );
   }
 
-  if (items.length === 0 && !showSuccessModal) {
+  if (items.length === 0 && !showSuccessModal && !showFailedModal && !createdOrder) {
     return (
       <div className="mx-auto max-w-container px-edge-margin-mobile pb-20 pt-24 md:px-edge-margin-desktop">
         <Breadcrumb />
@@ -611,15 +637,9 @@ export default function CheckoutView() {
                   {formatIDR(createdOrder.totalAmount)}
                 </span>
               </div>
-              <div className="flex justify-between py-2 text-on-surface-variant">
+              <div className="flex justify-between pt-2 text-on-surface-variant">
                 <span>Shipping Courier</span>
                 <span className="font-bold text-on-surface">{createdOrder.courier}</span>
-              </div>
-              <div className="flex justify-between pt-2 text-on-surface-variant">
-                <span>Payment Method</span>
-                <span className="font-bold text-on-surface uppercase">
-                  {createdOrder.paymentMethod.replace("_", " ")}
-                </span>
               </div>
             </div>
 
@@ -656,17 +676,6 @@ export default function CheckoutView() {
 
             {/* Action Buttons */}
             <div className="mt-6 space-y-2.5">
-              {createdOrder.midtransSnapToken && createdOrder.paymentStatus === "unpaid" && (
-                <button
-                  type="button"
-                  onClick={() => handlePayWithSnap(createdOrder)}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded bg-emerald-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
-                >
-                  <Sparkles size={16} />
-                  Pay Now with Midtrans
-                </button>
-              )}
-
               <button
                 type="button"
                 onClick={() => {
@@ -676,7 +685,7 @@ export default function CheckoutView() {
                 className="flex h-11 w-full items-center justify-center gap-2 rounded bg-primary text-sm font-bold text-on-primary transition-colors hover:bg-primary-container"
               >
                 <ExternalLink size={16} />
-                View Order & Payment Details
+                View Order Details
               </button>
 
               <button
@@ -695,6 +704,66 @@ export default function CheckoutView() {
                 type="button"
                 onClick={() => {
                   setShowSuccessModal(false);
+                  router.push("/shop");
+                }}
+                className="flex h-9 w-full items-center justify-center gap-1 text-xs font-bold text-on-surface-variant hover:text-primary"
+              >
+                <ShoppingBag size={14} />
+                Continue Shopping
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT FAILED MODAL */}
+      {showFailedModal && createdOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md overflow-hidden rounded-xl bg-background-white p-6 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600 ring-8 ring-red-50">
+                <XCircle size={36} />
+              </div>
+
+              <h2 className="mt-4 font-display text-headline-md font-bold text-on-surface">
+                Payment Not Completed
+              </h2>
+
+              <p className="mt-2 text-sm text-on-surface-variant">
+                {failedMessage}
+              </p>
+
+              <div className="mt-3 rounded-full bg-primary/10 px-4 py-1 font-mono text-xs font-bold text-primary">
+                Order #{createdOrder.orderNumber}
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-2.5">
+              <button
+                type="button"
+                onClick={handleRetryPayment}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded bg-emerald-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
+              >
+                <RotateCcw size={16} />
+                Try Payment Again
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFailedModal(false);
+                  router.push(`/checkout/success/${encodeURIComponent(createdOrder.orderNumber)}`);
+                }}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded border border-outline-variant/60 bg-background-white text-sm font-bold text-on-surface transition-colors hover:bg-surface-container"
+              >
+                <ExternalLink size={16} />
+                View Order Details
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFailedModal(false);
                   router.push("/shop");
                 }}
                 className="flex h-9 w-full items-center justify-center gap-1 text-xs font-bold text-on-surface-variant hover:text-primary"

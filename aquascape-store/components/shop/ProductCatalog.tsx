@@ -221,14 +221,23 @@ function CatalogHero({
 function ProductTile({ product }: { product: CatalogProduct }) {
   const { addItem } = useAuthCart();
   const [added, setAdded] = useState(false);
-  const badge = product.onSale
-    ? "Sale"
-    : product.arrival
-      ? "New Arrival"
-      : product.badge;
+  const isOutOfStock = product.stock <= 0;
+  const isLowStock = !isOutOfStock && product.stock <= 3;
+
+  const badge = isOutOfStock
+    ? "Out of Stock"
+    : isLowStock
+      ? `Only ${product.stock} Left`
+      : product.onSale
+        ? "Sale"
+        : product.arrival
+          ? "New Arrival"
+          : product.badge;
 
   const handleAddToCart = async (event: React.MouseEvent) => {
     event.preventDefault();
+    if (isOutOfStock) return;
+
     const wasAdded = await addItem({
       id: product.id,
       slug: product.slug,
@@ -246,7 +255,7 @@ function ProductTile({ product }: { product: CatalogProduct }) {
   };
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-lg bg-background-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
+    <article className={`group relative flex h-full flex-col overflow-hidden rounded-lg bg-background-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover ${isOutOfStock ? "opacity-85" : ""}`}>
       <Link
         href={`/product/${product.slug}`}
         className="relative block aspect-[4/3] overflow-hidden bg-surface-container"
@@ -259,7 +268,15 @@ function ProductTile({ product }: { product: CatalogProduct }) {
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {badge && (
-          <span className="absolute left-3 top-3 rounded-full bg-primary-fixed px-2.5 py-1 text-[10px] font-bold uppercase text-on-primary-fixed">
+          <span
+            className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase text-white shadow-xs ${
+              isOutOfStock
+                ? "bg-red-600"
+                : isLowStock
+                  ? "bg-amber-500"
+                  : "bg-primary-fixed text-on-primary-fixed"
+            }`}
+          >
             {badge}
           </span>
         )}
@@ -306,9 +323,14 @@ function ProductTile({ product }: { product: CatalogProduct }) {
           </div>
           <button
             type="button"
-            aria-label={`Add ${product.name} to cart`}
+            disabled={isOutOfStock}
+            aria-label={isOutOfStock ? `${product.name} is out of stock` : `Add ${product.name} to cart`}
             onClick={handleAddToCart}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary transition-colors hover:bg-primary-container"
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+              isOutOfStock
+                ? "bg-surface-container text-on-surface-variant/40 cursor-not-allowed"
+                : "bg-primary text-on-primary hover:bg-primary-container"
+            }`}
           >
             {added ? <Check size={18} /> : <ShoppingBasket size={18} />}
           </button>

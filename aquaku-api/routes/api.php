@@ -27,11 +27,13 @@ Route::post('/admin/uploads/images', [AdminUploadController::class, 'image']);
 Route::prefix('admin/products')->group(function (): void {
     Route::get('/', [AdminProductController::class, 'index']);
     Route::post('/', [AdminProductController::class, 'store']);
+    Route::delete('/', [AdminProductController::class, 'destroyAll']);
     Route::put('/{id}', [AdminProductController::class, 'update']);
 });
 
 Route::prefix('admin/orders')->group(function (): void {
     Route::get('/', [OrderController::class, 'adminIndex']);
+    Route::delete('/', [OrderController::class, 'adminDestroyAll']);
     Route::patch('/{id}/status', [OrderController::class, 'adminUpdateStatus']);
 });
 

@@ -48,6 +48,28 @@ class AdminProductController extends Controller
         });
     }
 
+    public function destroyAll(Request $request): JsonResponse
+    {
+        $request->validate([
+            'passcode' => ['required', 'string'],
+        ]);
+
+        return $this->respond(function () use ($request) {
+            $this->auth->requireAdmin($request);
+
+            $passcode = $request->input('passcode');
+            $expectedPasscode = config('services.admin.delete_passcode');
+
+            if ($passcode !== $expectedPasscode) {
+                abort(422, 'Invalid admin passcode.');
+            }
+
+            $this->catalog->deleteAllProducts();
+
+            return ['message' => 'All products have been deleted successfully.'];
+        });
+    }
+
     private function validatedProduct(Request $request): array
     {
         return $request->validate([

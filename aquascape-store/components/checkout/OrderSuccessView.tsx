@@ -2,11 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, Copy, ShoppingBag, Truck, CreditCard, Clock, ArrowRight, ExternalLink, Sparkles } from "lucide-react";
+import { CheckCircle2, Copy, ShoppingBag, Truck, Clock, ArrowRight, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { Order } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
-import MidtransSnapScript from "@/components/checkout/MidtransSnapScript";
 
 interface OrderSuccessViewProps {
   order: Order;
@@ -14,38 +13,6 @@ interface OrderSuccessViewProps {
 
 export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
   const [copied, setCopied] = useState(false);
-
-  const handlePayWithSnap = () => {
-    if (!order.midtransSnapToken) return;
-
-    if (typeof window !== "undefined" && window.snap) {
-      window.snap.pay(order.midtransSnapToken, {
-        onSuccess: (result) => {
-          console.log("Snap Payment Success", result);
-          window.location.reload();
-        },
-        onPending: (result) => {
-          console.log("Snap Payment Pending", result);
-          window.location.reload();
-        },
-        onError: (result) => {
-          console.error("Snap Payment Error", result);
-          alert("Payment failed or encountered an issue. Please try again.");
-        },
-        onClose: () => {
-          console.log("Snap popup closed");
-        },
-      });
-    } else if (order.midtransRedirectUrl) {
-      window.open(order.midtransRedirectUrl, "_blank");
-    }
-  };
-
-  const handleCopyVA = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const steps = [
     { key: "pending", title: "Order Placed", desc: "Verified" },
@@ -65,7 +32,6 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
 
   return (
     <div className="mx-auto max-w-container px-edge-margin-mobile pb-20 pt-24 md:px-edge-margin-desktop">
-      <MidtransSnapScript />
       {/* Top Banner */}
       <div className="mx-auto flex max-w-3xl flex-col items-center rounded-lg bg-background-white p-stack-lg text-center shadow-soft">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -175,52 +141,7 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
               </div>
             </div>
           </div>
-          {/* Payment Instructions Card */}
-          <div className="rounded-lg border border-primary/20 bg-background-white p-stack-md shadow-soft">
-            <div className="flex items-center gap-2.5 text-primary">
-              <CreditCard size={20} />
-              <h2 className="font-display text-body-lg font-bold text-on-surface">Payment Information</h2>
-            </div>
 
-            {order.paymentMethod !== "cod" && order.paymentStatus === "unpaid" && (
-              <div className="mt-4 space-y-3 rounded-lg border border-emerald-300 bg-emerald-50/80 p-4 text-center">
-                <p className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Midtrans Instant Payment</p>
-                <p className="text-xs text-emerald-800">
-                  Please click the button below to complete your payment of{" "}
-                  <strong className="text-emerald-950 font-sans text-sm">{formatIDR(order.totalAmount)}</strong> using{" "}
-                  <strong>Credit Card</strong>, <strong>QRIS Code</strong>, or <strong>Virtual Account</strong>.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={handlePayWithSnap}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700 active:scale-[0.99]"
-                >
-                  <Sparkles size={18} />
-                  <span>Pay Now via Midtrans</span>
-                </button>
-              </div>
-            )}
-
-            {order.paymentStatus === "paid" && (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 text-center text-xs text-emerald-800">
-                <CheckCircle2 size={28} className="mx-auto mb-1.5 text-emerald-600" />
-                <span className="font-bold text-sm text-emerald-900">Payment Verified & Completed!</span>
-                <p className="mt-1 text-xs text-emerald-700">
-                  Your payment of <strong className="font-sans">{formatIDR(order.totalAmount)}</strong> has been successfully received and confirmed.
-                </p>
-              </div>
-            )}
-
-            {order.paymentMethod === "cod" && (
-              <div className="mt-stack-sm rounded-lg bg-surface-container-low p-4">
-                <p className="text-xs text-on-surface-variant">
-                  Your order will be delivered via Cash On Delivery (COD). Please prepare exact cash of{" "}
-                  <strong className="text-primary">{formatIDR(order.totalAmount)}</strong> upon courier arrival.
-                </p>
-              </div>
-            )}
-          </div>
 
           {/* Purchased Items List */}
           <div className="rounded-lg bg-background-white p-stack-md shadow-soft">

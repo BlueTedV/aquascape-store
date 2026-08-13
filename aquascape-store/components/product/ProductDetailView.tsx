@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Check, CheckCircle2, Heart, Minus, Plus, ShoppingCart, Star, Truck } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Heart, Minus, Plus, ShoppingCart, Star, Truck, XCircle } from "lucide-react";
 import { ProductDetail } from "@/lib/api/products";
 import { formatIDR } from "@/lib/format";
 import { useAuthCart } from "@/lib/use-auth-cart";
@@ -87,7 +87,8 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
   const { addItem } = useAuthCart();
 
   const total = useMemo(() => product.price * quantity, [product.price, quantity]);
-  const stockLabel = product.stock > 0 ? `${product.stock} in stock` : "Out of stock";
+  const isOutOfStock = product.stock <= 0;
+  const isLowStock = !isOutOfStock && product.stock <= 3;
   const isLongDescription = product.description.length > DESCRIPTION_PREVIEW_LENGTH;
   const shownDescription =
     isLongDescription && !descriptionExpanded
@@ -135,9 +136,11 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
               sizes="(min-width: 1024px) 520px, 100vw"
               className="object-cover"
             />
-            {(product.onSale || product.arrival || product.badge) && (
-              <span className="absolute left-3 top-3 rounded-full bg-primary-fixed px-2.5 py-1 text-[10px] font-bold uppercase text-on-primary-fixed">
-                {product.onSale ? "On Sale" : product.arrival ? "New Arrival" : product.badge}
+            {(isOutOfStock || isLowStock || product.onSale || product.arrival || product.badge) && (
+              <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase text-white shadow-xs ${
+                isOutOfStock ? "bg-red-600" : isLowStock ? "bg-amber-500" : "bg-primary-fixed text-on-primary-fixed"
+              }`}>
+                {isOutOfStock ? "Out of Stock" : isLowStock ? `Only ${product.stock} Left` : product.onSale ? "On Sale" : product.arrival ? "New Arrival" : product.badge}
               </span>
             )}
           </div>
@@ -223,9 +226,23 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
 
           <div className="mt-5 rounded-md border border-outline-variant/50 bg-background-white p-4 shadow-soft">
             <div className="mb-3 flex items-center justify-between gap-4 border-b border-outline-variant/30 pb-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-primary">
-                <CheckCircle2 size={15} />
-                {stockLabel}
+              <div className="flex items-center gap-2 text-xs font-bold">
+                {isOutOfStock ? (
+                  <>
+                    <XCircle size={16} className="text-red-600" />
+                    <span className="text-red-600">Out of stock</span>
+                  </>
+                ) : isLowStock ? (
+                  <>
+                    <AlertTriangle size={16} className="text-amber-500" />
+                    <span className="text-amber-700">Only {product.stock} left in stock - order soon!</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={16} className="text-emerald-600" />
+                    <span className="text-emerald-700">{product.stock} in stock</span>
+                  </>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-[10px] uppercase text-on-surface-variant">Total estimate</p>

@@ -95,6 +95,28 @@ class OrderController extends Controller
         ));
     }
 
+    public function adminDestroyAll(Request $request): JsonResponse
+    {
+        $request->validate([
+            'passcode' => ['required', 'string'],
+        ]);
+
+        return $this->respond(function () use ($request) {
+            $this->auth->requireAdmin($request);
+
+            $passcode = $request->input('passcode');
+            $expectedPasscode = config('services.admin.delete_passcode');
+
+            if ($passcode !== $expectedPasscode) {
+                abort(422, 'Invalid admin passcode.');
+            }
+
+            $this->orders->deleteAllOrders();
+
+            return ['message' => 'All orders have been deleted successfully.'];
+        });
+    }
+
     public function midtransNotification(Request $request): JsonResponse
     {
         $payload = $request->all();

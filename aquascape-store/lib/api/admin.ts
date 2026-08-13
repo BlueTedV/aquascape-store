@@ -72,3 +72,10 @@ export async function uploadAdminImage(file: File) {
     body: formData,
   });
 }
+
+export async function deleteAllAdminProducts(passcode: string) {
+  return authenticatedRequest<{ message: string }>("/api/admin/products", {
+    method: "DELETE",
+    body: JSON.stringify({ passcode }),
+  });
+}

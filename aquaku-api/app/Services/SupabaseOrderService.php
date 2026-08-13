@@ -33,20 +33,56 @@ class SupabaseOrderService
         $subtotal = 0;
         $itemsData = [];
 
-        foreach ($payload['items'] as $item) {
+        foreach ($payload['items'] as $index => $item) {
             $itemPrice = (int) ($item['price'] ?? 0);
             $itemQty = max(1, (int) ($item['quantity'] ?? 1));
             $itemSubtotal = $itemPrice * $itemQty;
             $subtotal += $itemSubtotal;
 
+            $productId = $item['id'] ?? null;
+            $productSlug = $item['slug'] ?? null;
+            $resolvedProdId = null;
+            $currentStock = null;
+
+            // Check stock in Supabase
+            $prodParams = [];
+            if ($productId) {
+                $prodParams['id'] = "eq.{$productId}";
+            } elseif ($productSlug) {
+                $prodParams['slug'] = "eq.{$productSlug}";
+            }
+
+            if (! empty($prodParams)) {
+                try {
+                    $prodRows = $this->request()
+                        ->get('/rest/v1/products', array_merge(['select' => 'id,name,stock'], $prodParams))
+                        ->json();
+                    $prod = $prodRows[0] ?? null;
+                    if ($prod) {
+                        $currentStock = (int) ($prod['stock'] ?? 0);
+                        if ($currentStock < $itemQty) {
+                            $prodName = $prod['name'] ?? ($item['name'] ?? 'Product');
+                            abort(422, "Product '{$prodName}' has insufficient stock. Requested: {$itemQty}, Available: {$currentStock}.");
+                        }
+                        $resolvedProdId = $prod['id'];
+                    }
+                } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+                    throw $e;
+                } catch (\Throwable) {
+                    // Non-fatal if stock check fails due to external service issue
+                }
+            }
+
             $itemsData[] = [
-                'product_id' => $item['id'] ?? null,
+                'product_id' => $productId,
                 'product_name' => trim((string) ($item['name'] ?? 'Product')),
                 'product_slug' => trim((string) ($item['slug'] ?? 'product')),
                 'product_image' => trim((string) ($item['image'] ?? '/images/products/product-placeholder.svg')),
                 'price' => $itemPrice,
                 'quantity' => $itemQty,
                 'subtotal' => $itemSubtotal,
+                '_resolved_prod_id' => $resolvedProdId,
+                '_current_stock' => $currentStock,
             ];
         }
 
@@ -82,9 +118,14 @@ class SupabaseOrderService
         $order = $orderRows[0] ?? $orderRows;
         $orderId = $order['id'];
 
-        // Insert Order Items
+        // Insert Order Items and Deduct Stock
         $insertedItems = [];
         foreach ($itemsData as $itemData) {
+            $resolvedProdId = $itemData['_resolved_prod_id'] ?? null;
+            $currentStock = $itemData['_current_stock'] ?? null;
+
+            unset($itemData['_resolved_prod_id'], $itemData['_current_stock']);
+
             $itemPayload = array_merge($itemData, ['order_id' => $orderId]);
             $itemRows = $this->request()
                 ->withHeaders(['Prefer' => 'return=representation'])
@@ -93,6 +134,18 @@ class SupabaseOrderService
                 ->json();
 
             $insertedItems[] = $itemRows[0] ?? $itemRows;
+
+            // Deduct stock in Supabase if resolved
+            if ($resolvedProdId && $currentStock !== null) {
+                try {
+                    $newStock = max(0, $currentStock - $itemData['quantity']);
+                    $this->request()
+                        ->withQueryParameters(['id' => 'eq.' . $resolvedProdId])
+                        ->patch('/rest/v1/products', ['stock' => $newStock]);
+                } catch (\Throwable) {
+                    // Non-fatal if stock patch fails
+                }
+            }
         }
 
         $res = $this->mapOrder($order, $insertedItems);
@@ -305,5 +358,18 @@ class SupabaseOrderService
         ];
 
         return $res;
+    }
+
+    public function deleteAllOrders(): void
+    {
+        $this->request()
+            ->withQueryParameters(['id' => 'not.is.null'])
+            ->delete('/rest/v1/order_items')
+            ->throw();
+
+        $this->request()
+            ->withQueryParameters(['id' => 'not.is.null'])
+            ->delete('/rest/v1/orders')
+            ->throw();
     }
 }

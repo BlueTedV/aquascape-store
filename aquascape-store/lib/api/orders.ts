@@ -156,3 +156,10 @@ export async function updateOrderStatus(
 
   return data.data;
 }
+
+export async function deleteAllAdminOrders(passcode: string): Promise<{ message: string }> {
+  return authenticatedRequest<{ message: string }>("/api/admin/orders", {
+    method: "DELETE",
+    body: JSON.stringify({ passcode }),
+  });
+}

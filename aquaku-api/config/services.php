@@ -52,4 +52,8 @@ return [
         'is_3ds' => filter_var(env('MIDTRANS_IS_3DS', true), FILTER_VALIDATE_BOOLEAN),
     ],
 
+    'admin' => [
+        'delete_passcode' => env('ADMIN_DELETE_PASSCODE', 'admin123'),
+    ],
+
 ];

@@ -4,11 +4,12 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, PackagePlus, Save, Search, Star, ToggleLeft, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Lock, PackagePlus, Save, Search, Star, ToggleLeft, Trash2, Upload, X } from "lucide-react";
 import {
   AdminCategory,
   ProductAdminInput,
   createAdminProduct,
+  deleteAllAdminProducts,
   getAdminCategories,
   getAdminProducts,
   updateAdminProduct,
@@ -159,6 +160,32 @@ export default function ManageProductsView() {
   const [uploading, setUploading] = useState<"main" | "gallery" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePasscode, setDeletePasscode] = useState("");
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAllProducts = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!deletePasscode) return;
+    setDeletingAll(true);
+    setDeleteError(null);
+
+    try {
+      const res = await deleteAllAdminProducts(deletePasscode);
+      setMessage(res.message || "All products have been deleted successfully.");
+      setError(null);
+      setProducts([]);
+      setForm(emptyForm);
+      setShowDeleteModal(false);
+      setDeletePasscode("");
+    } catch (err: any) {
+      setDeleteError(err.message || "Failed to delete products. Please check passcode.");
+    } finally {
+      setDeletingAll(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -313,14 +340,28 @@ export default function ManageProductsView() {
             Add products, edit catalog details, mark stock status, and choose featured items.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={startNewProduct}
-          className="flex items-center justify-center gap-2 rounded bg-primary px-5 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container"
-        >
-          <PackagePlus size={18} />
-          New Product
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setDeletePasscode("");
+              setDeleteError(null);
+              setShowDeleteModal(true);
+            }}
+            className="flex items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-label-md font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white"
+          >
+            <Trash2 size={18} />
+            Delete All Products
+          </button>
+          <button
+            type="button"
+            onClick={startNewProduct}
+            className="flex items-center justify-center gap-2 rounded bg-primary px-5 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container"
+          >
+            <PackagePlus size={18} />
+            New Product
+          </button>
+        </div>
       </div>
 
       {(message || error) && (
@@ -542,6 +583,73 @@ export default function ManageProductsView() {
           </div>
         </form>
       </div>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md overflow-hidden rounded-xl bg-background-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-outline-variant/40 pb-4">
+              <div className="flex items-center gap-2.5 text-red-600">
+                <AlertTriangle size={22} />
+                <h3 className="font-display text-headline-sm font-bold text-on-surface">Delete All Products</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="rounded p-1 text-on-surface-variant hover:bg-surface-container"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="mt-4 text-xs leading-relaxed text-on-surface-variant">
+              This action will <strong className="text-red-600 font-bold">permanently delete ALL products</strong> from the database catalog. This action cannot be undone.
+            </p>
+
+            <form onSubmit={handleDeleteAllProducts} className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                  Admin Passcode Required
+                </label>
+                <div className="relative mt-1.5">
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter admin passcode"
+                    value={deletePasscode}
+                    onChange={(e) => setDeletePasscode(e.target.value)}
+                    className="w-full rounded border border-outline-variant bg-surface-container-low pl-9 pr-3 py-2.5 text-xs text-on-surface outline-none focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              {deleteError && (
+                <div className="rounded bg-red-50 p-3 text-xs font-medium text-red-700 border border-red-200">
+                  {deleteError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="rounded border border-outline-variant px-4 py-2 text-xs font-bold text-on-surface hover:bg-surface-container"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingAll || !deletePasscode}
+                  className="flex items-center gap-2 rounded bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {deletingAll ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                  Confirm Delete All
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

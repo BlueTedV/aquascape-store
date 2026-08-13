@@ -162,6 +162,14 @@ class SupabaseCatalogService
         return $this->mapProductDetail($row);
     }
 
+    public function deleteAllProducts(): void
+    {
+        $this->request()
+            ->withQueryParameters(['id' => 'not.is.null'])
+            ->delete('/rest/v1/products')
+            ->throw();
+    }
+
     private function productPayload(array $data): array
     {
         $name = trim((string) $data['name']);

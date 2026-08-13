@@ -4,10 +4,7 @@ import Script from "next/script";
 
 export default function MidtransSnapScript() {
   const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY ?? "";
-  const isProductionConfig = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true";
-
-  // Auto-detect production mode if key starts with Production prefix (Mid-client- vs SB-Mid-client-)
-  const isProduction = isProductionConfig || clientKey.startsWith("Mid-client-");
+  const isProduction = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true";
 
   const snapUrl = isProduction
     ? "https://app.midtrans.com/snap/snap.js"

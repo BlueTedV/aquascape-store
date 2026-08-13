@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Loader2, RefreshCw, Truck, CheckCircle2, Clock, XCircle, Search, ChevronRight } from "lucide-react";
-import { Order, getAdminOrders, updateOrderStatus } from "@/lib/api/orders";
+import { AlertTriangle, CheckCircle2, ChevronRight, Clock, Loader2, Lock, RefreshCw, Search, Truck, Trash2, X, XCircle } from "lucide-react";
+import { Order, deleteAllAdminOrders, getAdminOrders, updateOrderStatus } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
 
 const ORDER_STATUSES = [
@@ -25,6 +25,32 @@ export default function ManageOrdersView() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePasscode, setDeletePasscode] = useState("");
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAllOrders = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deletePasscode) return;
+    setDeletingAll(true);
+    setDeleteError(null);
+
+    try {
+      const res = await deleteAllAdminOrders(deletePasscode);
+      setMessage(res.message || "All orders have been deleted successfully.");
+      setError(null);
+      setOrders([]);
+      setSelectedOrder(null);
+      setShowDeleteModal(false);
+      setDeletePasscode("");
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete orders. Please check passcode.");
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -33,8 +59,8 @@ export default function ManageOrdersView() {
       if (data.length > 0 && !selectedOrder) {
         setSelectedOrder(data[0]);
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to load orders.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load orders.");
     } finally {
       setLoading(false);
     }
@@ -55,13 +81,13 @@ export default function ManageOrdersView() {
     );
   });
 
+  const [prevOrderId, setPrevOrderId] = useState<string | null>(null);
   const [resiInput, setResiInput] = useState("");
 
-  useEffect(() => {
-    if (selectedOrder) {
-      setResiInput(selectedOrder.trackingNumber ?? "");
-    }
-  }, [selectedOrder?.id]);
+  if (selectedOrder && selectedOrder.id !== prevOrderId) {
+    setPrevOrderId(selectedOrder.id);
+    setResiInput(selectedOrder.trackingNumber ?? "");
+  }
 
   const handleStatusChange = async (newStatus: string) => {
     if (!selectedOrder) return;
@@ -74,8 +100,8 @@ export default function ManageOrdersView() {
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       setSelectedOrder(updated);
       setMessage(`Order #${updated.orderNumber} status updated to ${newStatus.toUpperCase()}`);
-    } catch (err: any) {
-      setError(err.message || "Failed to update order status.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update order status.");
     } finally {
       setUpdating(false);
     }
@@ -87,13 +113,23 @@ export default function ManageOrdersView() {
     setMessage(null);
     setError(null);
 
+    const trimmedResi = resiInput.trim();
+    const nextStatus =
+      trimmedResi && ["pending", "processing"].includes(selectedOrder.orderStatus)
+        ? "shipped"
+        : selectedOrder.orderStatus;
+
     try {
-      const updated = await updateOrderStatus(selectedOrder.id, selectedOrder.orderStatus, undefined, resiInput);
+      const updated = await updateOrderStatus(selectedOrder.id, nextStatus, undefined, trimmedResi);
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       setSelectedOrder(updated);
-      setMessage(`Shipping Resi updated for order #${updated.orderNumber}`);
-    } catch (err: any) {
-      setError(err.message || "Failed to save shipping resi.");
+      setMessage(
+        nextStatus === "shipped" && selectedOrder.orderStatus !== "shipped"
+          ? `Shipping Resi saved & order #${updated.orderNumber} automatically updated to SHIPPED!`
+          : `Shipping Resi updated for order #${updated.orderNumber}`
+      );
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save shipping resi.");
     } finally {
       setUpdating(false);
     }
@@ -145,14 +181,29 @@ export default function ManageOrdersView() {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={fetchOrders}
-          className="flex items-center gap-1.5 rounded border border-outline-variant/60 bg-background-white px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-surface-container"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setDeletePasscode("");
+              setDeleteError(null);
+              setShowDeleteModal(true);
+            }}
+            className="flex items-center gap-1.5 rounded border border-red-200 bg-red-50 px-3.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-600 hover:text-white transition-colors"
+          >
+            <Trash2 size={14} />
+            Delete All Orders
+          </button>
+
+          <button
+            type="button"
+            onClick={fetchOrders}
+            className="flex items-center gap-1.5 rounded border border-outline-variant/60 bg-background-white px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-surface-container"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {(message || error) && (
@@ -287,6 +338,23 @@ export default function ManageOrdersView() {
                         Save
                       </button>
                     </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px]">
+                      <span className="text-on-surface-variant font-bold">Prefix:</span>
+                      {["JNE", "J&T", "SiCepat", "POS"].map((prefix) => (
+                        <button
+                          key={prefix}
+                          type="button"
+                          onClick={() => {
+                            if (!resiInput.startsWith(prefix)) {
+                              setResiInput(`${prefix}${resiInput}`);
+                            }
+                          }}
+                          className="rounded bg-background-white border border-outline-variant/60 px-1.5 py-0.5 font-mono font-bold text-primary hover:bg-primary/10"
+                        >
+                          +{prefix}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -331,6 +399,73 @@ export default function ManageOrdersView() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md overflow-hidden rounded-xl bg-background-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-outline-variant/40 pb-4">
+              <div className="flex items-center gap-2.5 text-red-600">
+                <AlertTriangle size={22} />
+                <h3 className="font-display text-headline-sm font-bold text-on-surface">Delete All Orders</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="rounded p-1 text-on-surface-variant hover:bg-surface-container"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="mt-4 text-xs leading-relaxed text-on-surface-variant">
+              This action will <strong className="text-red-600 font-bold">permanently delete ALL customer orders and order items</strong> from the database. This action cannot be undone.
+            </p>
+
+            <form onSubmit={handleDeleteAllOrders} className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                  Admin Passcode Required
+                </label>
+                <div className="relative mt-1.5">
+                  <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter admin passcode"
+                    value={deletePasscode}
+                    onChange={(e) => setDeletePasscode(e.target.value)}
+                    className="w-full rounded border border-outline-variant bg-surface-container-low pl-9 pr-3 py-2.5 text-xs text-on-surface outline-none focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              {deleteError && (
+                <div className="rounded bg-red-50 p-3 text-xs font-medium text-red-700 border border-red-200">
+                  {deleteError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="rounded border border-outline-variant px-4 py-2 text-xs font-bold text-on-surface hover:bg-surface-container"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingAll || !deletePasscode}
+                  className="flex items-center gap-2 rounded bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {deletingAll ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                  Confirm Delete All
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
