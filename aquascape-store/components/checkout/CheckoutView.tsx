@@ -140,7 +140,11 @@ export default function CheckoutView() {
   const handlePayWithSnap = (targetOrder?: Order) => {
     const orderToPay = targetOrder || createdOrder;
     const snapToken = orderToPay?.midtransSnapToken;
-    if (!snapToken) return;
+
+    if (!snapToken) {
+      setErrorMessage("Midtrans API Error: No Snap Payment Token was returned from the server.");
+      return;
+    }
 
     if (typeof window !== "undefined" && window.snap) {
       window.snap.pay(snapToken, {
@@ -158,7 +162,7 @@ export default function CheckoutView() {
         },
         onError: (result) => {
           console.error("Snap payment error", result);
-          setErrorMessage("Payment process encountered an issue. You can retry payment anytime.");
+          setErrorMessage(`Midtrans Payment Failed: ${result?.status_message || "Transaction error"}`);
         },
         onClose: () => {
           console.log("Snap popup closed");
@@ -166,6 +170,8 @@ export default function CheckoutView() {
       });
     } else if (orderToPay?.midtransRedirectUrl) {
       window.open(orderToPay.midtransRedirectUrl, "_blank");
+    } else {
+      setErrorMessage("Midtrans Frontend Error: Midtrans Snap script (window.snap) is not loaded. Please verify NEXT_PUBLIC_MIDTRANS_CLIENT_KEY in .env.local.");
     }
   };
 

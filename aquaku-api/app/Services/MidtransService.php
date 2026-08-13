@@ -16,16 +16,7 @@ class MidtransService
         $serverKey = (string) config('services.midtrans.server_key');
 
         if (! empty($serverKey)) {
-            $isProductionConfig = filter_var(config('services.midtrans.is_production'), FILTER_VALIDATE_BOOLEAN);
-
-            // Auto-detect production key prefix (Mid-server- vs SB-Mid-server-)
-            if (str_starts_with($serverKey, 'Mid-server-')) {
-                $isProduction = true;
-            } elseif (str_starts_with($serverKey, 'SB-Mid-server-')) {
-                $isProduction = false;
-            } else {
-                $isProduction = $isProductionConfig;
-            }
+            $isProduction = filter_var(config('services.midtrans.is_production'), FILTER_VALIDATE_BOOLEAN);
 
             Config::$serverKey = $serverKey;
             Config::$clientKey = (string) config('services.midtrans.client_key');
@@ -42,11 +33,10 @@ class MidtransService
         return $this->isConfigured;
     }
 
-    public function createSnapTransaction(array $order): ?array
+    public function createSnapTransaction(array $order): array
     {
         if (! $this->isConfigured) {
-            Log::warning('Midtrans is not configured (MIDTRANS_SERVER_KEY is missing). Using fallback mode.');
-            return null;
+            throw new \RuntimeException('MIDTRANS_SERVER_KEY is missing or empty in .env configuration.');
         }
 
         try {
@@ -110,7 +100,13 @@ class MidtransService
             }
 
             $snapToken = Snap::getSnapToken($params);
-            $redirectUrl = Snap::getSnapUrl($params);
+
+            // Build the redirect URL from the token directly — do NOT call Snap::getSnapUrl()
+            // as it makes a second API request with the same order_id, causing a conflict.
+            $baseUrl = Config::$isProduction
+                ? 'https://app.midtrans.com/snap/v2/vtweb/'
+                : 'https://app.sandbox.midtrans.com/snap/v2/vtweb/';
+            $redirectUrl = $baseUrl . $snapToken;
 
             return [
                 'snapToken' => $snapToken,
@@ -122,7 +118,7 @@ class MidtransService
                 'exception' => $e,
             ]);
 
-            return null;
+            throw new \RuntimeException('Midtrans API Exception: ' . $e->getMessage(), 0, $e);
         }
     }
 

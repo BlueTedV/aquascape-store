@@ -95,7 +95,15 @@ class SupabaseOrderService
             $insertedItems[] = $itemRows[0] ?? $itemRows;
         }
 
-        return $this->mapOrder($order, $insertedItems);
+        $res = $this->mapOrder($order, $insertedItems);
+
+        if (in_array($res['paymentMethod'], ['bank_transfer', 'qris', 'credit_card'], true) && $res['paymentStatus'] === 'unpaid') {
+            $snapResult = $this->midtrans->createSnapTransaction($res);
+            $res['midtransSnapToken'] = $snapResult['snapToken'];
+            $res['midtransRedirectUrl'] = $snapResult['redirectUrl'];
+        }
+
+        return $res;
     }
 
     public function getOrderByNumber(string $orderNumber): ?array
@@ -122,7 +130,24 @@ class SupabaseOrderService
             ->throw()
             ->json();
 
-        return $this->mapOrder($order, $items);
+        $res = $this->mapOrder($order, $items);
+
+        // Re-generate snap token only for unpaid orders with a valid email
+        if (
+            in_array($res['paymentMethod'], ['bank_transfer', 'qris', 'credit_card'], true) &&
+            $res['paymentStatus'] === 'unpaid' &&
+            filter_var($res['customerEmail'], FILTER_VALIDATE_EMAIL)
+        ) {
+            try {
+                $snapResult = $this->midtrans->createSnapTransaction($res);
+                $res['midtransSnapToken'] = $snapResult['snapToken'];
+                $res['midtransRedirectUrl'] = $snapResult['redirectUrl'];
+            } catch (\Throwable) {
+                // Non-fatal: token generation failed, UI will show redirect URL fallback
+            }
+        }
+
+        return $res;
     }
 
     public function getUserOrders(string $userId, ?string $email = null): array
@@ -278,20 +303,6 @@ class SupabaseOrderService
                 ];
             }, $items),
         ];
-
-        if (in_array($res['paymentMethod'], ['bank_transfer', 'qris', 'credit_card'], true) && $res['paymentStatus'] === 'unpaid') {
-            if ($this->midtrans->isConfigured()) {
-                $snapResult = $this->midtrans->createSnapTransaction($res);
-                if ($snapResult) {
-                    $res['midtransSnapToken'] = $snapResult['snapToken'];
-                    $res['midtransRedirectUrl'] = $snapResult['redirectUrl'];
-                }
-            } else {
-                // Fallback for dev mode when MIDTRANS_SERVER_KEY is not configured yet
-                $res['midtransSnapToken'] = 'SNAP-' . strtoupper(md5($res['orderNumber']));
-                $res['midtransRedirectUrl'] = 'https://app.sandbox.midtrans.com/snap/v2/vtweb/' . $res['midtransSnapToken'];
-            }
-        }
 
         return $res;
     }
