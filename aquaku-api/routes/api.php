@@ -14,6 +14,8 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
 Route::prefix('account')->group(function (): void {
@@ -23,6 +25,7 @@ Route::prefix('account')->group(function (): void {
 });
 
 Route::post('/admin/uploads/images', [AdminUploadController::class, 'image']);
+Route::get('/admin/analytics', [OrderController::class, 'adminAnalytics']);
 
 Route::prefix('admin/products')->group(function (): void {
     Route::get('/', [AdminProductController::class, 'index']);
@@ -46,6 +49,7 @@ Route::prefix('products')->group(function (): void {
     Route::post('/{slug}/reviews', [ReviewController::class, 'store']);
 });
 
+Route::post('/vouchers/validate', [OrderController::class, 'validateVoucher']);
 Route::post('/orders/checkout', [OrderController::class, 'checkout']);
 Route::get('/orders/{orderNumber}', [OrderController::class, 'show']);
 Route::post('/midtrans/notification', [OrderController::class, 'midtransNotification']);

@@ -20,66 +20,54 @@ import {
   Sparkles,
   XCircle,
   RotateCcw,
+  Tag,
+  Ticket,
+  X,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatIDR } from "@/lib/format";
-import { createCheckoutOrder, Order } from "@/lib/api/orders";
 import { getCurrentAccount } from "@/lib/api/auth";
+import { createCheckoutOrder, validateVoucher, Order, VoucherResult } from "@/lib/api/orders";
 import MidtransSnapScript from "@/components/checkout/MidtransSnapScript";
 
 const COURIERS = [
-  {
-    id: "standard",
-    name: "Standard Courier (JNE / SiCepat)",
-    eta: "2-3 business days",
-    price: 25000,
-  },
-  {
-    id: "express",
-    name: "Express Delivery (GoSend / GrabExpress)",
-    eta: "Same day delivery",
-    price: 45000,
-  },
-  {
-    id: "cargo",
-    name: "Aquascape Freight & Live Stock Handler",
-    eta: "1-2 days (Temperature-Controlled)",
-    price: 60000,
-  },
+  { id: "standard", name: "Standard Delivery (JNE / SiCepat)", eta: "2-3 Days", price: 15000 },
+  { id: "express", name: "Express Air Delivery (J&T Super)", eta: "1 Day", price: 30000 },
+  { id: "same_day", name: "Instant / Same Day Courier (GoSend)", eta: "Same Day", price: 45000 },
 ];
 
 const PAYMENT_METHODS = [
   {
     id: "bank_transfer",
-    name: "Virtual Account (Midtrans Payment)",
-    description: "Instant automatic verification via BCA, Mandiri, BNI, or BRI VA",
+    name: "Bank Transfer / Virtual Account (BCA, Mandiri, BNI, BRI)",
+    description: "Instant automatic verification powered by Midtrans Payment Gateway.",
+    badge: "Auto Verify",
     icon: CreditCard,
-    badge: "Midtrans VA",
   },
   {
     id: "qris",
-    name: "QRIS / E-Wallet (Midtrans Instant)",
-    description: "Scan QR code using GoPay, OVO, ShopeePay, Dana, or Bank Apps",
+    name: "QRIS Instant (GoPay, OVO, ShopeePay, Dana, LinkAja)",
+    description: "Scan QR code with any e-wallet app for instant payment.",
+    badge: "Instant E-Wallet",
     icon: QrCode,
-    badge: "Midtrans QRIS",
   },
   {
     id: "credit_card",
-    name: "Credit / Debit Card (Powered by Midtrans)",
-    description: "Secured 3D-Secure payment using Visa, Mastercard, or JCB",
+    name: "Credit / Debit Card (Visa, MasterCard, JCB)",
+    description: "3D Secure encrypted credit or debit card payment.",
+    badge: "3D Secure",
     icon: CreditCard,
-    badge: "Midtrans Card",
   },
   {
     id: "cod",
     name: "Cash on Delivery (COD)",
-    description: "Pay cash upon arrival (Jabodetabek region only)",
+    description: "Pay with cash directly to courier upon package arrival.",
+    badge: "Pay at Doorstep",
     icon: Truck,
-    badge: "Pay on Delivery",
   },
 ];
 
-const FREE_SHIPPING_THRESHOLD = 500000;
+const FREE_SHIPPING_THRESHOLD = 300000;
 
 export default function CheckoutView() {
   const router = useRouter();
@@ -103,6 +91,12 @@ export default function CheckoutView() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showFailedModal, setShowFailedModal] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string>("");
+
+  // Voucher / Promo Code State
+  const [voucherCodeInput, setVoucherCodeInput] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<VoucherResult | null>(null);
+  const [validatingVoucher, setValidatingVoucher] = useState(false);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
 
   // Auto-fill logged in user account info
   useEffect(() => {
@@ -131,10 +125,11 @@ export default function CheckoutView() {
       });
   }, []);
 
-  // Selected courier price
+  // Selected courier price & totals
   const selectedCourierObj = COURIERS.find((c) => c.id === formData.courier) || COURIERS[0];
   const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD && formData.courier === "standard" ? 0 : selectedCourierObj.price;
-  const grandTotal = subtotal + shippingCost;
+  const discountAmount = appliedVoucher?.discountAmount ?? 0;
+  const grandTotal = Math.max(0, subtotal + shippingCost - discountAmount);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -184,6 +179,29 @@ export default function CheckoutView() {
     }
   };
 
+  const handleApplyVoucher = async () => {
+    if (!voucherCodeInput.trim()) return;
+    setValidatingVoucher(true);
+    setVoucherError(null);
+
+    try {
+      const res = await validateVoucher(voucherCodeInput, subtotal, shippingCost);
+      setAppliedVoucher(res);
+      setVoucherError(null);
+    } catch (err: unknown) {
+      setVoucherError(err instanceof Error ? err.message : "Invalid voucher code.");
+      setAppliedVoucher(null);
+    } finally {
+      setValidatingVoucher(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCodeInput("");
+    setVoucherError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -207,6 +225,8 @@ export default function CheckoutView() {
         shippingPostalCode: formData.shippingPostalCode,
         courier: selectedCourierObj.name,
         shippingCost,
+        discountAmount,
+        voucherCode: appliedVoucher?.code,
         paymentMethod: formData.paymentMethod,
         notes: formData.notes,
         items: items.map((item) => ({
@@ -555,6 +575,62 @@ export default function CheckoutView() {
               })}
             </div>
 
+            {/* Promo Code / Voucher Section */}
+            <div className="mt-4 border-t border-outline-variant/40 pt-4">
+              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+                <Ticket size={14} className="text-primary" />
+                Voucher / Promo Code
+              </label>
+
+              {appliedVoucher ? (
+                <div className="mt-2 rounded-lg bg-emerald-50 p-3 border border-emerald-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Tag size={15} className="text-emerald-600" />
+                      <span className="font-mono text-xs font-bold text-emerald-900">{appliedVoucher.code}</span>
+                      <span className="rounded bg-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-900">
+                        -{formatIDR(appliedVoucher.discountAmount)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveVoucher}
+                      className="rounded p-1 text-emerald-800 hover:bg-emerald-200"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-emerald-700">{appliedVoucher.description}</p>
+                </div>
+              ) : (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. AQUA10"
+                      value={voucherCodeInput}
+                      onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
+                      className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-mono font-bold text-on-surface outline-none focus:border-primary uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyVoucher}
+                      disabled={validatingVoucher || !voucherCodeInput.trim()}
+                      className="shrink-0 rounded bg-primary px-3 py-1.5 text-xs font-bold text-on-primary hover:bg-primary-container disabled:opacity-50"
+                    >
+                      {validatingVoucher ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+                    </button>
+                  </div>
+                  {voucherError && (
+                    <p className="text-[11px] font-bold text-red-600">{voucherError}</p>
+                  )}
+                  <p className="text-[10px] text-on-surface-variant">
+                    Try codes: <strong className="font-mono text-primary cursor-pointer hover:underline" onClick={() => setVoucherCodeInput("AQUA10")}>AQUA10</strong>, <strong className="font-mono text-primary cursor-pointer hover:underline" onClick={() => setVoucherCodeInput("FREESHIP")}>FREESHIP</strong>, <strong className="font-mono text-primary cursor-pointer hover:underline" onClick={() => setVoucherCodeInput("NEWUSER")}>NEWUSER</strong>
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Pricing Breakdown */}
             <div className="mt-stack-md space-y-2.5 border-t border-outline-variant/40 pt-4 text-sm">
               <div className="flex justify-between text-on-surface-variant">
@@ -567,6 +643,12 @@ export default function CheckoutView() {
                   {shippingCost === 0 ? "FREE" : formatIDR(shippingCost)}
                 </span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-700 font-medium">
+                  <span>Voucher Discount ({appliedVoucher?.code})</span>
+                  <span className="font-bold">-{formatIDR(discountAmount)}</span>
+                </div>
+              )}
             </div>
 
             <div className="mt-stack-md flex items-center justify-between border-t border-outline-variant/40 pt-4">

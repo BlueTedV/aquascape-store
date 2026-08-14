@@ -45,6 +45,8 @@ export interface CheckoutPayload {
   shippingPostalCode: string;
   courier: string;
   shippingCost?: number;
+  discountAmount?: number;
+  voucherCode?: string;
   paymentMethod: string;
   notes?: string;
   items: Array<{
@@ -57,7 +59,33 @@ export interface CheckoutPayload {
   }>;
 }
 
+export interface VoucherResult {
+  code: string;
+  type: "percentage" | "fixed" | "shipping";
+  discountAmount: number;
+  description: string;
+}
+
 const API_URL = (process.env.NEXT_PUBLIC_AQUAKU_API_URL ?? process.env.AQUAKU_API_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
+
+export async function validateVoucher(code: string, subtotal: number, shippingCost = 0): Promise<VoucherResult> {
+  const response = await fetch(`${API_URL}/api/vouchers/validate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ code, subtotal, shippingCost }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Invalid or expired voucher code.");
+  }
+
+  return data.data;
+}
 
 export async function createCheckoutOrder(payload: CheckoutPayload): Promise<Order> {
   const token = getAccessToken();

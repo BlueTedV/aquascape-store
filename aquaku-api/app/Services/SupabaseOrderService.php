@@ -87,7 +87,8 @@ class SupabaseOrderService
         }
 
         $shippingCost = (int) ($payload['shippingCost'] ?? 0);
-        $totalAmount = $subtotal + $shippingCost;
+        $discountAmount = max(0, (int) ($payload['discountAmount'] ?? 0));
+        $totalAmount = max(0, $subtotal + $shippingCost - $discountAmount);
 
         $orderPayload = [
             'order_number' => $orderNumber,
@@ -358,6 +359,101 @@ class SupabaseOrderService
         ];
 
         return $res;
+    }
+
+    public function getAdminAnalytics(): array
+    {
+        $orders = $this->request()
+            ->get('/rest/v1/orders', [
+                'select' => '*',
+                'order' => 'created_at.desc',
+            ])
+            ->json();
+
+        $products = $this->request()
+            ->get('/rest/v1/products', [
+                'select' => 'id,name,slug,stock,image_url,price',
+            ])
+            ->json();
+
+        $orderItems = $this->request()
+            ->get('/rest/v1/order_items', [
+                'select' => '*',
+            ])
+            ->json();
+
+        $totalRevenue = 0;
+        $totalOrders = count($orders);
+
+        $statusCounts = [
+            'pending' => 0,
+            'processing' => 0,
+            'shipped' => 0,
+            'completed' => 0,
+            'cancelled' => 0,
+        ];
+
+        foreach ($orders as $o) {
+            $st = $o['order_status'] ?? 'pending';
+            if (isset($statusCounts[$st])) {
+                $statusCounts[$st]++;
+            }
+            if ($st !== 'cancelled' && (($o['payment_status'] ?? '') === 'paid' || in_array($st, ['processing', 'shipped', 'completed'], true))) {
+                $totalRevenue += (int) ($o['total_amount'] ?? 0);
+            }
+        }
+
+        $paidOrdersCount = array_sum([$statusCounts['processing'], $statusCounts['shipped'], $statusCounts['completed']]);
+        $avgOrderValue = $paidOrdersCount > 0 ? (int) round($totalRevenue / $paidOrdersCount) : ($totalOrders > 0 ? (int) round($totalRevenue / $totalOrders) : 0);
+
+        // Low stock products
+        $lowStockProducts = collect($products)
+            ->filter(fn ($p) => (int) ($p['stock'] ?? 0) <= 3)
+            ->map(fn ($p) => [
+                'id' => (string) $p['id'],
+                'name' => (string) $p['name'],
+                'slug' => (string) $p['slug'],
+                'stock' => (int) $p['stock'],
+                'price' => (int) $p['price'],
+                'image' => (string) ($p['image_url'] ?? '/images/products/product-placeholder.svg'),
+            ])
+            ->values()
+            ->all();
+
+        // Top selling products
+        $productSales = [];
+        foreach ($orderItems as $item) {
+            $pName = $item['product_name'] ?? 'Product';
+            $qty = (int) ($item['quantity'] ?? 1);
+            $sub = (int) ($item['subtotal'] ?? 0);
+
+            if (! isset($productSales[$pName])) {
+                $productSales[$pName] = [
+                    'name' => $pName,
+                    'totalQty' => 0,
+                    'totalRevenue' => 0,
+                    'image' => $item['product_image'] ?? '/images/products/product-placeholder.svg',
+                ];
+            }
+            $productSales[$pName]['totalQty'] += $qty;
+            $productSales[$pName]['totalRevenue'] += $sub;
+        }
+
+        $topProducts = collect($productSales)
+            ->sortByDesc('totalQty')
+            ->take(5)
+            ->values()
+            ->all();
+
+        return [
+            'totalRevenue' => $totalRevenue,
+            'totalOrders' => $totalOrders,
+            'averageOrderValue' => $avgOrderValue,
+            'statusCounts' => $statusCounts,
+            'lowStockCount' => count($lowStockProducts),
+            'lowStockProducts' => $lowStockProducts,
+            'topProducts' => $topProducts,
+        ];
     }
 
     public function deleteAllOrders(): void

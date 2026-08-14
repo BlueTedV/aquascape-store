@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\MidtransService;
 use App\Services\SupabaseAuthService;
 use App\Services\SupabaseOrderService;
+use App\Services\VoucherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +18,32 @@ class OrderController extends Controller
         private readonly SupabaseOrderService $orders,
         private readonly SupabaseAuthService $auth,
         private readonly MidtransService $midtrans,
+        private readonly VoucherService $vouchers,
     ) {}
+
+    public function validateVoucher(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string'],
+            'subtotal' => ['required', 'integer', 'min:0'],
+            'shippingCost' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        return $this->respond(fn () => $this->vouchers->validate(
+            $validated['code'],
+            (int) $validated['subtotal'],
+            (int) ($validated['shippingCost'] ?? 0)
+        ));
+    }
+
+    public function adminAnalytics(Request $request): JsonResponse
+    {
+        return $this->respond(function () use ($request) {
+            $this->auth->requireAdmin($request);
+
+            return $this->orders->getAdminAnalytics();
+        });
+    }
 
     public function checkout(Request $request): JsonResponse
     {

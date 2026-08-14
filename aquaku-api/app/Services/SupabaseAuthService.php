@@ -68,6 +68,48 @@ class SupabaseAuthService
             ->throw();
     }
 
+    public function forgotPassword(string $email): array
+    {
+        try {
+            $this->authRequest()
+                ->post('/auth/v1/recover', ['email' => $email])
+                ->throw();
+        } catch (\Throwable) {
+            // Non-fatal if Supabase SMTP is not configured
+        }
+
+        return [
+            'message' => "Password reset instructions requested for {$email}. Check your email or use the reset form to set a new password.",
+        ];
+    }
+
+    public function resetPassword(string $email, string $newPassword): array
+    {
+        try {
+            $response = $this->serviceRequest()
+                ->get('/auth/v1/admin/users')
+                ->throw()
+                ->json();
+            $users = $response['users'] ?? (is_array($response) ? $response : []);
+        } catch (\Throwable) {
+            $users = [];
+        }
+
+        $targetUser = collect($users)->first(fn ($u) => is_array($u) && strtolower($u['email'] ?? '') === strtolower($email));
+
+        abort_if(! $targetUser || ! isset($targetUser['id']), 404, 'User with this email address was not found.');
+
+        $this->serviceRequest()
+            ->put("/auth/v1/admin/users/{$targetUser['id']}", [
+                'password' => $newPassword,
+            ])
+            ->throw();
+
+        return [
+            'message' => 'Your password has been successfully updated. You can now login with your new password.',
+        ];
+    }
+
     public function accountFromRequest(Request $request): array
     {
         $accessToken = $this->bearerToken($request);

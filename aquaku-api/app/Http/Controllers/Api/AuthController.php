@@ -54,6 +54,25 @@ class AuthController extends Controller
         });
     }
 
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        return $this->respond(fn () => $this->auth->forgotPassword($data['email']));
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', Password::min(6)],
+        ]);
+
+        return $this->respond(fn () => $this->auth->resetPassword($data['email'], $data['password']));
+    }
+
     private function respond(callable $callback, int $status = 200): JsonResponse
     {
         try {

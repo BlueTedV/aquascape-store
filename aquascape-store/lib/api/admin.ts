@@ -79,3 +79,35 @@ export async function deleteAllAdminProducts(passcode: string) {
     body: JSON.stringify({ passcode }),
   });
 }
+
+export interface AdminAnalytics {
+  totalRevenue: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  statusCounts: {
+    pending: number;
+    processing: number;
+    shipped: number;
+    completed: number;
+    cancelled: number;
+  };
+  lowStockCount: number;
+  lowStockProducts: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    stock: number;
+    price: number;
+    image: string;
+  }>;
+  topProducts: Array<{
+    name: string;
+    totalQty: number;
+    totalRevenue: number;
+    image: string;
+  }>;
+}
+
+export async function getAdminAnalytics() {
+  return authenticatedRequest<AdminAnalytics>("/api/admin/analytics");
+}

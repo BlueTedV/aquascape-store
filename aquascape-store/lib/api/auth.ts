@@ -158,6 +158,20 @@ export async function login(input: LoginInput) {
   });
 }
 
+export async function forgotPassword(email: string) {
+  return requestApi<{ message: string }>("/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(email: string, password: string) {
+  return requestApi<{ message: string }>("/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
 export async function getCurrentAccount() {
   return requestApi<Account>("/api/auth/me", {}, true);
 }

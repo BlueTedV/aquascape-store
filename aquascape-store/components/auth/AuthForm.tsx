@@ -144,6 +144,14 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
           </p>
         )}
 
+        {!isRegister && (
+          <div className="flex justify-end">
+            <Link href="/forgot-password" className="text-xs font-bold text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={loading}
