@@ -14,8 +14,10 @@ const navLinks: Array<{ label: string; href: string; category?: string }> = [
   { label: "Fish", href: "/shop?category=fish", category: "fish" },
   { label: "Shrimp", href: "/shop?category=shrimp", category: "shrimp" },
   { label: "Equipment", href: "/shop?category=equipment", category: "equipment" },
+  { label: "Community", href: "/community" },
   { label: "Others", href: "/shop?category=others", category: "others" },
 ];
+
 
 export default function Navbar({ activeCategory }: { activeCategory?: string }) {
   const router = useRouter();

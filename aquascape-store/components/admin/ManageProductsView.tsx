@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Loader2, Lock, PackagePlus, Save, Search, Star, ToggleLeft, Trash2, Upload, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Lock, Package, PackagePlus, Save, Search, Sparkles, Star, Tag, ToggleLeft, Trash2, Upload, X } from "lucide-react";
 import {
   AdminCategory,
   ProductAdminInput,
@@ -19,6 +19,8 @@ import { getCurrentAccount } from "@/lib/api/auth";
 import { ProductDetail } from "@/lib/api/products";
 import { ProductBadge } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
+import ManageHeroSlidesView from "./ManageHeroSlidesView";
+import ManagePromosView from "./ManagePromosView";
 
 type FormState = {
   id: string | null;
@@ -151,6 +153,7 @@ function inputFromForm(form: FormState): ProductAdminInput {
 
 export default function ManageProductsView() {
   const router = useRouter();
+  const [subTab, setSubTab] = useState<"products" | "slides" | "promos">("products");
   const [products, setProducts] = useState<ProductDetail[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -331,38 +334,84 @@ export default function ManageProductsView() {
   }
 
   return (
-    <div className="mx-auto max-w-container">
-      <div className="mb-stack-lg flex flex-col gap-stack-md lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-label-md uppercase text-tertiary">Admin</p>
-          <h1 className="mt-2 font-display text-headline-lg text-primary">Manage Products</h1>
-          <p className="mt-2 max-w-2xl text-body-md text-on-surface-variant">
-            Add products, edit catalog details, mark stock status, and choose featured items.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setDeletePasscode("");
-              setDeleteError(null);
-              setShowDeleteModal(true);
-            }}
-            className="flex items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-label-md font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white"
-          >
-            <Trash2 size={18} />
-            Delete All Products
-          </button>
-          <button
-            type="button"
-            onClick={startNewProduct}
-            className="flex items-center justify-center gap-2 rounded bg-primary px-5 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container"
-          >
-            <PackagePlus size={18} />
-            New Product
-          </button>
-        </div>
+    <div className="mx-auto max-w-container space-y-6">
+      {/* Sub-navigation Tabs */}
+      <div className="flex border-b border-outline-variant/60">
+        <button
+          type="button"
+          onClick={() => setSubTab("products")}
+          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-all ${
+            subTab === "products"
+              ? "border-primary text-primary"
+              : "border-transparent text-on-surface-variant hover:text-on-surface"
+          }`}
+        >
+          <Package size={17} />
+          Catalog Products
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSubTab("slides")}
+          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-all ${
+            subTab === "slides"
+              ? "border-primary text-primary"
+              : "border-transparent text-on-surface-variant hover:text-on-surface"
+          }`}
+        >
+          <Sparkles size={17} />
+          Hero Banners
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSubTab("promos")}
+          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-all ${
+            subTab === "promos"
+              ? "border-primary text-primary"
+              : "border-transparent text-on-surface-variant hover:text-on-surface"
+          }`}
+        >
+          <Tag size={17} />
+          Promos &amp; Vouchers
+        </button>
       </div>
+
+      {subTab === "slides" && <ManageHeroSlidesView />}
+      {subTab === "promos" && <ManagePromosView />}
+      {subTab === "products" && (
+        <>
+          <div className="mb-stack-lg flex flex-col gap-stack-md lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-label-md uppercase text-tertiary">Admin</p>
+              <h1 className="mt-2 font-display text-headline-lg text-primary">Manage Products</h1>
+              <p className="mt-2 max-w-2xl text-body-md text-on-surface-variant">
+                Add products, edit catalog details, mark stock status, and choose featured items.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeletePasscode("");
+                  setDeleteError(null);
+                  setShowDeleteModal(true);
+                }}
+                className="flex items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-label-md font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white"
+              >
+                <Trash2 size={18} />
+                Delete All Products
+              </button>
+              <button
+                type="button"
+                onClick={startNewProduct}
+                className="flex items-center justify-center gap-2 rounded bg-primary px-5 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container"
+              >
+                <PackagePlus size={18} />
+                New Product
+              </button>
+            </div>
+          </div>
 
       {(message || error) && (
         <div
@@ -468,22 +517,60 @@ export default function ManageProductsView() {
               <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Compare Price</span>
               <input type="number" min="0" value={form.compareAtPrice} onChange={(event) => setField("compareAtPrice", event.target.value)} className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
             </label>
-            <label className="block md:col-span-2">
-              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Main Image</span>
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                <input required value={form.image} onChange={(event) => setField("image", event.target.value)} placeholder="Upload an image or paste a URL/path" className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded border border-outline-variant bg-background-white px-4 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary-fixed">
-                  {uploading === "main" ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                  Upload
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(event) => uploadMainImage(event.target.files?.[0])}
+            <div className="block md:col-span-2">
+              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Main Product Image</span>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-lg border-2 border-outline-variant bg-surface-container shadow-soft">
+                  <Image
+                    src={form.image || "/images/products/product-placeholder.svg"}
+                    alt="Main product preview"
+                    fill
+                    sizes="112px"
+                    className="object-cover"
                   />
-                </label>
+                  {form.image && form.image !== "/images/products/product-placeholder.svg" && (
+                    <button
+                      type="button"
+                      onClick={() => setField("image", "/images/products/product-placeholder.svg")}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-white shadow hover:bg-rose-700"
+                      title="Reset to placeholder"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex-1 space-y-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-on-primary shadow-sm transition-colors hover:bg-primary-hover">
+                    {uploading === "main" ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                    <span>{uploading === "main" ? "Uploading..." : "Upload Main Photo"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            if (e.target?.result) {
+                              setField("image", String(e.target.result));
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                          uploadMainImage(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  <p className="text-xs text-on-surface-variant">
+                    {form.image === "/images/products/product-placeholder.svg"
+                      ? "Currently using default placeholder image."
+                      : "Main photo uploaded and ready."}
+                  </p>
+                </div>
               </div>
-            </label>
+            </div>
           </div>
 
           <div className="my-stack-lg grid gap-stack-md rounded-lg border border-outline-variant/70 bg-surface-container-low p-stack-md md:grid-cols-4">
@@ -550,21 +637,58 @@ export default function ManageProductsView() {
               <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Description</span>
               <textarea value={form.description} onChange={(event) => setField("description", event.target.value)} rows={5} className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
             </label>
-            <label className="block">
-              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Gallery Images</span>
-              <textarea value={form.gallery} onChange={(event) => setField("gallery", event.target.value)} rows={6} placeholder="One image URL or local path per line" className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
-              <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded border border-outline-variant bg-background-white px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary-fixed">
+            <div className="block">
+              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Gallery Photos</span>
+
+              {/* Gallery Previews Grid */}
+              <div className="mb-3 flex flex-wrap gap-2.5">
+                {textToLines(form.gallery).map((imgUrl, index) => (
+                  <div key={index} className="relative h-20 w-20 overflow-hidden rounded-lg border border-outline-variant bg-surface-container shadow-sm group">
+                    <Image src={imgUrl} alt={`Gallery item ${index + 1}`} fill sizes="80px" className="object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = textToLines(form.gallery).filter((_, i) => i !== index);
+                        setField("gallery", updated.join("\n"));
+                      }}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-white opacity-0 transition-opacity group-hover:opacity-100 shadow"
+                      title="Remove image"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3 text-xs font-bold text-primary transition-colors hover:bg-surface-container">
                 {uploading === "gallery" ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                Upload Gallery Images
+                <span>{uploading === "gallery" ? "Uploading photos..." : "+ Upload Gallery Photos"}</span>
                 <input
                   type="file"
                   accept="image/*"
                   multiple
                   className="sr-only"
-                  onChange={(event) => uploadGalleryImages(event.target.files)}
+                  onChange={(event) => {
+                    const files = event.target.files;
+                    if (!files || files.length === 0) return;
+                    Array.from(files).forEach((file) => {
+                      const reader = new FileReader();
+                      reader.onload = (e) => {
+                        if (e.target?.result) {
+                          setForm((prev) => ({
+                            ...prev,
+                            gallery: [...textToLines(prev.gallery), String(e.target?.result)].join("\n"),
+                          }));
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    });
+                    uploadGalleryImages(files);
+                  }}
                 />
               </label>
-            </label>
+            </div>
+
             <label className="block">
               <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Specifications</span>
               <textarea value={form.specs} onChange={(event) => setField("specs", event.target.value)} rows={6} placeholder="Label: Value" className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
@@ -649,6 +773,8 @@ export default function ManageProductsView() {
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -1,28 +1,53 @@
-import { GalleryItem } from "@/lib/types";
+import { GalleryPost } from "@/lib/types";
 
-export const galleryItems: GalleryItem[] = [
+export const galleryItems: GalleryPost[] = [
   {
     id: "gallery-1",
+    title: "60P Mountain Iwagumi",
+    authorName: "Budi Santoso",
+    description: "A minimalist 60cm Iwagumi aquascape featuring Seiryu stones, Hemianthus callitrichoides carpet, and Cardinal Tetras.",
+    tankSpecs: "60x30x36cm Ultra Clear | RGB+W Lighting | Pressurized CO2",
     image: "/images/home/gallery-1.svg",
     alt: "Framed aquascape photography wall display",
     size: "tall",
+    likesCount: 142,
+    createdAt: "2026-08-10T10:00:00Z",
   },
   {
     id: "gallery-2",
+    title: "Nano Canopy Ecosystem",
+    authorName: "Maya Putri",
+    description: "Top-down view of a 30cm cube featuring floating Salvinia, Bucephalandra, and Crystal Red Shrimp.",
+    tankSpecs: "30cm Cube | Hang-on Filter | Low CO2",
     image: "/images/home/gallery-2.svg",
     alt: "Nano aquascape with floating plants, top-down view",
     size: "square",
+    likesCount: 98,
+    createdAt: "2026-08-12T14:30:00Z",
   },
   {
     id: "gallery-3",
+    title: "Jungle Driftwood Sanctuary",
+    authorName: "Andra Wicaksono",
+    description: "Dark mood hardscape featuring ancient Mangrove wood, Java Moss, and cosmetic white sand winding pathway.",
+    tankSpecs: "90x45x45cm | Twin Canister Filter | High Light",
     image: "/images/home/gallery-3.svg",
     alt: "Dark hardscape jungle-style aquascape with sand path",
     size: "wide",
+    likesCount: 215,
+    createdAt: "2026-08-01T08:15:00Z",
   },
   {
     id: "gallery-4",
+    title: "120P Dutch Garden Symphony",
+    authorName: "Rizky Pratama",
+    description: "Vibrant high-Dutch layout with Rotala H'Ra, Ludwigia Super Red, and 50 schooling Cardinal Tetras.",
+    tankSpecs: "120x50x50cm | Inline CO2 Diffuser | Daily Tropica Dosing",
     image: "/images/home/gallery-4.svg",
     alt: "Panoramic 6-foot aquascape with schooling tetras",
     size: "tall",
+    likesCount: 176,
+    createdAt: "2026-08-05T16:20:00Z",
   },
 ];
+

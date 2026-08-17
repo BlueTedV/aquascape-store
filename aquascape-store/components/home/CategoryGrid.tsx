@@ -3,10 +3,49 @@ import Link from "next/link";
 import * as Icons from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { categories } from "@/data/categories";
+import { getProducts } from "@/lib/api/products";
 import SectionHeading from "@/components/ui/SectionHeading";
 import SectionReveal from "@/components/ui/SectionReveal";
 
-export default function CategoryGrid() {
+function isRealUploadedImage(image: string | null | undefined): boolean {
+  if (!image) return false;
+  const trimmed = image.trim();
+  if (
+    trimmed === "" ||
+    trimmed.includes("product-placeholder.svg") ||
+    trimmed.includes("picsum.photos") ||
+    trimmed.includes("fastly.picsum.photos")
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export default async function CategoryGrid() {
+  const products = await getProducts();
+
+  const dynamicCategories = categories.map((category) => {
+    const catSlug = category.slug.toLowerCase();
+    const catName = category.name.toLowerCase();
+
+    const productWithImage = products.find((p) => {
+      const pSlug = (p.categorySlug || "").toLowerCase();
+      const pName = (p.category || "").toLowerCase();
+
+      const isCategoryMatch =
+        pSlug === catSlug ||
+        pName === catName ||
+        (catSlug === "substrate" && (pSlug === "others" || pName.includes("substrate")));
+
+      return isCategoryMatch && isRealUploadedImage(p.image);
+    });
+
+    return {
+      ...category,
+      image: productWithImage?.image || category.image,
+    };
+  });
+
   return (
     <SectionReveal
       as="section"
@@ -15,7 +54,7 @@ export default function CategoryGrid() {
       <SectionHeading title="Shop by Category" />
 
       <div className="grid grid-cols-2 gap-gutter md:grid-cols-3 lg:grid-cols-6">
-        {categories.map((category) => {
+        {dynamicCategories.map((category) => {
           const Icon = category.icon
             ? (Icons[
                 category.icon as keyof typeof Icons
@@ -53,3 +92,4 @@ export default function CategoryGrid() {
     </SectionReveal>
   );
 }
+

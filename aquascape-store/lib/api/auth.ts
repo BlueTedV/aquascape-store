@@ -99,6 +99,7 @@ export function storeSession(session: AuthSession) {
 export function clearStoredSession() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem("aquaku-shop-cart");
 }
 
 export function getAccessToken() {

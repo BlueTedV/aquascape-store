@@ -16,6 +16,7 @@ import { ProductBadge } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
 import { useAuthCart } from "@/lib/use-auth-cart";
 import { DbProduct } from "@/lib/api/products";
+import { getHeroSlides, HeroSlideItem } from "@/lib/api/hero-slides";
 
 type CategorySlug =
   | "all"
@@ -27,6 +28,16 @@ type CategorySlug =
   | "others";
 type SortOption = "popular" | "newest" | "price-asc" | "price-desc" | "rating";
 type StatusFilter = "available" | "sale" | "new";
+
+type HeroSlideDisplay = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  cta: string;
+  filter?: StatusFilter | string;
+  category?: CategorySlug;
+  image: string;
+};
 
 type CatalogProduct = DbProduct;
 
@@ -58,13 +69,13 @@ const collectionsByCategory: Record<CategorySlug, string[]> = {
   others: ["Substrates", "Fertilizers", "Water Care", "Tools"],
 };
 
-const heroSlides = [
+const defaultHeroSlides: HeroSlideDisplay[] = [
   {
     eyebrow: "Weekend sale",
     title: "Hardscape bundles up to 25% off",
     body: "Curated stone and wood packs for nano tanks through 90P layouts.",
     cta: "Shop Sale Items",
-    filter: "sale" as StatusFilter,
+    filter: "sale",
     image: "/images/home/promo-sale.svg",
   },
   {
@@ -72,7 +83,7 @@ const heroSlides = [
     title: "New tissue culture plants landed",
     body: "Clean, pest-free cups for carpeting, moss walls, and high-light stems.",
     cta: "See New Items",
-    filter: "new" as StatusFilter,
+    filter: "new",
     image: "/images/home/promo-new.svg",
   },
   {
@@ -80,7 +91,7 @@ const heroSlides = [
     title: "CO2 and lighting starter combos",
     body: "Balanced gear sets selected for reliable plant growth and clean displays.",
     cta: "Explore Equipment",
-    category: "equipment" as CategorySlug,
+    category: "equipment",
     image: "/images/home/promo-equipment.svg",
   },
 ];
@@ -114,28 +125,45 @@ function getSafeCategory(value: string | undefined): CategorySlug {
     : "all";
 }
 
-function CatalogHero({
+function ShopPromoCarousel({
   onCategorySelect,
   onStatusSelect,
 }: {
   onCategorySelect: (category: CategorySlug) => void;
   onStatusSelect: (status: StatusFilter) => void;
 }) {
+  const [slides, setSlides] = useState<HeroSlideDisplay[]>(defaultHeroSlides);
   const [active, setActive] = useState(0);
-  const slide = heroSlides[active];
+
+  useEffect(() => {
+    getHeroSlides().then((fetched: HeroSlideItem[]) => {
+      if (fetched.length > 0) {
+        setSlides(
+          fetched.map((s: HeroSlideItem) => ({
+            eyebrow: s.eyebrow,
+            title: s.title,
+            body: s.body,
+            cta: s.cta,
+            filter: s.filter,
+            image: s.image,
+          })),
+        );
+      }
+    });
+  }, []);
+
+  const slide = slides[active] || slides[0] || defaultHeroSlides[0];
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setActive((current) => (current + 1) % heroSlides.length);
+      setActive((current) => (current + 1) % slides.length);
     }, 5500);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [slides.length]);
 
   const move = (direction: -1 | 1) => {
-    setActive((current) =>
-      (current + direction + heroSlides.length) % heroSlides.length,
-    );
+    setActive((current) => (current + direction + slides.length) % slides.length);
   };
 
   const applySlide = () => {
@@ -143,7 +171,7 @@ function CatalogHero({
       onCategorySelect(slide.category);
     }
     if (slide.filter) {
-      onStatusSelect(slide.filter);
+      onStatusSelect(slide.filter as StatusFilter);
     }
   };
 
@@ -202,9 +230,9 @@ function CatalogHero({
         </div>
 
         <div className="absolute bottom-4 left-edge-margin-mobile flex gap-2 md:left-edge-margin-desktop">
-          {heroSlides.map((item, index) => (
+          {slides.map((item, index) => (
             <button
-              key={item.title}
+              key={item.title + index}
               type="button"
               aria-label={`Show ${item.eyebrow}`}
               onClick={() => setActive(index)}
@@ -482,9 +510,9 @@ export default function ProductCatalog({
     }).length;
   return (
     <>
-      <CatalogHero
+      <ShopPromoCarousel
         onCategorySelect={setCategoryAndReset}
-        onStatusSelect={(status) => setSelectedStatuses([status])}
+        onStatusSelect={(status: StatusFilter) => setSelectedStatuses([status])}
       />
 
       <section className="bg-surface-container-low pb-section-gap-mobile md:pb-section-gap">

@@ -1,54 +1,139 @@
 "use client";
 
-import { FormEvent, useState, Suspense } from "react";
+import { FormEvent, useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Lock, ShieldAlert } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { resetPassword } from "@/lib/api/auth";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+);
 
 function ResetPasswordForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialEmail = searchParams.get("email") ?? "";
 
-  const [email, setEmail] = useState(initialEmail);
+  const [ready, setReady] = useState(false);       // token parsed from hash
+  const [invalid, setInvalid] = useState(false);    // no valid recovery token
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Supabase sends a recovery link like:
+  //   https://yoursite.com/reset-password#access_token=...&refresh_token=...&type=recovery
+  // We parse the hash, set the session so supabase.auth.updateUser() works.
+  useEffect(() => {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    const type = params.get("type");
+
+    if (!accessToken || type !== "recovery") {
+      setInvalid(true);
+      return;
+    }
+
+    supabase.auth
+      .setSession({ access_token: accessToken, refresh_token: refreshToken ?? "" })
+      .then(({ error: sessionError }) => {
+        if (sessionError) {
+          setInvalid(true);
+        } else {
+          setReady(true);
+          // Clean the hash from the URL bar without a reload
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      });
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !password) return;
 
     if (password !== confirmPassword) {
       setError("Passwords do not match. Please re-enter.");
       return;
     }
-
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     setLoading(true);
     setError(null);
-    setMessage(null);
 
-    try {
-      const res = await resetPassword(email.trim(), password);
-      setMessage(res.message);
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+
+    setLoading(false);
+
+    if (updateError) {
+      setError(updateError.message || "Failed to update password. The link may have expired.");
+    } else {
       setSuccess(true);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to reset password.");
-    } finally {
-      setLoading(false);
     }
+  }
+
+  /* ── States ─────────────────────────────────────────────────── */
+
+  if (invalid) {
+    return (
+      <div className="mx-auto w-full max-w-md rounded-lg bg-background-white p-stack-lg shadow-soft">
+        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-5">
+          <ShieldAlert size={22} className="shrink-0 mt-0.5 text-red-600" />
+          <div>
+            <p className="text-sm font-bold text-red-900">Invalid or Expired Link</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-red-700">
+              This password reset link is invalid or has already expired. Please request a new one.
+            </p>
+          </div>
+        </div>
+        <div className="mt-6 text-center">
+          <Link
+            href="/forgot-password"
+            className="inline-flex items-center justify-center gap-2 rounded bg-primary px-6 py-3 text-label-md text-on-primary hover:bg-primary-container"
+          >
+            Request New Reset Link
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <div className="mx-auto flex min-h-[260px] max-w-md items-center justify-center">
+        <Loader2 size={28} className="animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="mx-auto w-full max-w-md rounded-lg bg-background-white p-stack-lg shadow-soft space-y-4">
+        <div className="rounded-lg bg-emerald-50 p-5 border border-emerald-200 flex items-start gap-3">
+          <CheckCircle2 size={22} className="text-emerald-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-bold text-emerald-900">Password Updated</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-emerald-700">
+              Your password has been successfully changed. You can now log in with your new password.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push("/login")}
+          className="flex w-full items-center justify-center gap-2 rounded bg-primary px-6 py-3 text-label-md text-on-primary hover:bg-primary-container"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -59,111 +144,75 @@ function ResetPasswordForm() {
         </div>
         <h1 className="font-display text-headline-md text-primary">Set New Password</h1>
         <p className="mt-2 text-body-sm text-on-surface-variant">
-          Enter your account email and choose a strong new password.
+          Choose a strong new password for your account.
         </p>
       </div>
 
-      {success ? (
-        <div className="space-y-4">
-          <div className="rounded-lg bg-emerald-50 p-4 border border-emerald-200 flex items-start gap-3">
-            <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-bold text-emerald-900">Password Reset Complete</p>
-              <p className="mt-1 text-xs text-emerald-700">{message}</p>
-            </div>
+      <form onSubmit={handleSubmit} className="space-y-stack-md">
+        {/* New password */}
+        <label className="block">
+          <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
+            New Password
+          </span>
+          <div className="flex items-center rounded border border-outline-variant bg-surface-container-low focus-within:border-primary">
+            <span className="px-3 text-on-surface-variant">
+              <KeyRound size={18} />
+            </span>
+            <input
+              required
+              type={showPassword ? "text" : "password"}
+              placeholder="At least 6 characters"
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-transparent py-3 pr-3 text-on-surface outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="px-3 text-on-surface-variant hover:text-primary"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
+        </label>
 
-          <Link
-            href="/login"
-            className="flex w-full items-center justify-center gap-2 rounded bg-primary px-6 py-3 text-label-md text-on-primary hover:bg-primary-container"
-          >
-            Login to Your Account
-          </Link>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-stack-md">
-          <label className="block">
-            <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
-              Account Email
+        {/* Confirm password */}
+        <label className="block">
+          <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
+            Confirm New Password
+          </span>
+          <div className="flex items-center rounded border border-outline-variant bg-surface-container-low focus-within:border-primary">
+            <span className="px-3 text-on-surface-variant">
+              <Lock size={18} />
             </span>
-            <div className="flex items-center rounded border border-outline-variant bg-surface-container-low focus-within:border-primary">
-              <span className="px-3 text-on-surface-variant">
-                <Mail size={18} />
-              </span>
-              <input
-                required
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-transparent py-3 pr-3 text-on-surface outline-none"
-              />
-            </div>
-          </label>
+            <input
+              required
+              type={showPassword ? "text" : "password"}
+              placeholder="Re-enter password"
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full bg-transparent py-3 pr-3 text-on-surface outline-none"
+            />
+          </div>
+        </label>
 
-          <label className="block">
-            <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
-              New Password
-            </span>
-            <div className="flex items-center rounded border border-outline-variant bg-surface-container-low focus-within:border-primary">
-              <span className="px-3 text-on-surface-variant">
-                <KeyRound size={18} />
-              </span>
-              <input
-                required
-                type={showPassword ? "text" : "password"}
-                placeholder="At least 6 characters"
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-transparent py-3 pr-3 text-on-surface outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="px-3 text-on-surface-variant hover:text-primary"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-          </label>
+        {error && (
+          <p className="rounded bg-error-container px-3 py-2 text-xs text-on-error-container font-medium">
+            {error}
+          </p>
+        )}
 
-          <label className="block">
-            <span className="mb-2 block text-label-md uppercase text-on-surface-variant">
-              Confirm New Password
-            </span>
-            <div className="flex items-center rounded border border-outline-variant bg-surface-container-low focus-within:border-primary">
-              <span className="px-3 text-on-surface-variant">
-                <Lock size={18} />
-              </span>
-              <input
-                required
-                type={showPassword ? "text" : "password"}
-                placeholder="Re-enter password"
-                minLength={6}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-transparent py-3 pr-3 text-on-surface outline-none"
-              />
-            </div>
-          </label>
-
-          {error && (
-            <p className="rounded bg-error-container px-3 py-2 text-xs text-on-error-container font-medium">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !email.trim() || !password}
-            className="flex w-full items-center justify-center gap-2 rounded bg-primary px-6 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:opacity-70"
-          >
-            {loading && <Loader2 size={18} className="animate-spin" />}
-            Reset & Save Password
-          </button>
-        </form>
-      )}
+        <button
+          type="submit"
+          disabled={loading || !password || !confirmPassword}
+          className="flex w-full items-center justify-center gap-2 rounded bg-primary px-6 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:opacity-70"
+        >
+          {loading && <Loader2 size={18} className="animate-spin" />}
+          Save New Password
+        </button>
+      </form>
 
       <div className="mt-stack-lg border-t border-outline-variant/40 pt-4 text-center">
         <Link href="/login" className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
@@ -179,7 +228,13 @@ export default function ResetPasswordPage() {
     <>
       <Navbar />
       <main className="min-h-screen bg-surface-container-low px-edge-margin-mobile pb-section-gap-mobile pt-32 md:px-edge-margin-desktop">
-        <Suspense fallback={<div className="mx-auto h-96 max-w-md animate-pulse rounded bg-background-white shadow-soft" />}>
+        <Suspense
+          fallback={
+            <div className="mx-auto flex min-h-[260px] max-w-md items-center justify-center">
+              <Loader2 size={28} className="animate-spin text-primary" />
+            </div>
+          }
+        >
           <ResetPasswordForm />
         </Suspense>
       </main>

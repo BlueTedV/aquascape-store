@@ -23,7 +23,7 @@ export default function AdminDashboard() {
           }`}
         >
           <BarChart3 size={18} />
-          Sales & Analytics
+          Sales &amp; Analytics
         </button>
 
         <button

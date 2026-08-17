@@ -6,7 +6,7 @@ export default function Hero() {
     <header className="relative flex h-screen min-h-[640px] items-center overflow-hidden">
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/home/hero.svg"
+          src="/images/home/Hero.jpg"
           alt="A masterfully crafted nature-style aquascape with driftwood, moss, and schooling tetras in a frameless glass aquarium"
           fill
           priority

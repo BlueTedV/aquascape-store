@@ -54,4 +54,40 @@ class SupabaseStorageService
             'url' => "{$this->url}/storage/v1/object/public/{$this->bucket}/{$path}",
         ];
     }
+
+    public function uploadBase64Image(string $base64Data, string $folder = 'gallery'): string
+    {
+        if (! preg_match('/^data:image\/(\w+);base64,/', $base64Data, $type)) {
+            return $base64Data;
+        }
+
+        try {
+            $extension = strtolower($type[1]) === 'jpeg' ? 'jpg' : strtolower($type[1]);
+            $data = substr($base64Data, strpos($base64Data, ',') + 1);
+            $decoded = base64_decode($data);
+
+            if ($decoded === false) {
+                return $base64Data;
+            }
+
+            $path = sprintf('%s/%s/%s.%s', $folder, now()->format('Y/m'), (string) Str::uuid(), $extension);
+            $mimeType = "image/{$type[1]}";
+
+            Http::baseUrl($this->url)
+                ->acceptJson()
+                ->withHeaders([
+                    'apikey' => $this->serviceRoleKey,
+                    'Authorization' => "Bearer {$this->serviceRoleKey}",
+                    'Content-Type' => $mimeType,
+                    'x-upsert' => 'false',
+                ])
+                ->withBody($decoded, $mimeType)
+                ->post("/storage/v1/object/{$this->bucket}/{$path}")
+                ->throw();
+
+            return "{$this->url}/storage/v1/object/public/{$this->bucket}/{$path}";
+        } catch (\Throwable) {
+            return $base64Data;
+        }
+    }
 }

@@ -1,18 +1,26 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, KeyRound, Loader2, Mail } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { forgotPassword } from "@/lib/api/auth";
+import { forgotPassword, getStoredSession } from "@/lib/api/auth";
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect logged-in users — they don't need to reset their password here
+  useEffect(() => {
+    if (getStoredSession()?.accessToken) {
+      router.replace("/account");
+    }
+  }, [router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -20,11 +28,9 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
     setError(null);
-    setMessage(null);
 
     try {
-      const res = await forgotPassword(email.trim());
-      setMessage(res.message);
+      await forgotPassword(email.trim());
       setSubmitted(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to request password reset.");
@@ -44,32 +50,31 @@ export default function ForgotPasswordPage() {
             </div>
             <h1 className="font-display text-headline-md text-primary">Forgot Password?</h1>
             <p className="mt-2 text-body-sm text-on-surface-variant">
-              Enter your registered email address below. We&apos;ll send you instructions and a link to reset your account password.
+              Enter your registered email address. We&apos;ll send you a secure link to reset your password.
             </p>
           </div>
 
           {submitted ? (
-            <div className="space-y-4">
-              <div className="rounded-lg bg-emerald-50 p-4 border border-emerald-200 flex items-start gap-3">
-                <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-emerald-900">Reset Request Sent</p>
-                  <p className="mt-1 text-xs text-emerald-700">{message}</p>
-                </div>
+            <div className="rounded-lg bg-emerald-50 p-5 border border-emerald-200 flex items-start gap-3">
+              <CheckCircle2 size={22} className="text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-emerald-900">Check Your Email</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-emerald-700">
+                  We&apos;ve sent a password reset link to <strong>{email}</strong>.
+                  Open that email and click the link to set a new password.
+                </p>
+                <p className="mt-2 text-xs text-emerald-600">
+                  Didn&apos;t receive it? Check your spam folder, or{" "}
+                  <button
+                    type="button"
+                    className="font-bold underline"
+                    onClick={() => setSubmitted(false)}
+                  >
+                    try again
+                  </button>
+                  .
+                </p>
               </div>
-
-              <div className="rounded-lg bg-surface-container-low p-4 text-xs text-on-surface-variant space-y-2 border border-outline-variant/60">
-                <p className="font-bold text-on-surface">What to do next?</p>
-                <p>1. Check your email inbox for <strong>{email}</strong>.</p>
-                <p>2. Or proceed directly to set a new password with the button below.</p>
-              </div>
-
-              <Link
-                href={`/reset-password?email=${encodeURIComponent(email)}`}
-                className="flex w-full items-center justify-center gap-2 rounded bg-primary px-6 py-3 text-label-md text-on-primary hover:bg-primary-container"
-              >
-                Set New Password Now
-              </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-stack-md">

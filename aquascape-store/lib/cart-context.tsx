@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { CartItem } from "./types";
+import { getStoredSession } from "./api/auth";
 
 const STORAGE_KEY = "aquaku-shop-cart";
 const PRODUCT_IMAGE_PLACEHOLDER = "/images/products/product-placeholder.svg";
@@ -40,9 +41,32 @@ interface CartContextValue {
   isHydrated: boolean;
 }
 
-const CartContext = createContext<CartContextValue | undefined>(undefined);
+const defaultCartValue: CartContextValue = {
+  items: [],
+  itemCount: 0,
+  subtotal: 0,
+  addItem: () => {},
+  removeItem: () => {},
+  updateQuantity: () => {},
+  clearCart: () => {},
+  isHydrated: false,
+};
+
+const CartContext = createContext<CartContextValue>(defaultCartValue);
 
 function readStoredCart(): CartItem[] {
+  if (typeof window === "undefined") return [];
+
+  // Only logged in users have access to persistent cart items
+  if (!getStoredSession()?.accessToken) {
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
+    return [];
+  }
+
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -76,6 +100,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Persist to localStorage whenever the cart changes (after initial load).
   useEffect(() => {
     if (!isHydrated) return;
+    if (!getStoredSession()?.accessToken) {
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Ignore
+      }
+      return;
+    }
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch (error) {
@@ -172,9 +204,5 @@ export function CartProvider({ children }: { children: ReactNode }) {
 }
 
 export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within a <CartProvider>");
-  }
-  return context;
+  return useContext(CartContext);
 }

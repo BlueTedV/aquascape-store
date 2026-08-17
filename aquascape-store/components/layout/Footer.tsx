@@ -3,10 +3,13 @@ import { Instagram, Facebook, Youtube, CreditCard, Landmark } from "lucide-react
 
 const quickLinks = [
   { label: "About Us", href: "/about" },
+  { label: "Community Hub", href: "/community" },
+  { label: "Aquascape Guides", href: "/guides" },
   { label: "Shipping Policy", href: "/shipping" },
   { label: "Track Order", href: "/track-order" },
   { label: "Contact Support", href: "/contact" },
 ];
+
 
 const legalLinks = [
   { label: "Privacy Policy", href: "/privacy" },
@@ -88,7 +91,7 @@ export default function Footer() {
 
         <div className="mt-stack-lg flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-stack-md md:flex-row">
           <p className="font-sans text-sm opacity-60">
-            Ã‚&copy; {new Date().getFullYear()} Aquaku Shop Indonesia.
+            &copy; {new Date().getFullYear()} Aquaku Shop Indonesia.
           </p>
           <div className="flex gap-6 text-sm opacity-60">
             {legalLinks.map((link) => (

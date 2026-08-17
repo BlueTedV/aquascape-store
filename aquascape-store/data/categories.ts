@@ -34,6 +34,7 @@ export const categories: Category[] = [
     slug: "equipment",
     name: "Equipment",
     href: "/shop?category=equipment",
+    image: "/images/home/promo-equipment.svg",
     icon: "Filter",
   },
   {
@@ -41,6 +42,8 @@ export const categories: Category[] = [
     slug: "substrate",
     name: "Substrate",
     href: "/shop?category=others",
+    image: "/images/home/promo-sale.svg",
     icon: "Layers",
   },
 ];
+

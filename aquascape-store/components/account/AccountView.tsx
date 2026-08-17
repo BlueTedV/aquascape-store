@@ -358,6 +358,7 @@ export default function AccountView() {
                                 }
                                 alt={item.productName}
                                 fill
+                                sizes="36px"
                                 className="object-cover"
                               />
                             </div>
@@ -692,6 +693,7 @@ function ActiveDeliveryCard({ order }: { order: Order }) {
                 }
                 alt={item.productName}
                 fill
+                sizes="40px"
                 className="object-cover"
               />
             </div>

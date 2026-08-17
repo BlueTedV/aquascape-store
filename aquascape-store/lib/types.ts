@@ -31,13 +31,22 @@ export interface AquascapeStyle {
   image: string;
 }
 
-export interface GalleryItem {
+export interface GalleryPost {
   id: string;
+  title: string;
+  authorName: string;
+  description?: string;
+  tankSpecs?: string;
   image: string;
-  alt: string;
-  /** controls the masonry span */
-  size: "tall" | "square" | "wide";
+  alt?: string;
+  size?: "tall" | "square" | "wide";
+  likesCount: number;
+  isLiked?: boolean;
+  createdAt?: string;
 }
+
+export type GalleryItem = GalleryPost;
+
 
 export interface BuildStep {
   id: string;

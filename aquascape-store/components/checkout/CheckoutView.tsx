@@ -168,6 +168,7 @@ export default function CheckoutView() {
 
     const result = await openSnapPayment(createdOrder);
     if (result === "success" || result === "pending") {
+      clearCart();
       setShowSuccessModal(true);
     } else {
       setFailedMessage(
@@ -239,7 +240,6 @@ export default function CheckoutView() {
         })),
       });
 
-      clearCart();
       setCreatedOrder(order);
 
       // For Midtrans payment methods, open Snap FIRST — user must pay before seeing success
@@ -250,6 +250,7 @@ export default function CheckoutView() {
         const result = await openSnapPayment(order);
 
         if (result === "success" || result === "pending") {
+          clearCart();
           setShowSuccessModal(true);
         } else {
           setFailedMessage(
@@ -261,6 +262,7 @@ export default function CheckoutView() {
         }
       } else {
         // COD or no Midtrans token — show success directly
+        clearCart();
         setShowSuccessModal(true);
       }
     } catch (err: any) {
@@ -624,9 +626,6 @@ export default function CheckoutView() {
                   {voucherError && (
                     <p className="text-[11px] font-bold text-red-600">{voucherError}</p>
                   )}
-                  <p className="text-[10px] text-on-surface-variant">
-                    Try codes: <strong className="font-mono text-primary cursor-pointer hover:underline" onClick={() => setVoucherCodeInput("AQUA10")}>AQUA10</strong>, <strong className="font-mono text-primary cursor-pointer hover:underline" onClick={() => setVoucherCodeInput("FREESHIP")}>FREESHIP</strong>, <strong className="font-mono text-primary cursor-pointer hover:underline" onClick={() => setVoucherCodeInput("NEWUSER")}>NEWUSER</strong>
-                  </p>
                 </div>
               )}
             </div>
@@ -742,6 +741,7 @@ export default function CheckoutView() {
                         }
                         alt={item.productName}
                         fill
+                        sizes="40px"
                         className="object-cover"
                       />
                     </div>
@@ -801,7 +801,17 @@ export default function CheckoutView() {
       {/* PAYMENT FAILED MODAL */}
       {showFailedModal && createdOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md overflow-hidden rounded-xl bg-background-white p-6 shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="relative w-full max-w-md overflow-hidden rounded-xl bg-background-white p-6 shadow-2xl animate-in zoom-in-95 duration-300">
+            {/* Close X button */}
+            <button
+              type="button"
+              onClick={() => setShowFailedModal(false)}
+              className="absolute right-4 top-4 rounded-full p-1.5 text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+              aria-label="Close modal"
+            >
+              <X size={20} />
+            </button>
+
             <div className="flex flex-col items-center text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600 ring-8 ring-red-50">
                 <XCircle size={36} />
@@ -832,14 +842,11 @@ export default function CheckoutView() {
 
               <button
                 type="button"
-                onClick={() => {
-                  setShowFailedModal(false);
-                  router.push(`/checkout/success/${encodeURIComponent(createdOrder.orderNumber)}`);
-                }}
+                onClick={() => setShowFailedModal(false)}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded border border-outline-variant/60 bg-background-white text-sm font-bold text-on-surface transition-colors hover:bg-surface-container"
               >
-                <ExternalLink size={16} />
-                View Order Details
+                <ArrowLeft size={16} />
+                Return to Checkout
               </button>
 
               <button

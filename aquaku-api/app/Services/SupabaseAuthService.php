@@ -70,16 +70,21 @@ class SupabaseAuthService
 
     public function forgotPassword(string $email): array
     {
+        $redirectTo = rtrim((string) config('services.supabase.redirect_url', config('app.url')), '/') . '/reset-password';
+
         try {
             $this->authRequest()
-                ->post('/auth/v1/recover', ['email' => $email])
+                ->post('/auth/v1/recover', [
+                    'email'       => $email,
+                    'redirect_to' => $redirectTo,
+                ])
                 ->throw();
         } catch (\Throwable) {
             // Non-fatal if Supabase SMTP is not configured
         }
 
         return [
-            'message' => "Password reset instructions requested for {$email}. Check your email or use the reset form to set a new password.",
+            'message' => "A password reset link has been sent to {$email}.",
         ];
     }
 
