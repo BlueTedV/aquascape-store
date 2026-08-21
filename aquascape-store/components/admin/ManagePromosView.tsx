@@ -23,21 +23,26 @@ export default function ManagePromosView() {
     description: "",
   });
 
-  const loadPromos = async () => {
-    setLoading(true);
-    try {
-      const data = await getAdminPromos();
-      setPromos(data);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load promos.";
-      setErrorMsg(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadPromos();
+    let mounted = true;
+    getAdminPromos()
+      .then((data) => {
+        if (mounted) {
+          setPromos(data);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (mounted) {
+          const msg = err instanceof Error ? err.message : "Failed to load promos.";
+          setErrorMsg(msg);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -158,7 +163,7 @@ export default function ManagePromosView() {
                 </label>
                 <select
                   value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value as any })}
+                  onChange={(e) => setForm({ ...form, type: e.target.value as "percentage" | "fixed" | "shipping" })}
                   className="mt-1 w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-sm text-on-surface outline-none focus:border-primary"
                 >
                   <option value="percentage">Percentage Off (%)</option>

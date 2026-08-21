@@ -183,8 +183,8 @@ export default function ManageProductsView() {
       setForm(emptyForm);
       setShowDeleteModal(false);
       setDeletePasscode("");
-    } catch (err: any) {
-      setDeleteError(err.message || "Failed to delete products. Please check passcode.");
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete products. Please check passcode.");
     } finally {
       setDeletingAll(false);
     }

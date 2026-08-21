@@ -93,8 +93,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load any previously saved cart once, on first mount in the browser.
   useEffect(() => {
-    setItems(readStoredCart());
-    setIsHydrated(true);
+    let mounted = true;
+    Promise.resolve().then(() => {
+      if (mounted) {
+        setItems(readStoredCart());
+        setIsHydrated(true);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Persist to localStorage whenever the cart changes (after initial load).

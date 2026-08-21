@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { login, register, storeSession } from "@/lib/api/auth";
 
 type AuthMode = "login" | "register";
@@ -16,6 +16,17 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const verified = searchParams.get("verified");
+  const urlMsg = searchParams.get("message");
+
+  const displayMessage =
+    message ??
+    (verified === "true" || urlMsg === "confirm_then_login" || urlMsg === "email_verified"
+      ? "Email verified successfully! You can now log in to your account."
+      : urlMsg === "password_updated"
+        ? "Your password has been updated. You can now log in with your new password."
+        : null);
 
   const isRegister = mode === "register";
 
@@ -138,10 +149,11 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
             {error}
           </p>
         )}
-        {message && (
-          <p className="rounded bg-primary-fixed px-3 py-2 text-sm text-on-primary-fixed">
-            {message}
-          </p>
+        {displayMessage && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+            <CheckCircle2 size={18} className="shrink-0 mt-0.5 text-emerald-600" />
+            <span>{displayMessage}</span>
+          </div>
         )}
 
         {!isRegister && (

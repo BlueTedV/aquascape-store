@@ -25,32 +25,100 @@ function ResetPasswordForm() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Supabase sends a recovery link like:
-  //   https://yoursite.com/reset-password#access_token=...&refresh_token=...&type=recovery
-  // We parse the hash, set the session so supabase.auth.updateUser() works.
   useEffect(() => {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get("access_token");
-    const refreshToken = params.get("refresh_token");
-    const type = params.get("type");
+    let active = true;
 
-    if (!accessToken || type !== "recovery") {
-      setInvalid(true);
-      return;
-    }
-
-    supabase.auth
-      .setSession({ access_token: accessToken, refresh_token: refreshToken ?? "" })
-      .then(({ error: sessionError }) => {
-        if (sessionError) {
-          setInvalid(true);
-        } else {
+    async function checkAuth() {
+      // 1. Listen for Supabase auth events (e.g. PASSWORD_RECOVERY or SIGNED_IN)
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!active) return;
+        if (event === "PASSWORD_RECOVERY" || (session && event === "SIGNED_IN")) {
           setReady(true);
-          // Clean the hash from the URL bar without a reload
-          window.history.replaceState(null, "", window.location.pathname);
+          setInvalid(false);
         }
       });
+
+      // 2. Check query params (PKCE `code` or `token_hash`)
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get("code");
+      const tokenHash = searchParams.get("token_hash");
+      const type = searchParams.get("type");
+
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (!exchangeError && active) {
+          setReady(true);
+          setInvalid(false);
+          window.history.replaceState(null, "", window.location.pathname);
+          return;
+        }
+      }
+
+      if (tokenHash && (type === "recovery" || type === "email")) {
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: (type as "recovery" | "email") || "recovery",
+        });
+        if (!otpError && active) {
+          setReady(true);
+          setInvalid(false);
+          window.history.replaceState(null, "", window.location.pathname);
+          return;
+        }
+      }
+
+      // 3. Check hash fragment (#access_token=...&type=recovery)
+      const hash = window.location.hash.substring(1);
+      if (hash) {
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        const hashType = params.get("type");
+
+        if (accessToken && (hashType === "recovery" || !hashType)) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken ?? "",
+          });
+          if (!sessionError && active) {
+            setReady(true);
+            setInvalid(false);
+            window.history.replaceState(null, "", window.location.pathname);
+            return;
+          }
+        }
+      }
+
+      // 4. Check existing session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session && active) {
+        setReady(true);
+        setInvalid(false);
+        return;
+      }
+
+      // 5. Fallback timer if session resolution takes a moment
+      const timer = setTimeout(() => {
+        if (active) {
+          supabase.auth.getSession().then(({ data }) => {
+            if (data?.session) {
+              setReady(true);
+              setInvalid(false);
+            } else {
+              setInvalid(true);
+            }
+          });
+        }
+      }, 1500);
+
+      return () => {
+        active = false;
+        clearTimeout(timer);
+        authListener?.subscription?.unsubscribe();
+      };
+    }
+
+    checkAuth();
   }, []);
 
   async function handleSubmit(e: FormEvent) {

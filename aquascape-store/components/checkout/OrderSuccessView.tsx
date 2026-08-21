@@ -81,12 +81,13 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
                     type="button"
                     onClick={() => {
                       navigator.clipboard.writeText(order.trackingNumber || "");
-                      alert("Shipping Resi copied to clipboard!");
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
                     }}
                     className="flex items-center gap-1.5 rounded bg-background-white px-3 py-1.5 text-xs font-bold text-purple-900 border border-purple-300 hover:bg-purple-100 shadow-xs"
                   >
                     <Copy size={13} />
-                    Copy Resi
+                    {copied ? "Copied!" : "Copy Resi"}
                   </button>
                   <a
                     href={`https://www.cekresi.com/?noresi=${encodeURIComponent(order.trackingNumber)}`}

@@ -13,7 +13,6 @@ import {
   AlertCircle,
   Loader2,
   QrCode,
-  ArrowRight,
   Package,
   ShoppingBag,
   ExternalLink,
@@ -265,9 +264,9 @@ export default function CheckoutView() {
         clearCart();
         setShowSuccessModal(true);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMessage(err.message || "Something went wrong while placing your order. Please try again.");
+      setErrorMessage(err instanceof Error ? err.message : "Something went wrong while placing your order. Please try again.");
     } finally {
       setIsLoading(false);
     }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, MessageSquare, ArrowRight, X, Sparkles } from "lucide-react";
+import { Heart, ArrowRight, X, Sparkles } from "lucide-react";
 import { GalleryPost } from "@/lib/types";
 import { getGalleryPosts, likeGalleryPost } from "@/lib/api/gallery";
 import { getStoredSession } from "@/lib/api/auth";

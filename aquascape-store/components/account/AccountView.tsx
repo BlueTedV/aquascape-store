@@ -17,8 +17,6 @@ import {
   ShoppingBag,
   ExternalLink,
   RefreshCcw,
-  AlertCircle,
-  Sparkles,
 } from "lucide-react";
 import {
   Account,
@@ -49,8 +47,6 @@ export default function AccountView() {
     let mounted = true;
 
     if (!getStoredSession()?.accessToken) {
-      setLoading(false);
-      setLoadingOrders(false);
       router.replace("/login?redirect=/account");
       return;
     }

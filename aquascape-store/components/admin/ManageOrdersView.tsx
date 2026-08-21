@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, CheckCircle2, ChevronRight, Clock, Loader2, Lock, RefreshCw, Search, Truck, Trash2, X, XCircle } from "lucide-react";
+import { AlertTriangle, Loader2, Lock, RefreshCw, Search, Truck, Trash2, X } from "lucide-react";
 import { Order, deleteAllAdminOrders, getAdminOrders, updateOrderStatus } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
 
@@ -67,7 +67,29 @@ export default function ManageOrdersView() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    let mounted = true;
+    getAdminOrders(selectedStatus)
+      .then((data) => {
+        if (mounted) {
+          setOrders(data);
+          if (data.length > 0) {
+            setSelectedOrder((prev) => (prev ? data.find((d) => d.id === prev.id) || data[0] : data[0]));
+          } else {
+            setSelectedOrder(null);
+          }
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : "Failed to load orders.");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [selectedStatus]);
 
   const filteredOrders = orders.filter((o) => {

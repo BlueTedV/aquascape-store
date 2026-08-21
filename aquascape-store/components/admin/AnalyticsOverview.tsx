@@ -40,7 +40,24 @@ export default function AnalyticsOverview() {
   };
 
   useEffect(() => {
-    fetchAnalytics();
+    let mounted = true;
+    getAdminAnalytics()
+      .then((data) => {
+        if (mounted) {
+          setAnalytics(data);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (mounted) {
+          setError(err instanceof Error ? err.message : "Failed to load sales analytics.");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (loading) {

@@ -11,7 +11,6 @@ import {
   Upload,
   CheckCircle2,
   Lock,
-  MessageSquare,
   Flame,
   Clock,
 } from "lucide-react";
@@ -45,14 +44,28 @@ export default function CommunityPage() {
   });
 
   useEffect(() => {
+    let isMounted = true;
+    getGalleryPosts({ sort, limit: 24 })
+      .then((data) => {
+        if (isMounted) setPosts(data);
+      })
+      .catch(() => {
+        if (isMounted) setPosts([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sort]);
+
+  const handleOpenCreateModal = () => {
     const session = getStoredSession();
     setIsLoggedIn(Boolean(session?.accessToken));
-
-    setLoading(true);
-    getGalleryPosts({ sort, limit: 24 })
-      .then((data) => setPosts(data))
-      .finally(() => setLoading(false));
-  }, [sort]);
+    setShowCreateModal(true);
+  };
 
   const handleLike = async (postId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -137,7 +150,7 @@ export default function CommunityPage() {
             <div className="mt-8 flex justify-center">
               <button
                 type="button"
-                onClick={() => setShowCreateModal(true)}
+                onClick={handleOpenCreateModal}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 font-sans font-medium text-on-primary shadow-lg transition-all hover:bg-primary-hover hover:scale-105"
               >
                 <Plus size={20} />

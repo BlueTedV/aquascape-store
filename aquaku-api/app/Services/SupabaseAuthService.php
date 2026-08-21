@@ -54,8 +54,18 @@ class SupabaseAuthService
             ->json();
 
         $user = $payload['user'] ?? $payload;
+
+        // Supabase returns an empty identities array when the email is already registered (to prevent user enumeration)
+        if (isset($user['identities']) && is_array($user['identities']) && count($user['identities']) === 0) {
+            abort(422, 'An account with this email address already exists. Please log in or reset your password.');
+        }
+
         if (isset($user['id'])) {
-            $this->upsertProfile((string) $user['id'], $fullName, $phone);
+            try {
+                $this->upsertProfile((string) $user['id'], $fullName, $phone);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return $this->sessionPayload($payload);
@@ -119,8 +129,23 @@ class SupabaseAuthService
     {
         $accessToken = $this->bearerToken($request);
         $user = $this->userFromToken($accessToken);
-        $profile = $this->profile((string) $user['id']);
-        $shippingAddress = $this->defaultShippingAddress((string) $user['id']);
+        $userId = (string) $user['id'];
+        $profile = $this->profile($userId);
+
+        if ($profile === null && isset($user['id'])) {
+            try {
+                $this->upsertProfile(
+                    $userId,
+                    $user['user_metadata']['full_name'] ?? null,
+                    $user['user_metadata']['phone'] ?? null
+                );
+                $profile = $this->profile($userId);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        $shippingAddress = $this->defaultShippingAddress($userId);
 
         return [
             'accessToken' => $accessToken,

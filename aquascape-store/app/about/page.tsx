@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Leaf, ShieldCheck, Award, HeartHandshake, Sparkles } from "lucide-react";
+import { ArrowRight, Leaf, ShieldCheck, HeartHandshake, Sparkles } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SectionReveal from "@/components/ui/SectionReveal";

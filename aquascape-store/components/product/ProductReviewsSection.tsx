@@ -33,29 +33,34 @@ export default function ProductReviewsSection({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Autofill user name if logged in
   useEffect(() => {
+    let mounted = true;
+    getProductReviews(productSlug)
+      .then((data) => {
+        if (mounted) {
+          setReviews(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load reviews", err);
+        if (mounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [productSlug]);
+
+  const handleOpenModal = () => {
     const session = getStoredSession();
-    if (session?.user?.fullName) {
+    if (session?.user?.fullName && !userName) {
       setUserName(session.user.fullName);
     }
-  }, []);
-
-  const loadReviews = async () => {
-    setLoading(true);
-    try {
-      const data = await getProductReviews(productSlug);
-      setReviews(data);
-    } catch (err) {
-      console.error("Failed to load reviews", err);
-    } finally {
-      setLoading(false);
-    }
+    setShowModal(true);
   };
-
-  useEffect(() => {
-    loadReviews();
-  }, [productSlug]);
 
   const totalReviews = reviews.length > 0 ? reviews.length : initialReviewCount;
   const avgRating =
@@ -100,8 +105,8 @@ export default function ProductReviewsSection({
       if (onReviewSubmitted) {
         onReviewSubmitted();
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to submit review.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to submit review.");
     } finally {
       setSubmitting(false);
     }
@@ -119,7 +124,7 @@ export default function ProductReviewsSection({
 
         <button
           type="button"
-          onClick={() => setShowModal(true)}
+          onClick={handleOpenModal}
           className="flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-on-primary transition-all hover:bg-primary-container shadow-sm"
         >
           <MessageSquarePlus size={16} />

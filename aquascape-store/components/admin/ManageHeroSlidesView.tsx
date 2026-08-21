@@ -22,21 +22,26 @@ export default function ManageHeroSlidesView() {
     image: "",
   });
 
-  const loadSlides = async () => {
-    setLoading(true);
-    try {
-      const data = await getHeroSlides();
-      setSlides(data);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load hero slides.";
-      setErrorMsg(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadSlides();
+    let mounted = true;
+    getHeroSlides()
+      .then((data) => {
+        if (mounted) {
+          setSlides(data);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (mounted) {
+          const msg = err instanceof Error ? err.message : "Failed to load hero slides.";
+          setErrorMsg(msg);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {

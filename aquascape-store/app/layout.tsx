@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
+import AuthHashHandler from "@/components/auth/AuthHashHandler";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -8,6 +10,7 @@ const poppins = Poppins({
   weight: ["600", "700"],
   variable: "--font-poppins",
   display: "swap",
+  fallback: ["Poppins", "system-ui", "sans-serif"],
 });
 
 const inter = Inter({
@@ -15,6 +18,7 @@ const inter = Inter({
   weight: ["400", "600", "700"],
   variable: "--font-inter",
   display: "swap",
+  fallback: ["Inter", "system-ui", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -31,6 +35,9 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" className={`${poppins.variable} ${inter.variable}`}>
       <body>
+        <Suspense fallback={null}>
+          <AuthHashHandler />
+        </Suspense>
         <CartProvider>{children}</CartProvider>
       </body>
     </html>
