@@ -3,6 +3,8 @@ import { Instagram, Facebook, Youtube, CreditCard, Landmark } from "lucide-react
 
 const quickLinks = [
   { label: "About Us", href: "/about" },
+  { label: "Tank Calculator", href: "/calculator" },
+  { label: "My Wishlist", href: "/wishlist" },
   { label: "Community Hub", href: "/community" },
   { label: "Aquascape Guides", href: "/guides" },
   { label: "Shipping Policy", href: "/shipping" },

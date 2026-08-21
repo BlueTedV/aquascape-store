@@ -27,6 +27,7 @@ export interface Order {
   paymentStatus: "unpaid" | "paid" | "refunded";
   orderStatus: "pending" | "processing" | "shipped" | "completed" | "cancelled";
   subtotal: number;
+  discountAmount?: number;
   totalAmount: number;
   trackingNumber?: string | null;
   notes?: string;

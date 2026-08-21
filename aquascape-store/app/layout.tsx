@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
+import { WishlistProvider } from "@/lib/wishlist-context";
 import AuthHashHandler from "@/components/auth/AuthHashHandler";
 import "./globals.css";
 
@@ -38,7 +39,9 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <AuthHashHandler />
         </Suspense>
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          <WishlistProvider>{children}</WishlistProvider>
+        </CartProvider>
       </body>
     </html>
   );

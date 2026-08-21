@@ -7,21 +7,18 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CheckCircle2,
-  CreditCard,
-  Truck,
   ShieldCheck,
   AlertCircle,
   Loader2,
-  QrCode,
   Package,
   ShoppingBag,
   ExternalLink,
-  Sparkles,
   XCircle,
   RotateCcw,
   Tag,
   Ticket,
   X,
+  Lock,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatIDR } from "@/lib/format";
@@ -33,37 +30,6 @@ const COURIERS = [
   { id: "standard", name: "Standard Delivery (JNE / SiCepat)", eta: "2-3 Days", price: 15000 },
   { id: "express", name: "Express Air Delivery (J&T Super)", eta: "1 Day", price: 30000 },
   { id: "same_day", name: "Instant / Same Day Courier (GoSend)", eta: "Same Day", price: 45000 },
-];
-
-const PAYMENT_METHODS = [
-  {
-    id: "bank_transfer",
-    name: "Bank Transfer / Virtual Account (BCA, Mandiri, BNI, BRI)",
-    description: "Instant automatic verification powered by Midtrans Payment Gateway.",
-    badge: "Auto Verify",
-    icon: CreditCard,
-  },
-  {
-    id: "qris",
-    name: "QRIS Instant (GoPay, OVO, ShopeePay, Dana, LinkAja)",
-    description: "Scan QR code with any e-wallet app for instant payment.",
-    badge: "Instant E-Wallet",
-    icon: QrCode,
-  },
-  {
-    id: "credit_card",
-    name: "Credit / Debit Card (Visa, MasterCard, JCB)",
-    description: "3D Secure encrypted credit or debit card payment.",
-    badge: "3D Secure",
-    icon: CreditCard,
-  },
-  {
-    id: "cod",
-    name: "Cash on Delivery (COD)",
-    description: "Pay with cash directly to courier upon package arrival.",
-    badge: "Pay at Doorstep",
-    icon: Truck,
-  },
 ];
 
 const FREE_SHIPPING_THRESHOLD = 300000;
@@ -80,7 +46,7 @@ export default function CheckoutView() {
     shippingCity: "",
     shippingPostalCode: "",
     courier: "standard",
-    paymentMethod: "bank_transfer",
+    paymentMethod: "midtrans",
     notes: "",
   });
 
@@ -241,10 +207,8 @@ export default function CheckoutView() {
 
       setCreatedOrder(order);
 
-      // For Midtrans payment methods, open Snap FIRST — user must pay before seeing success
-      const isMidtrans = ["bank_transfer", "qris", "credit_card"].includes(order.paymentMethod);
-
-      if (isMidtrans && order.midtransSnapToken) {
+      // Open Midtrans Snap payment popup
+      if (order.midtransSnapToken) {
         setIsLoading(false);
         const result = await openSnapPayment(order);
 
@@ -260,7 +224,6 @@ export default function CheckoutView() {
           setShowFailedModal(true);
         }
       } else {
-        // COD or no Midtrans token — show success directly
         clearCart();
         setShowSuccessModal(true);
       }
@@ -473,61 +436,10 @@ export default function CheckoutView() {
             </div>
           </div>
 
-          {/* Section 4: Payment Method (Prepared for Midtrans) */}
-          <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-body-lg font-bold text-on-surface">
-                4. Payment Method
-              </h2>
-              <span className="inline-flex items-center gap-1 rounded bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
-                <Sparkles size={12} /> Midtrans Ready
-              </span>
-            </div>
-
-            <div className="mt-stack-sm space-y-3">
-              {PAYMENT_METHODS.map((method) => {
-                const IconComponent = method.icon;
-                const isSelected = formData.paymentMethod === method.id;
-
-                return (
-                  <label
-                    key={method.id}
-                    className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-all ${
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-outline-variant/60 bg-surface-container-low hover:border-primary/40"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={method.id}
-                      checked={isSelected}
-                      onChange={handleChange}
-                      className="mt-1 h-4 w-4 text-primary focus:ring-primary"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <IconComponent size={18} className="text-primary" />
-                          <span className="text-sm font-bold text-on-surface">{method.name}</span>
-                        </div>
-                        <span className="rounded border border-outline-variant/60 bg-surface-container px-2 py-0.5 text-[10px] font-bold text-on-surface-variant">
-                          {method.badge}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-on-surface-variant">{method.description}</p>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Section 5: Order Notes */}
+          {/* Section 4: Order Notes */}
           <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
             <h2 className="font-display text-body-lg font-bold text-on-surface">
-              5. Order Notes (Optional)
+              4. Order Notes (Optional)
             </h2>
             <textarea
               name="notes"
@@ -667,15 +579,20 @@ export default function CheckoutView() {
                 </>
               ) : (
                 <>
-                  <ShieldCheck size={18} />
-                  Place Order ({formatIDR(grandTotal)})
+                  <Lock size={16} />
+                  Pay with Midtrans ({formatIDR(grandTotal)})
                 </>
               )}
             </button>
 
-            <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-on-surface-variant">
-              <ShieldCheck size={14} className="text-primary" />
-              <span>100% Safe & Live Arrival Guarantee</span>
+            <div className="mt-4 space-y-1 text-center text-xs text-on-surface-variant">
+              <div className="flex items-center justify-center gap-1.5 font-bold text-primary">
+                <ShieldCheck size={14} />
+                <span>Secure Midtrans Payment Gateway</span>
+              </div>
+              <p className="text-[11px] text-gray-500">
+                Supports QRIS, BCA, Mandiri, BNI, BRI, ShopeePay, GoPay, &amp; Cards
+              </p>
             </div>
           </div>
 

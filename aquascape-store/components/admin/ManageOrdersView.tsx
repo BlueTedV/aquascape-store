@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Loader2, Lock, RefreshCw, Search, Truck, Trash2, X } from "lucide-react";
+import { AlertTriangle, Loader2, Lock, RefreshCw, Search, Truck, Trash2, X, Printer } from "lucide-react";
 import { Order, deleteAllAdminOrders, getAdminOrders, updateOrderStatus } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
+import OrderInvoiceModal from "@/components/order/OrderInvoiceModal";
 
 const ORDER_STATUSES = [
   { value: "all", label: "All Orders" },
@@ -24,6 +25,7 @@ export default function ManageOrdersView() {
   const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePasscode, setDeletePasscode] = useState("");
@@ -306,21 +308,32 @@ export default function ManageOrdersView() {
                   </p>
                 </div>
 
-                {/* Status Update Dropdown */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-on-surface-variant">Set Status:</span>
-                  <select
-                    disabled={updating}
-                    value={selectedOrder.orderStatus}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    className="rounded border border-primary bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary focus:outline-none disabled:opacity-50"
+                {/* Status Update Dropdown & Actions */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowInvoiceModal(true)}
+                    className="flex items-center gap-1.5 rounded border border-outline-variant bg-background-white px-3 py-1.5 text-xs font-bold text-on-surface shadow-xs hover:bg-surface-container hover:text-primary transition-colors"
                   >
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                    <Printer size={14} className="text-primary" />
+                    <span>Print Invoice</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-on-surface-variant">Set Status:</span>
+                    <select
+                      disabled={updating}
+                      value={selectedOrder.orderStatus}
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      className="rounded border border-primary bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary focus:outline-none disabled:opacity-50"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -490,6 +503,13 @@ export default function ManageOrdersView() {
           </div>
         </div>
       )}
+
+      {/* Invoice Modal for Admin Print */}
+      <OrderInvoiceModal
+        order={selectedOrder}
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+      />
     </div>
   );
 }

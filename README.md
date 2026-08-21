@@ -16,32 +16,40 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**, **Tailwind
   * Dynamic related products recommendations.
   * Real-time customer reviews section with interactive 5-star rating breakdown and submission modal.
 
-### 🛒 2. Cart & Checkout Flow
-* **Cart Management**: Real-time synced cart persisted across sessions in `localStorage` with quantity adjustments, stock limit checks, and subtotal calculation.
-* **Shipping Courier Options**: Courier fee calculation supporting Standard, Express Air, and Same-Day delivery.
-* **Promo & Voucher System**: Real-time voucher code validation with percentage discounts, fixed price reductions, minimum spend requirements, and discount caps.
-* **Payment Integration**:
-  * **Midtrans Snap**: Secure digital payment gateway supporting QRIS (GoPay/ShopeePay/Dana), Virtual Accounts (BCA, Mandiri, BNI, BRI, Permata), and Credit Cards.
-  * **Cash on Delivery (COD)**: Alternate payment option.
-* **Order Confirmation & Tracking**:
-  * Real-time order progress timeline (`Pending` → `Processing` → `Shipped` → `Completed`).
-  * Tracking number (Resi) banner with one-click clipboard copy and external courier tracking shortcut.
+### 💖 2. Wishlist & Favorites System
+* **Cross-Session Wishlist**: Real-time persisted favorited products via `localStorage` and synchronized across browser tabs.
+* **Instant Toggle**: Heart icons on product catalog cards and dedicated product detail page.
+* **Dedicated Wishlist View (`/wishlist`)**: Interactive management page with "Add All to Cart" batch action and empty state discovery prompts.
 
-### 👤 3. Customer Account & Authentication
+### 🧾 3. Order Invoice & Printable Receipt System
+* **Official Invoice Modal**: Formatted receipt with store credentials, invoice number (`INV/...`), customer details, shipping address, and itemized cost breakdown.
+* **A4 Print Support**: Dedicated `@media print` styling for clean paper or PDF export (`window.print()`).
+* **Multi-View Access**: Accessible directly from Checkout Success (`/checkout/success/[orderNumber]`), Customer Order History (`/account`), the Admin Order Management panel (`/manage`), and a standalone URL (`/orders/[orderNumber]/invoice`).
+
+### 🧮 4. Interactive Aquascaping Tank Calculator (`/calculator`)
+* **Volume Calculator**: Calculates gross and net water volume in Liters and US Gallons for standard sizes (Nano 30C, 45P, 60P, 90P, 120P) or custom dimensions.
+* **Substrate & Slope Estimator**: Computes substrate volume in Liters/kg and required 9L/3L Aqua Soil bags based on front/back depth gradient.
+* **Technical Equipment Sizing**:
+  * **Lighting**: Recommended full-spectrum lumens & LED wattage for High-Tech vs. Low-Tech planted setups.
+  * **Filtration**: Recommended canister filter flow rate (6x–10x hourly turnover).
+  * **CO2 & Heating**: Recommended bubble counter rate (BPS) and heater wattage requirements.
+  * **Safe Bioload Guide**: Nano fish and dwarf shrimp stocking capacity.
+
+### 👤 5. Customer Account & Authentication
 * **Authentication**: Supabase Auth integration with secure Sign In, Registration, Forgot Password, and Password Reset flows.
 * **Account Dashboard**:
   * Personal profile management (Name, Phone number).
   * Default shipping address configuration.
   * Comprehensive Order History with live payment & delivery status badges, itemized order breakdown, and instant re-order action.
 
-### 🌊 4. Community & Guides
+### 🌊 6. Community & Guides
 * **Aquascape Showcase**: Community gallery featuring user-submitted aquascape tank setups, technical specs, and interactive like counter.
 * **Aquascape Guides**: 7-phase step-by-step masterclass covering everything from hardscape layout and soil placement to CO2 balancing and cycling.
 
-### 🛠️ 5. Admin Management Suite (`/manage`)
+### 🛠️ 7. Admin Management Suite (`/manage`)
 * **Analytics Overview**: Live revenue metrics, total orders, average order value, order status distributions, low-stock warnings, and top-selling products.
 * **Product Catalog CRUD**: Create, edit, manage inventory/stock, set promotional badges, assign tags, upload product photos, and delete products.
-* **Order Management**: Filter orders by status, update order statuses, assign shipping tracking numbers (resi), and manage orders.
+* **Order Management**: Filter orders by status, update order statuses, assign shipping tracking numbers (resi), view customer invoices, and manage orders.
 * **Hero Slide Management**: Customize homepage carousel banners, slogans, and call-to-action buttons.
 * **Promo Code Management**: Issue promotional discount codes with expiration dates and discount caps.
 

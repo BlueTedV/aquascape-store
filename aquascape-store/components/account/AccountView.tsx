@@ -17,6 +17,8 @@ import {
   ShoppingBag,
   ExternalLink,
   RefreshCcw,
+  Printer,
+  Heart,
 } from "lucide-react";
 import {
   Account,
@@ -29,6 +31,7 @@ import {
 import { getUserOrders, Order } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
+import OrderInvoiceModal from "@/components/order/OrderInvoiceModal";
 
 export default function AccountView() {
   const router = useRouter();
@@ -42,6 +45,7 @@ export default function AccountView() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reorderSuccess, setReorderSuccess] = useState<string | null>(null);
+  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -221,6 +225,14 @@ export default function AccountView() {
           <UserRound size={18} />
           Profile & Address Settings
         </button>
+
+        <Link
+          href="/wishlist"
+          className="flex items-center gap-2 rounded-lg bg-surface-container px-4 py-2.5 text-sm font-bold text-on-surface-variant transition-all hover:bg-rose-50 hover:text-rose-600"
+        >
+          <Heart size={18} className="text-rose-500" />
+          My Wishlist
+        </Link>
       </div>
 
       {reorderSuccess && (
@@ -281,7 +293,11 @@ export default function AccountView() {
             ) : (
               <div className="space-y-stack-md">
                 {activeDeliveries.map((order) => (
-                  <ActiveDeliveryCard key={order.id} order={order} />
+                  <ActiveDeliveryCard
+                    key={order.id}
+                    order={order}
+                    onViewInvoice={(ord) => setInvoiceOrder(ord)}
+                  />
                 ))}
               </div>
             )}
@@ -369,6 +385,15 @@ export default function AccountView() {
                       </div>
 
                       <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setInvoiceOrder(order)}
+                          className="flex items-center gap-1.5 rounded border border-outline-variant bg-background-white px-3 py-1.5 text-xs font-bold text-on-surface hover:bg-surface-container hover:text-primary transition-colors"
+                        >
+                          <Printer size={13} />
+                          Invoice
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => handleReorder(order)}
@@ -550,12 +575,25 @@ export default function AccountView() {
           </section>
         </div>
       )}
+
+      {/* Invoice Modal */}
+      <OrderInvoiceModal
+        order={invoiceOrder}
+        isOpen={Boolean(invoiceOrder)}
+        onClose={() => setInvoiceOrder(null)}
+      />
     </div>
   );
 }
 
-{/* ACTIVE DELIVERY PROGRESS CARD COMPONENT */ }
-function ActiveDeliveryCard({ order }: { order: Order }) {
+{/* ACTIVE DELIVERY PROGRESS CARD COMPONENT */}
+function ActiveDeliveryCard({
+  order,
+  onViewInvoice,
+}: {
+  order: Order;
+  onViewInvoice: (order: Order) => void;
+}) {
   // Stepper calculations
   const steps = [
     { key: "pending", title: "Order Placed", desc: "Payment / Order Verified" },
@@ -616,14 +654,25 @@ function ActiveDeliveryCard({ order }: { order: Order }) {
           )}
         </div>
 
-        <div className="text-right">
+        <div className="text-right flex flex-col items-end gap-1">
           <p className="font-sans text-lg font-bold text-price-green">{formatIDR(order.totalAmount)}</p>
-          <Link
-            href={`/checkout/success/${encodeURIComponent(order.orderNumber)}`}
-            className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
-          >
-            View Instructions & Receipt <ExternalLink size={12} />
-          </Link>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => onViewInvoice(order)}
+              className="inline-flex items-center gap-1 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors"
+            >
+              <Printer size={13} />
+              Invoice
+            </button>
+            <span className="text-outline-variant/60">•</span>
+            <Link
+              href={`/checkout/success/${encodeURIComponent(order.orderNumber)}`}
+              className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+            >
+              Details <ExternalLink size={12} />
+            </Link>
+          </div>
         </div>
       </div>
 

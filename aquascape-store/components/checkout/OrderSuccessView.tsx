@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, Copy, ShoppingBag, Truck, Clock, ArrowRight, ExternalLink } from "lucide-react";
+import { CheckCircle2, Copy, ShoppingBag, Truck, Clock, ArrowRight, ExternalLink, Printer } from "lucide-react";
 import { useState } from "react";
 import { Order } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
+import OrderInvoiceModal from "@/components/order/OrderInvoiceModal";
 
 interface OrderSuccessViewProps {
   order: Order;
@@ -13,6 +14,7 @@ interface OrderSuccessViewProps {
 
 export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
   const [copied, setCopied] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   const steps = [
     { key: "pending", title: "Order Placed", desc: "Verified" },
@@ -217,6 +219,15 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
           </div>
 
           <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowInvoiceModal(true)}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded bg-surface-container text-label-md font-bold text-on-surface border border-outline-variant/80 transition-all hover:bg-surface-container-high hover:border-primary"
+            >
+              <Printer size={16} className="text-primary" />
+              <span>View &amp; Print Invoice</span>
+            </button>
+
             <Link
               href="/shop"
               className="flex h-11 w-full items-center justify-center gap-2 rounded bg-primary text-label-md text-on-primary transition-colors hover:bg-primary-container"
@@ -235,6 +246,13 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
           </div>
         </aside>
       </div>
+
+      {/* Invoice Modal */}
+      <OrderInvoiceModal
+        order={order}
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+      />
     </div>
   );
 }

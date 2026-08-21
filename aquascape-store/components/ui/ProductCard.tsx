@@ -3,16 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, Plus } from "lucide-react";
+import { Check, Heart, Plus } from "lucide-react";
 import { Product } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
 import { useAuthCart } from "@/lib/use-auth-cart";
+import { useWishlist } from "@/lib/wishlist-context";
 import StarRating from "./StarRating";
 import Badge from "./Badge";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useAuthCart();
+  const { toggleItem, isFavorited } = useWishlist();
   const [added, setAdded] = useState(false);
+  const favorited = isFavorited(product.id);
+
+  const handleToggleWishlist = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleItem(product);
+  };
 
   const handleAddToCart = async (event: React.MouseEvent) => {
     event.preventDefault();
@@ -35,6 +44,18 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <div className="group relative flex h-full flex-col rounded-lg bg-background-white p-stack-md shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
       {product.badge && <Badge type={product.badge} />}
+
+      {/* Wishlist Button */}
+      <button
+        type="button"
+        aria-label={favorited ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+        onClick={handleToggleWishlist}
+        className={`absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-xs transition-all duration-200 hover:scale-110 ${
+          favorited ? "text-rose-500" : "text-on-surface-variant hover:text-rose-500 opacity-80 group-hover:opacity-100"
+        }`}
+      >
+        <Heart size={16} className={favorited ? "fill-rose-500 text-rose-500" : ""} />
+      </button>
 
       <Link
         href={`/product/${product.slug}`}

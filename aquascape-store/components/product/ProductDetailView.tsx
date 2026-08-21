@@ -7,6 +7,7 @@ import { AlertTriangle, Check, CheckCircle2, Heart, Minus, Plus, ShoppingCart, S
 import { ProductDetail } from "@/lib/api/products";
 import { formatIDR } from "@/lib/format";
 import { useAuthCart } from "@/lib/use-auth-cart";
+import { useWishlist } from "@/lib/wishlist-context";
 import ProductReviewsSection from "./ProductReviewsSection";
 
 const DESCRIPTION_PREVIEW_LENGTH = 330;
@@ -85,6 +86,8 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
   const [added, setAdded] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const { addItem } = useAuthCart();
+  const { toggleItem, isFavorited } = useWishlist();
+  const favorited = isFavorited(product.id);
 
   const total = useMemo(() => product.price * quantity, [product.price, quantity]);
   const isOutOfStock = product.stock <= 0;
@@ -184,10 +187,16 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
             </div>
             <button
               type="button"
-              aria-label="Add to wishlist"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-outline-variant bg-background-white text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+              aria-label={favorited ? "Remove from wishlist" : "Add to wishlist"}
+              onClick={() => toggleItem(product)}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 hover:scale-105 ${
+                favorited
+                  ? "border-rose-300 bg-rose-50 text-rose-500 shadow-xs"
+                  : "border-outline-variant bg-background-white text-on-surface-variant hover:border-rose-400 hover:text-rose-500"
+              }`}
+              title={favorited ? "Saved in Wishlist" : "Save to Wishlist"}
             >
-              <Heart size={16} />
+              <Heart size={18} className={favorited ? "fill-rose-500 text-rose-500" : ""} />
             </button>
           </div>
 

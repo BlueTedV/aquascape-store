@@ -11,10 +11,13 @@ import {
   ShoppingBasket,
   SlidersHorizontal,
   Star,
+  Calculator,
+  Heart,
 } from "lucide-react";
 import { ProductBadge } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
 import { useAuthCart } from "@/lib/use-auth-cart";
+import { useWishlist } from "@/lib/wishlist-context";
 import { DbProduct } from "@/lib/api/products";
 import { getHeroSlides, HeroSlideItem } from "@/lib/api/hero-slides";
 
@@ -248,9 +251,11 @@ function ShopPromoCarousel({
 }
 function ProductTile({ product }: { product: CatalogProduct }) {
   const { addItem } = useAuthCart();
+  const { toggleItem, isFavorited } = useWishlist();
   const [added, setAdded] = useState(false);
   const isOutOfStock = product.stock <= 0;
   const isLowStock = !isOutOfStock && product.stock <= 3;
+  const favorited = isFavorited(product.id);
 
   const badge = isOutOfStock
     ? "Out of Stock"
@@ -261,6 +266,12 @@ function ProductTile({ product }: { product: CatalogProduct }) {
         : product.arrival
           ? "New Arrival"
           : product.badge;
+
+  const handleToggleWishlist = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleItem(product);
+  };
 
   const handleAddToCart = async (event: React.MouseEvent) => {
     event.preventDefault();
@@ -284,6 +295,18 @@ function ProductTile({ product }: { product: CatalogProduct }) {
 
   return (
     <article className={`group relative flex h-full flex-col overflow-hidden rounded-lg bg-background-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover ${isOutOfStock ? "opacity-85" : ""}`}>
+      {/* Wishlist Button */}
+      <button
+        type="button"
+        aria-label={favorited ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+        onClick={handleToggleWishlist}
+        className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-xs transition-all duration-200 hover:scale-110 ${
+          favorited ? "text-rose-500" : "text-on-surface-variant hover:text-rose-500 opacity-80 group-hover:opacity-100"
+        }`}
+      >
+        <Heart size={16} className={favorited ? "fill-rose-500 text-rose-500" : ""} />
+      </button>
+
       <Link
         href={`/product/${product.slug}`}
         className="relative block aspect-[4/3] overflow-hidden bg-surface-container"
@@ -671,6 +694,23 @@ export default function ProductCatalog({
                       );
                     })}
                   </div>
+                </div>
+
+                {/* Interactive Tools Helper Card */}
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                    <Calculator size={15} />
+                    <span>Aquascape Calculator</span>
+                  </div>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    Calculate exact soil volume, filter turnover flow, and CO2 requirements for your layout.
+                  </p>
+                  <Link
+                    href="/calculator"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                  >
+                    Open Calculator &rarr;
+                  </Link>
                 </div>
               </div>
             </aside>
