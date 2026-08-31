@@ -451,7 +451,14 @@ export default function ManageProductsView() {
                   }`}
                 >
                   <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded bg-surface-container">
-                    <Image src={product.image} alt="" fill sizes="64px" className="object-cover" />
+                    <Image
+                      src={product.image || "/images/products/product-placeholder.svg"}
+                      alt=""
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                      unoptimized
+                    />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="line-clamp-2 text-sm font-bold text-on-surface">{product.name}</span>
@@ -527,6 +534,7 @@ export default function ManageProductsView() {
                     fill
                     sizes="112px"
                     className="object-cover"
+                    unoptimized
                   />
                   {form.image && form.image !== "/images/products/product-placeholder.svg" && (
                     <button
@@ -551,13 +559,6 @@ export default function ManageProductsView() {
                       onChange={(event) => {
                         const file = event.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (e) => {
-                            if (e.target?.result) {
-                              setField("image", String(e.target.result));
-                            }
-                          };
-                          reader.readAsDataURL(file);
                           uploadMainImage(file);
                         }
                       }}
@@ -609,14 +610,6 @@ export default function ManageProductsView() {
               <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Unit</span>
               <input value={form.unit} onChange={(event) => setField("unit", event.target.value)} placeholder="kg, pc, cup" className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
             </label>
-            <label className="block">
-              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Rating</span>
-              <input type="number" min="0" max="5" step="0.1" value={form.rating} onChange={(event) => setField("rating", event.target.value)} className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Reviews</span>
-              <input type="number" min="0" value={form.reviewCount} onChange={(event) => setField("reviewCount", event.target.value)} className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
-            </label>
             <label className="block md:col-span-2">
               <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Badge</span>
               <select value={form.badge} onChange={(event) => setField("badge", event.target.value as FormState["badge"])} className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary">
@@ -626,6 +619,25 @@ export default function ManageProductsView() {
                 <option value="Premium">Premium</option>
               </select>
             </label>
+
+            <div className="block md:col-span-2 rounded-lg border border-outline-variant/60 bg-surface-container-low p-3.5">
+              <span className="mb-1 block text-label-md uppercase text-on-surface-variant">
+                Customer Reviews (Calculated)
+              </span>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-700">
+                  <Star size={14} className="fill-amber-400 text-amber-400" />
+                  <span>{Number(form.rating || 0).toFixed(1)} / 5.0</span>
+                </div>
+                <span className="text-xs text-on-surface-variant font-medium">
+                  {form.reviewCount} verified {Number(form.reviewCount) === 1 ? "review" : "reviews"}
+                </span>
+                <span className="text-[11px] text-on-surface-variant/70 italic">
+                  (Written by customers on product page)
+                </span>
+              </div>
+            </div>
+
             <label className="block md:col-span-2">
               <span className="mb-2 block text-label-md uppercase text-on-surface-variant">Tags</span>
               <input value={form.tags} onChange={(event) => setField("tags", event.target.value)} placeholder="Iwagumi, DutchStyle, NanoTank" className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-3 outline-none focus:border-primary" />
@@ -644,7 +656,14 @@ export default function ManageProductsView() {
               <div className="mb-3 flex flex-wrap gap-2.5">
                 {textToLines(form.gallery).map((imgUrl, index) => (
                   <div key={index} className="relative h-20 w-20 overflow-hidden rounded-lg border border-outline-variant bg-surface-container shadow-sm group">
-                    <Image src={imgUrl} alt={`Gallery item ${index + 1}`} fill sizes="80px" className="object-cover" />
+                    <Image
+                      src={imgUrl || "/images/products/product-placeholder.svg"}
+                      alt={`Gallery item ${index + 1}`}
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                      unoptimized
+                    />
                     <button
                       type="button"
                       onClick={() => {
@@ -670,20 +689,9 @@ export default function ManageProductsView() {
                   className="sr-only"
                   onChange={(event) => {
                     const files = event.target.files;
-                    if (!files || files.length === 0) return;
-                    Array.from(files).forEach((file) => {
-                      const reader = new FileReader();
-                      reader.onload = (e) => {
-                        if (e.target?.result) {
-                          setForm((prev) => ({
-                            ...prev,
-                            gallery: [...textToLines(prev.gallery), String(e.target?.result)].join("\n"),
-                          }));
-                        }
-                      };
-                      reader.readAsDataURL(file);
-                    });
-                    uploadGalleryImages(files);
+                    if (files && files.length > 0) {
+                      uploadGalleryImages(files);
+                    }
                   }}
                 />
               </label>

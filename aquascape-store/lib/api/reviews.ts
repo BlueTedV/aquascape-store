@@ -5,6 +5,8 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: string;
+  newAverageRating?: number;
+  newReviewCount?: number;
 }
 
 export interface CreateReviewInput {
@@ -35,12 +37,28 @@ export async function getProductReviews(productSlug: string): Promise<Review[]> 
 }
 
 export async function createProductReview(productSlug: string, input: CreateReviewInput): Promise<Review> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem("aquaku-shop-auth");
+      if (raw) {
+        const session = JSON.parse(raw);
+        if (session?.accessToken) {
+          headers["Authorization"] = `Bearer ${session.accessToken}`;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const response = await fetch(`${API_URL}/api/products/${encodeURIComponent(productSlug)}/reviews`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
+    headers,
     body: JSON.stringify(input),
   });
 

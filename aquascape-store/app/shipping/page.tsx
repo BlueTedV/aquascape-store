@@ -31,14 +31,14 @@ export default function ShippingPolicyPage() {
               <div>
                 <h2 className="font-display text-headline-md font-bold text-primary mb-3">1. Shipping Areas</h2>
                 <p className="text-body-md text-on-surface-variant leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. We currently ship to all major cities and regions across Indonesia, including Java, Sumatra, Kalimantan, Sulawesi, and Bali. Remote areas may be subject to additional delivery time and fees. Please check availability at checkout.
+                  We currently ship to all major cities and regions across Indonesia, including Java, Sumatra, Kalimantan, Sulawesi, and Bali. Remote areas may be subject to additional delivery time and fees. Please check availability at checkout.
                 </p>
               </div>
 
               <div>
                 <h2 className="font-display text-headline-md font-bold text-primary mb-3">2. Processing Time</h2>
                 <p className="text-body-md text-on-surface-variant leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Orders are typically processed within 1–2 business days after payment confirmation. Orders placed on weekends or public holidays will be processed on the next business day. You will receive a shipping confirmation email with a tracking number once your order has been dispatched.
+                  Orders are typically processed within 1–2 business days after payment confirmation. Orders placed on weekends or public holidays will be processed on the next business day. You will receive a shipping confirmation email with a tracking number once your order has been dispatched.
                 </p>
               </div>
 
@@ -61,28 +61,28 @@ export default function ShippingPolicyPage() {
               <div>
                 <h2 className="font-display text-headline-md font-bold text-primary mb-3">4. Shipping Rates</h2>
                 <p className="text-body-md text-on-surface-variant leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Shipping rates are calculated at checkout based on the total weight of your order and your delivery address. We offer free shipping on orders above a minimum threshold (as displayed on the checkout page and promotions). Special rates may apply for bulky items such as aquarium tanks and equipment.
+                  Shipping rates are calculated at checkout based on the total weight of your order and your delivery address. We offer free shipping on orders above a minimum threshold (as displayed on the checkout page and promotions). Special rates may apply for bulky items such as aquarium tanks and equipment.
                 </p>
               </div>
 
               <div>
                 <h2 className="font-display text-headline-md font-bold text-primary mb-3">5. Live Animal & Plant Shipping</h2>
                 <p className="text-body-md text-on-surface-variant leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. All live plants and aquatic animals (fish, shrimp, snails) are packaged with specialized materials to ensure their health and safety during transit. We use insulated packaging, oxygen bags, and heat/cold packs as needed. Due to the perishable nature of live goods, we are unable to guarantee live arrival on orders shipped to very remote areas. Please contact us before ordering if you are unsure about shipping conditions to your location.
+                  All live plants and aquatic animals (fish, shrimp, snails) are packaged with specialized materials to ensure their health and safety during transit. We use insulated packaging, oxygen bags, and heat/cold packs as needed. Due to the perishable nature of live goods, we are unable to guarantee live arrival on orders shipped to very remote areas. Please contact us before ordering if you are unsure about shipping conditions to your location.
                 </p>
               </div>
 
               <div>
                 <h2 className="font-display text-headline-md font-bold text-primary mb-3">6. Order Tracking</h2>
                 <p className="text-body-md text-on-surface-variant leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Once your order is shipped, you will receive an email with a tracking number and a link to track your package. You can also track your order by visiting the Track Order page on our website. Please allow up to 24 hours for tracking information to become active.
+                  Once your order is shipped, you will receive an email with a tracking number and a link to track your package. You can also track your order by visiting the Track Order page on our website or through your account order history. Please allow up to 24 hours for tracking information to become active.
                 </p>
               </div>
 
               <div>
                 <h2 className="font-display text-headline-md font-bold text-primary mb-3">7. Damaged or Lost Packages</h2>
                 <p className="text-body-md text-on-surface-variant leading-relaxed">
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. If your order arrives damaged or is lost in transit, please contact our support team within 48 hours of the expected delivery date. We will work with the carrier to resolve the issue and, where applicable, arrange a replacement or refund. Please retain all original packaging materials and take photos of any damage for your claim.
+                  If your order arrives damaged or is lost in transit, please contact our support team within 48 hours of the expected delivery date. We will work with the carrier to resolve the issue and, where applicable, arrange a replacement or refund. Please retain all original packaging materials and take photos of any damage for your claim.
                 </p>
               </div>
 

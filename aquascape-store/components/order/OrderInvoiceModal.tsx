@@ -1,9 +1,21 @@
 "use client";
 
 import { useEffect } from "react";
-import { Printer, X, CheckCircle2, Clock, Truck, ShieldCheck } from "lucide-react";
+import { Printer, X, CheckCircle2, Clock, Truck, ShieldCheck, FileText } from "lucide-react";
 import { Order } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
+
+/** Maps raw payment method IDs to a human-readable label. */
+function humanizePaymentMethod(method: string): string {
+  const map: Record<string, string> = {
+    midtrans: "Midtrans Snap (QRIS / VA / E-Wallet / Card)",
+    bank_transfer: "Bank Transfer / Virtual Account",
+    qris: "QRIS & E-Wallet",
+    credit_card: "Credit / Debit Card",
+    cod: "COD (Cash On Delivery)",
+  };
+  return map[method.toLowerCase()] ?? method.toUpperCase();
+}
 
 interface OrderInvoiceModalProps {
   order: Order | null;
@@ -164,7 +176,8 @@ export default function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoi
               <p className="text-gray-600 mt-0.5">{order.customerPhone}</p>
               <p className="text-gray-600">{order.customerEmail}</p>
               <p className="text-gray-500 mt-2">
-                Metode Pembayaran: <strong className="uppercase text-gray-800">{order.paymentMethod}</strong>
+                Metode Pembayaran:{" "}
+                <strong className="text-gray-800">{humanizePaymentMethod(order.paymentMethod)}</strong>
               </p>
             </div>
 
@@ -187,6 +200,15 @@ export default function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoi
                   </span>
                 )}
               </div>
+              {order.notes && (
+                <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50 p-2">
+                  <FileText size={12} className="mt-0.5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-amber-700">Catatan Pesanan</p>
+                    <p className="text-[11px] text-amber-900 leading-relaxed">{order.notes}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -249,7 +271,7 @@ export default function OrderInvoiceModal({ order, isOpen, onClose }: OrderInvoi
 
               {order.discountAmount && order.discountAmount > 0 ? (
                 <div className="flex justify-between text-emerald-700 font-medium">
-                  <span>Diskon Voucher</span>
+                  <span>Diskon Voucher{order.voucherCode ? ` (${order.voucherCode})` : ""}</span>
                   <span className="font-mono">-{formatIDR(order.discountAmount)}</span>
                 </div>
               ) : null}

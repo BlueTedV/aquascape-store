@@ -10,7 +10,7 @@ interface ProductReviewsSectionProps {
   productName: string;
   initialRating: number;
   initialReviewCount: number;
-  onReviewSubmitted?: () => void;
+  onReviewSubmitted?: (newAvg: number, newCount: number) => void;
 }
 
 export default function ProductReviewsSection({
@@ -97,13 +97,19 @@ export default function ProductReviewsSection({
         comment: comment.trim(),
       });
 
-      setReviews((prev) => [newReview, ...prev]);
+      const updatedReviews = [newReview, ...reviews];
+      setReviews(updatedReviews);
       setSuccessMessage("Thank you! Your review has been published.");
       setComment("");
       setShowModal(false);
 
       if (onReviewSubmitted) {
-        onReviewSubmitted();
+        const newTotal = updatedReviews.length;
+        const newAvg = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / newTotal;
+        onReviewSubmitted(
+          newReview.newAverageRating !== undefined ? newReview.newAverageRating : Number(newAvg.toFixed(1)),
+          newReview.newReviewCount !== undefined ? newReview.newReviewCount : newTotal
+        );
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to submit review.");

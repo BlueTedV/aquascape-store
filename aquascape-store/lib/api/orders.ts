@@ -28,6 +28,7 @@ export interface Order {
   orderStatus: "pending" | "processing" | "shipped" | "completed" | "cancelled";
   subtotal: number;
   discountAmount?: number;
+  voucherCode?: string | null;
   totalAmount: number;
   trackingNumber?: string | null;
   notes?: string;

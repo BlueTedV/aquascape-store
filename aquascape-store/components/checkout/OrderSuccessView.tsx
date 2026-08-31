@@ -2,11 +2,51 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, Copy, ShoppingBag, Truck, Clock, ArrowRight, ExternalLink, Printer } from "lucide-react";
+import { CheckCircle2, Copy, ShoppingBag, Truck, Clock, ArrowRight, ExternalLink, Printer, CalendarClock, FileText } from "lucide-react";
 import { useState } from "react";
 import { Order } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
 import OrderInvoiceModal from "@/components/order/OrderInvoiceModal";
+
+/** Returns an estimated delivery date string based on the courier name stored in the order. */
+function getEstimatedDelivery(courierName: string, orderDate: string): string {
+  const date = new Date(orderDate);
+  const lower = courierName.toLowerCase();
+
+  let minDays = 2;
+  let maxDays = 3;
+
+  if (lower.includes("same day") || lower.includes("gosend") || lower.includes("instant")) {
+    minDays = 0;
+    maxDays = 0;
+  } else if (lower.includes("express") || lower.includes("super") || lower.includes("j&t")) {
+    minDays = 1;
+    maxDays = 1;
+  } else {
+    // standard / jne / sicepat
+    minDays = 2;
+    maxDays = 3;
+  }
+
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+  if (minDays === 0) {
+    return `Today (${fmt(date)}) — Same Day`;
+  }
+
+  const minDate = new Date(date);
+  minDate.setDate(minDate.getDate() + minDays);
+
+  if (minDays === maxDays) {
+    return fmt(minDate);
+  }
+
+  const maxDate = new Date(date);
+  maxDate.setDate(maxDate.getDate() + maxDays);
+
+  return `${fmt(minDate)} – ${fmt(maxDate)}`;
+}
 
 interface OrderSuccessViewProps {
   order: Order;
@@ -69,6 +109,19 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
                 {order.orderStatus}
               </span>
             </div>
+
+            {/* Estimated Delivery Date */}
+            {order.orderStatus !== "completed" && order.orderStatus !== "cancelled" && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs">
+                <CalendarClock size={15} className="shrink-0 text-emerald-600" />
+                <div>
+                  <p className="font-bold uppercase tracking-wide text-emerald-800 text-[10px]">Estimated Delivery</p>
+                  <p className="font-semibold text-emerald-900">
+                    {getEstimatedDelivery(order.courier, order.createdAt)}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Resi Banner */}
             {order.trackingNumber ? (
@@ -200,6 +253,15 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
                 <Truck size={14} />
                 <span>Courier: {order.courier}</span>
               </div>
+              {order.notes && (
+                <div className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 p-2.5">
+                  <FileText size={13} className="mt-0.5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Order Notes</p>
+                    <p className="text-xs text-amber-900">{order.notes}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-stack-md border-t border-outline-variant/40 pt-4 space-y-2 text-xs text-on-surface-variant">
@@ -237,10 +299,10 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
             </Link>
 
             <Link
-              href="/manage"
+              href="/account"
               className="flex h-11 w-full items-center justify-center gap-2 rounded border border-outline-variant/60 bg-background-white text-label-md text-on-surface transition-colors hover:bg-surface-container"
             >
-              <span>View in Admin Dashboard</span>
+              <span>My Orders</span>
               <ArrowRight size={15} />
             </Link>
           </div>

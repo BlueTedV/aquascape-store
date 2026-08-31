@@ -32,6 +32,30 @@ const COURIERS = [
   { id: "same_day", name: "Instant / Same Day Courier (GoSend)", eta: "Same Day", price: 45000 },
 ];
 
+const PAYMENT_METHODS = [
+  {
+    id: "midtrans",
+    name: "Midtrans Snap (All Payment Channels)",
+    description: "QRIS, Virtual Accounts (BCA, BNI, BRI, Mandiri, Permata), GoPay, ShopeePay, Cards",
+    badge: "Recommended",
+  },
+  {
+    id: "bank_transfer",
+    name: "Virtual Account (Bank Transfer)",
+    description: "Instant Virtual Accounts for BCA, BNI, BRI, CIMB, Permata",
+  },
+  {
+    id: "qris",
+    name: "QRIS & E-Wallets",
+    description: "Instant QR code scan for GoPay, ShopeePay, OVO, Dana, & mobile banking",
+  },
+  {
+    id: "credit_card",
+    name: "Credit / Debit Card",
+    description: "Visa, MasterCard, JCB with 3D-Secure authentication",
+  },
+];
+
 const FREE_SHIPPING_THRESHOLD = 300000;
 
 export default function CheckoutView() {
@@ -101,28 +125,96 @@ export default function CheckoutView() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const openSnapPayment = (order: Order): Promise<"success" | "pending" | "error" | "close"> => {
+  const openSnapPayment = (
+    order: Order
+  ): Promise<{ status: "success" | "pending" | "error" | "cancelled"; message?: string }> => {
     return new Promise((resolve) => {
       const snapToken = order.midtransSnapToken;
 
       if (!snapToken) {
-        resolve("error");
+        resolve({
+          status: "error",
+          message: `Missing Midtrans Snap Token from server response for Order #${order.orderNumber}. Verify MIDTRANS_SERVER_KEY in aquaku-api/.env.`,
+        });
         return;
       }
 
-      if (typeof window !== "undefined" && window.snap) {
-        window.snap.pay(snapToken, {
-          onSuccess: () => resolve("success"),
-          onPending: () => resolve("pending"),
-          onError: () => resolve("error"),
-          onClose: () => resolve("close"),
+      if (typeof window === "undefined" || !window.snap) {
+        resolve({
+          status: "error",
+          message:
+            "Midtrans Snap SDK (snap.js) is not loaded in your browser. Verify NEXT_PUBLIC_MIDTRANS_CLIENT_KEY is configured in aquascape-store/.env.local.",
         });
-      } else if (order.midtransRedirectUrl) {
-        // Fallback: open redirect URL and treat as pending
-        window.open(order.midtransRedirectUrl, "_blank");
-        resolve("pending");
-      } else {
-        resolve("error");
+        return;
+      }
+
+      try {
+        window.snap.pay(snapToken, {
+          onSuccess: (result: SnapResult) => {
+            console.log("Midtrans Payment Success Callback:", result);
+            const status = (result?.transaction_status || "").toLowerCase();
+            const statusCode = result?.status_code;
+
+            // Check if user or Midtrans returned a cancellation / failure status
+            if (
+              status === "cancel" ||
+              status === "deny" ||
+              status === "expire" ||
+              status === "failure" ||
+              statusCode === "202" ||
+              (statusCode && parseInt(statusCode, 10) >= 400)
+            ) {
+              resolve({
+                status: "cancelled",
+                message: result?.status_message || "Payment was cancelled in Midtrans.",
+              });
+              return;
+            }
+
+            if (status === "pending" || statusCode === "201") {
+              resolve({
+                status: "pending",
+                message: "Payment instruction generated. Awaiting bank/e-wallet transfer.",
+              });
+              return;
+            }
+
+            resolve({ status: "success" });
+          },
+          onPending: (result: SnapResult) => {
+            console.log("Midtrans Payment Pending Callback:", result);
+            const status = (result?.transaction_status || "").toLowerCase();
+            if (status === "cancel" || status === "deny" || status === "expire") {
+              resolve({
+                status: "cancelled",
+                message: "Payment was cancelled in Midtrans.",
+              });
+              return;
+            }
+
+            resolve({
+              status: "pending",
+              message: "Payment instruction generated. Please complete transfer before expiration.",
+            });
+          },
+          onError: (result: SnapResult) => {
+            console.error("Midtrans Payment Error Callback:", result);
+            const msg =
+              result?.status_message ||
+              (typeof result === "string" ? result : "Payment could not be processed or was cancelled.");
+            resolve({ status: "error", message: msg });
+          },
+          onClose: () => {
+            console.log("Midtrans Payment Popup Closed by User");
+            resolve({
+              status: "cancelled",
+              message: "You closed the payment popup before completing the transaction.",
+            });
+          },
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        resolve({ status: "error", message: `Snap.pay execution exception: ${msg}` });
       }
     });
   };
@@ -131,15 +223,18 @@ export default function CheckoutView() {
     if (!createdOrder) return;
     setShowFailedModal(false);
 
+    if (!createdOrder.midtransSnapToken) {
+      setErrorMessage("No Snap Token available for this order to retry payment.");
+      return;
+    }
+
     const result = await openSnapPayment(createdOrder);
-    if (result === "success" || result === "pending") {
+    if (result.status === "success" || result.status === "pending") {
       clearCart();
       setShowSuccessModal(true);
     } else {
       setFailedMessage(
-        result === "close"
-          ? "You closed the payment window before completing the transaction."
-          : "The payment could not be processed. Please try again."
+        result.message || "The payment was cancelled or could not be completed. You can try again."
       );
       setShowFailedModal(true);
     }
@@ -207,29 +302,33 @@ export default function CheckoutView() {
 
       setCreatedOrder(order);
 
-      // Open Midtrans Snap payment popup
-      if (order.midtransSnapToken) {
-        setIsLoading(false);
-        const result = await openSnapPayment(order);
+      // NO SILENT FALLBACK: If token is missing, raise error immediately!
+      if (!order.midtransSnapToken) {
+        throw new Error(
+          `Order #${order.orderNumber} was created, but the server failed to generate a Midtrans Snap Token. Check MIDTRANS_SERVER_KEY in aquaku-api/.env and server logs.`
+        );
+      }
 
-        if (result === "success" || result === "pending") {
-          clearCart();
-          setShowSuccessModal(true);
-        } else {
-          setFailedMessage(
-            result === "close"
-              ? "You closed the payment window before completing the transaction."
-              : "The payment could not be processed. Please try again."
-          );
-          setShowFailedModal(true);
-        }
-      } else {
+      setIsLoading(false);
+      const result = await openSnapPayment(order);
+
+      if (result.status === "success" || result.status === "pending") {
         clearCart();
         setShowSuccessModal(true);
+      } else {
+        // Cancelled or Error: Do NOT clear cart and show Failed/Incomplete Modal
+        setFailedMessage(
+          result.message || "The payment was cancelled or could not be completed. You can try again."
+        );
+        setShowFailedModal(true);
       }
     } catch (err: unknown) {
-      console.error(err);
-      setErrorMessage(err instanceof Error ? err.message : "Something went wrong while placing your order. Please try again.");
+      console.error("Checkout process error:", err);
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while placing your order. Please check console."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -273,10 +372,26 @@ export default function CheckoutView() {
         Complete your order details below to receive your aquascaping essentials.
       </p>
 
+      {!process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && (
+        <div className="mt-6 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm">
+          <AlertCircle size={20} className="shrink-0 text-amber-600 mt-0.5" />
+          <div className="text-xs">
+            <p className="font-bold">Midtrans Client Key Missing</p>
+            <p className="mt-0.5">
+              <code>NEXT_PUBLIC_MIDTRANS_CLIENT_KEY</code> is not defined in <code>aquascape-store/.env.local</code>.
+              The Midtrans payment popup cannot load without this client key.
+            </p>
+          </div>
+        </div>
+      )}
+
       {errorMessage && (
-        <div className="mt-6 flex items-center gap-3 rounded-lg border border-error/20 bg-error-container/30 p-4 text-error">
-          <AlertCircle size={20} className="shrink-0" />
-          <span className="text-sm font-medium">{errorMessage}</span>
+        <div className="mt-6 flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-900 shadow-sm">
+          <XCircle size={20} className="shrink-0 text-red-600 mt-0.5" />
+          <div className="text-xs">
+            <p className="font-bold">Checkout / Payment Gateway Error</p>
+            <p className="mt-0.5 font-mono text-[11px] break-all">{errorMessage}</p>
+          </div>
         </div>
       )}
 
@@ -436,10 +551,61 @@ export default function CheckoutView() {
             </div>
           </div>
 
-          {/* Section 4: Order Notes */}
+          {/* Section 4: Payment Method */}
+          <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-body-lg font-bold text-on-surface">
+                4. Select Payment Method
+              </h2>
+              <span className="flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                <ShieldCheck size={13} /> Midtrans Snap
+              </span>
+            </div>
+
+            <div className="mt-stack-sm space-y-3">
+              {PAYMENT_METHODS.map((method) => {
+                const isSelected = formData.paymentMethod === method.id;
+
+                return (
+                  <label
+                    key={method.id}
+                    className={`flex cursor-pointer items-start justify-between rounded-lg border p-4 transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-outline-variant/60 bg-surface-container-low hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={method.id}
+                        checked={isSelected}
+                        onChange={handleChange}
+                        className="mt-1 h-4 w-4 text-primary focus:ring-primary"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-on-surface">{method.name}</p>
+                          {method.badge && (
+                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                              {method.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-on-surface-variant">{method.description}</p>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 5: Order Notes */}
           <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
             <h2 className="font-display text-body-lg font-bold text-on-surface">
-              4. Order Notes (Optional)
+              5. Order Notes (Optional)
             </h2>
             <textarea
               name="notes"
@@ -729,20 +895,20 @@ export default function CheckoutView() {
             </button>
 
             <div className="flex flex-col items-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600 ring-8 ring-red-50">
-                <XCircle size={36} />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600 ring-8 ring-amber-50">
+                <AlertCircle size={36} />
               </div>
 
               <h2 className="mt-4 font-display text-headline-md font-bold text-on-surface">
-                Payment Not Completed
+                Payment Cancelled / Incomplete
               </h2>
 
-              <p className="mt-2 text-sm text-on-surface-variant">
+              <p className="mt-2 text-sm text-on-surface-variant leading-relaxed">
                 {failedMessage}
               </p>
 
-              <div className="mt-3 rounded-full bg-primary/10 px-4 py-1 font-mono text-xs font-bold text-primary">
-                Order #{createdOrder.orderNumber}
+              <div className="mt-3 rounded-full bg-surface-container px-3.5 py-1 text-xs text-on-surface-variant">
+                Order <strong className="font-mono font-bold text-on-surface">#{createdOrder.orderNumber}</strong> has been saved.
               </div>
             </div>
 
@@ -750,7 +916,7 @@ export default function CheckoutView() {
               <button
                 type="button"
                 onClick={handleRetryPayment}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded bg-emerald-600 text-sm font-bold text-white shadow-md transition-colors hover:bg-emerald-700"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded bg-primary text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-container"
               >
                 <RotateCcw size={16} />
                 Try Payment Again

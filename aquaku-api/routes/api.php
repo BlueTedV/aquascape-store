@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AdminProductController;
 use App\Http\Controllers\Api\AdminUploadController;
+use App\Http\Controllers\Api\ArticleController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GalleryController;
 use App\Http\Controllers\Api\HeroSlideController;
@@ -56,7 +57,19 @@ Route::prefix('admin/promos')->group(function (): void {
     Route::delete('/{id}', [PromoController::class, 'destroy']);
 });
 
+Route::prefix('admin/articles')->group(function (): void {
+    Route::get('/', [ArticleController::class, 'adminIndex']);
+    Route::post('/', [ArticleController::class, 'store']);
+    Route::put('/{id}', [ArticleController::class, 'update']);
+    Route::delete('/{id}', [ArticleController::class, 'destroy']);
+});
+
 Route::get('/hero-slides', [HeroSlideController::class, 'index']);
+
+Route::prefix('articles')->group(function (): void {
+    Route::get('/', [ArticleController::class, 'index']);
+    Route::get('/{slug}', [ArticleController::class, 'show']);
+});
 
 Route::prefix('products')->group(function (): void {
     Route::get('/', [ProductController::class, 'index']);
@@ -76,6 +89,6 @@ Route::prefix('gallery')->group(function (): void {
 Route::post('/vouchers/validate', [OrderController::class, 'validateVoucher']);
 Route::post('/orders/checkout', [OrderController::class, 'checkout']);
 Route::get('/orders/{orderNumber}', [OrderController::class, 'show']);
-Route::post('/midtrans/notification', [OrderController::class, 'midtransNotification']);
+Route::any('/midtrans/notification', [OrderController::class, 'midtransNotification']);
 
 Route::get('/categories', [ProductController::class, 'categories']);

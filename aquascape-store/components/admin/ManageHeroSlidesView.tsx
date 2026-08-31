@@ -213,7 +213,14 @@ export default function ManageHeroSlidesView() {
               </label>
               {form.image ? (
                 <div className="relative mt-2 h-40 w-full overflow-hidden rounded-xl border border-outline-variant bg-black group">
-                  <Image src={form.image} alt="Banner Preview" fill sizes="(min-width: 640px) 400px, 100vw" className="object-cover opacity-80" />
+                  <Image
+                    src={form.image}
+                    alt="Banner Preview"
+                    fill
+                    sizes="(min-width: 640px) 400px, 100vw"
+                    className="object-cover opacity-80"
+                    unoptimized
+                  />
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, image: "" })}
@@ -282,7 +289,14 @@ export default function ManageHeroSlidesView() {
                     className="relative overflow-hidden rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center"
                   >
                     <div className="relative h-24 w-full sm:w-40 shrink-0 overflow-hidden rounded-lg bg-black">
-                      <Image src={slide.image} alt={slide.title} fill sizes="160px" className="object-cover opacity-80" />
+                      <Image
+                        src={slide.image}
+                        alt={slide.title}
+                        fill
+                        sizes="160px"
+                        className="object-cover opacity-80"
+                        unoptimized
+                      />
                       <span className="absolute left-1.5 top-1.5 rounded bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-on-primary">
                         {slide.eyebrow}
                       </span>

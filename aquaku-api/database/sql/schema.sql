@@ -82,6 +82,8 @@ CREATE TABLE public.orders (
   notes text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  discount_amount integer NOT NULL DEFAULT 0,
+  voucher_code text,
   CONSTRAINT orders_pkey PRIMARY KEY (id),
   CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -99,6 +101,21 @@ CREATE TABLE public.order_items (
   CONSTRAINT order_items_pkey PRIMARY KEY (id),
   CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
   CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
+CREATE TABLE public.gallery_posts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  author_name text NOT NULL DEFAULT 'Aquascaper'::text,
+  title text NOT NULL,
+  description text,
+  tank_specs text,
+  image_url text NOT NULL,
+  size text NOT NULL DEFAULT 'wide'::text CHECK (size = ANY (ARRAY['tall'::text, 'square'::text, 'wide'::text])),
+  likes_count integer NOT NULL DEFAULT 0 CHECK (likes_count >= 0),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT gallery_posts_pkey PRIMARY KEY (id),
+  CONSTRAINT gallery_posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.hero_slides (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -125,4 +142,20 @@ CREATE TABLE public.promos (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT promos_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.articles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  category text NOT NULL DEFAULT 'General Help'::text,
+  summary text NOT NULL,
+  content text NOT NULL,
+  tags ARRAY NOT NULL DEFAULT '{}'::text[],
+  author text NOT NULL DEFAULT 'Aquaku Specialist'::text,
+  read_time text NOT NULL DEFAULT '3 min read'::text,
+  is_published boolean NOT NULL DEFAULT true,
+  featured boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT articles_pkey PRIMARY KEY (id)
 );

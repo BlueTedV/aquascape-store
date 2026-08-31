@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="AquakuShop" version="24.7.5" pages="1">
+  <diagram name="DFD-Level-1" id="aqua-dfd1-page">
+    <mxGraphModel dx="2000" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dfd1-title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;" value="Data Flow Diagram (DFD) Level 1 — Aquaku Shop E-Commerce System" vertex="1">
+          <mxGeometry height="40" width="850" x="520" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ent-customer" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;strokeWidth=2;fontSize=14;fontStyle=1;align=center;" value="Customer / User&#xa;(External Entity)" vertex="1">
+          <mxGeometry height="140" width="170" x="60" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ent-admin" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;strokeWidth=2;fontSize=14;fontStyle=1;align=center;" value="Admin&#xa;(External Entity)" vertex="1">
+          <mxGeometry height="130" width="170" x="60" y="1460" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-iface-web" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;strokeWidth=2;fontSize=14;fontStyle=1;align=center;" value="Aquaku Web &amp; API&#xa;Interface Platform&#xa;(Next.js + Laravel Proxy)" vertex="1">
+          <mxGeometry height="300" width="190" x="350" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ent-supabase" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6a1b9a;strokeWidth=2;fontSize=14;fontStyle=1;align=center;" value="Supabase Platform&#xa;(Auth &amp; Storage)" vertex="1">
+          <mxGeometry height="110" width="180" x="1460" y="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ent-midtrans" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;strokeWidth=2;fontSize=14;fontStyle=1;align=center;" value="Midtrans Payment Gateway&#xa;(External Entity)" vertex="1">
+          <mxGeometry height="130" width="190" x="1460" y="645" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-p1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1976d2;strokeWidth=1.5;fontSize=12;fontStyle=1;align=center;" value="1.0&#xa;Validate &amp; Manage&#xa;User Account" vertex="1">
+          <mxGeometry height="110" width="170" x="670" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-p2" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;strokeWidth=1.5;fontSize=12;fontStyle=1;align=center;" value="2.0&#xa;Query Catalog &amp;&#xa;Calculate Tank Specs" vertex="1">
+          <mxGeometry height="110" width="170" x="670" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-p3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;strokeWidth=1.5;fontSize=12;fontStyle=1;align=center;" value="3.0&#xa;Manage Cart &amp;&#xa;Wishlist Items" vertex="1">
+          <mxGeometry height="110" width="170" x="670" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-p4" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#f57c00;strokeWidth=1.5;fontSize=12;fontStyle=1;align=center;" value="4.0&#xa;Process Checkout &amp;&#xa;Generate Order" vertex="1">
+          <mxGeometry height="110" width="170" x="670" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-p5" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#f57c00;strokeWidth=1.5;fontSize=12;fontStyle=1;align=center;" value="5.0&#xa;Process Midtrans&#xa;Payment &amp; Snap Token" vertex="1">
+          <mxGeometry height="110" width="170" x="1040" y="655" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-p6" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d1c4e9;strokeColor=#512da8;strokeWidth=1.5;fontSize=12;fontStyle=1;align=center;" value="6.0&#xa;Generate Invoice (PDF)&#xa;&amp; Track Status" vertex="1">
+          <mxGeometry height="110" width="170" x="670" y="920" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-p7" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#fbc02d;strokeWidth=1.5;fontSize=12;fontStyle=1;align=center;" value="7.0&#xa;Handle Reviews &amp;&#xa;Showcase Posts" vertex="1">
+          <mxGeometry height="110" width="170" x="670" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-p8" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#d32f2f;strokeWidth=1.5;fontSize=12;fontStyle=1;align=center;" value="8.0&#xa;Admin CRUD, Resi &amp;&#xa;Sales Analytics" vertex="1">
+          <mxGeometry height="110" width="170" x="670" y="1460" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-users" parent="1" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=#ffffff;strokeColor=#37474f;strokeWidth=1.5;left=0;right=0;align=left;spacingLeft=10;fontSize=11;fontStyle=1;" value="" vertex="1">
+          <mxGeometry height="45" width="300" x="1020" y="115" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-users-code" parent="dfd1-ds-users" style="shape=partialRectangle;fillColor=#e0e0e0;strokeColor=#37474f;strokeWidth=1.5;top=0;bottom=0;left=0;right=1;align=center;fontSize=12;fontStyle=1;" value="D1" vertex="1">
+          <mxGeometry height="45" width="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-users-name" parent="dfd1-ds-users" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontSize=12;fontStyle=1;fontColor=#263238;" value="Users, Profiles &amp; Addresses Store" vertex="1">
+          <mxGeometry height="45" width="255" x="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-prods" parent="1" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=#ffffff;strokeColor=#37474f;strokeWidth=1.5;left=0;right=0;align=left;spacingLeft=10;fontSize=11;fontStyle=1;" value="" vertex="1">
+          <mxGeometry height="45" width="300" x="1020" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-prods-code" parent="dfd1-ds-prods" style="shape=partialRectangle;fillColor=#e0e0e0;strokeColor=#37474f;strokeWidth=1.5;top=0;bottom=0;left=0;right=1;align=center;fontSize=12;fontStyle=1;" value="D2" vertex="1">
+          <mxGeometry height="45" width="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-prods-name" parent="dfd1-ds-prods" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontSize=12;fontStyle=1;fontColor=#263238;" value="Categories &amp; Products Store" vertex="1">
+          <mxGeometry height="45" width="255" x="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-promos" parent="1" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=#ffffff;strokeColor=#37474f;strokeWidth=1.5;left=0;right=0;align=left;spacingLeft=10;fontSize=11;fontStyle=1;" value="" vertex="1">
+          <mxGeometry height="45" width="300" x="1020" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-promos-code" parent="dfd1-ds-promos" style="shape=partialRectangle;fillColor=#e0e0e0;strokeColor=#37474f;strokeWidth=1.5;top=0;bottom=0;left=0;right=1;align=center;fontSize=12;fontStyle=1;" value="D6" vertex="1">
+          <mxGeometry height="45" width="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-promos-name" parent="dfd1-ds-promos" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontSize=12;fontStyle=1;fontColor=#263238;" value="Promo Codes Store" vertex="1">
+          <mxGeometry height="45" width="255" x="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-orders" parent="1" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=#ffffff;strokeColor=#37474f;strokeWidth=1.5;left=0;right=0;align=left;spacingLeft=10;fontSize=11;fontStyle=1;" value="" vertex="1">
+          <mxGeometry height="45" width="300" x="1020" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-orders-code" parent="dfd1-ds-orders" style="shape=partialRectangle;fillColor=#e0e0e0;strokeColor=#37474f;strokeWidth=1.5;top=0;bottom=0;left=0;right=1;align=center;fontSize=12;fontStyle=1;" value="D3" vertex="1">
+          <mxGeometry height="45" width="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-orders-name" parent="dfd1-ds-orders" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontSize=12;fontStyle=1;fontColor=#263238;" value="Orders &amp; Order Items Store" vertex="1">
+          <mxGeometry height="45" width="255" x="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-reviews" parent="1" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=#ffffff;strokeColor=#37474f;strokeWidth=1.5;left=0;right=0;align=left;spacingLeft=10;fontSize=11;fontStyle=1;" value="" vertex="1">
+          <mxGeometry height="45" width="300" x="1020" y="1120" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-reviews-code" parent="dfd1-ds-reviews" style="shape=partialRectangle;fillColor=#e0e0e0;strokeColor=#37474f;strokeWidth=1.5;top=0;bottom=0;left=0;right=1;align=center;fontSize=12;fontStyle=1;" value="D4" vertex="1">
+          <mxGeometry height="45" width="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-reviews-name" parent="dfd1-ds-reviews" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontSize=12;fontStyle=1;fontColor=#263238;" value="Customer Reviews Store" vertex="1">
+          <mxGeometry height="45" width="255" x="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-gallery" parent="1" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=#ffffff;strokeColor=#37474f;strokeWidth=1.5;left=0;right=0;align=left;spacingLeft=10;fontSize=11;fontStyle=1;" value="" vertex="1">
+          <mxGeometry height="45" width="300" x="1020" y="1240" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-gallery-code" parent="dfd1-ds-gallery" style="shape=partialRectangle;fillColor=#e0e0e0;strokeColor=#37474f;strokeWidth=1.5;top=0;bottom=0;left=0;right=1;align=center;fontSize=12;fontStyle=1;" value="D5" vertex="1">
+          <mxGeometry height="45" width="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-gallery-name" parent="dfd1-ds-gallery" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontSize=12;fontStyle=1;fontColor=#263238;" value="Community Showcase Gallery Store" vertex="1">
+          <mxGeometry height="45" width="255" x="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-slides" parent="1" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=#ffffff;strokeColor=#37474f;strokeWidth=1.5;left=0;right=0;align=left;spacingLeft=10;fontSize=11;fontStyle=1;" value="" vertex="1">
+          <mxGeometry height="45" width="300" x="1020" y="1460" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-slides-code" parent="dfd1-ds-slides" style="shape=partialRectangle;fillColor=#e0e0e0;strokeColor=#37474f;strokeWidth=1.5;top=0;bottom=0;left=0;right=1;align=center;fontSize=12;fontStyle=1;" value="D7" vertex="1">
+          <mxGeometry height="45" width="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-ds-slides-name" parent="dfd1-ds-slides" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontSize=12;fontStyle=1;fontColor=#263238;" value="Homepage Hero Slides Store" vertex="1">
+          <mxGeometry height="45" width="255" x="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-c1" edge="1" parent="1" source="dfd1-ent-customer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.25;entryX=0;entryY=0.35;" target="dfd1-iface-web" value="User actions &amp; inputs (login, search, cart, checkout)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-c2" edge="1" parent="1" source="dfd1-iface-web" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0;exitY=0.75;entryX=1;entryY=0.8;" target="dfd1-ent-customer" value="Responses (catalog, PDF invoice, Snap token)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p1a" edge="1" parent="1" source="dfd1-iface-web" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0.75;exitY=0;entryX=0;entryY=0.5;" target="dfd1-p1" value="Login / Profile data">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="492" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p1b" edge="1" parent="1" source="dfd1-p1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="dfd1-ds-users" value="Read/Write user profile &amp; address">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p1c" edge="1" parent="1" source="dfd1-ds-users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="dfd1-ent-supabase" value="Verify Auth JWT">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p2a" edge="1" parent="1" source="dfd1-iface-web" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.15;entryX=0;entryY=0.5;" target="dfd1-p2" value="Search query &amp; filter tags">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="435" />
+              <mxPoint x="580" y="335" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p2b" edge="1" parent="1" source="dfd1-p2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="dfd1-ds-prods" value="Query active products &amp; specs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p3a" edge="1" parent="1" source="dfd1-iface-web" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.45;entryX=0;entryY=0.5;" target="dfd1-p3" value="Cart/Wishlist add, remove, update">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p3b" edge="1" parent="1" source="dfd1-p3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.3;entryX=0.2;entryY=1;" target="dfd1-ds-prods" value="Verify stock &amp; current price">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="870" y="493" />
+              <mxPoint x="870" y="360" />
+              <mxPoint x="1076" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p4a" edge="1" parent="1" source="dfd1-iface-web" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.85;entryX=0;entryY=0.5;" target="dfd1-p4" value="Submit checkout info &amp; address">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="645" />
+              <mxPoint x="580" y="705" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p4b" edge="1" parent="1" source="dfd1-p4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.2;entryX=0;entryY=0.5;" target="dfd1-ds-promos" value="Validate promo discount code">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="672" />
+              <mxPoint x="880" y="552" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p4c" edge="1" parent="1" source="dfd1-p4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="dfd1-p5" value="Request Midtrans Snap Token">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p4d" edge="1" parent="1" source="dfd1-p4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.8;entryX=0;entryY=0.3;" target="dfd1-ds-orders" value="Write new pending order &amp; items">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="738" />
+              <mxPoint x="880" y="863" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p5a" edge="1" parent="1" source="dfd1-p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.3;entryX=0;entryY=0.35;" target="dfd1-ent-midtrans" value="Send charge request &amp; order data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p5b" edge="1" parent="1" source="dfd1-ent-midtrans" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0;exitY=0.75;entryX=1;entryY=0.7;" target="dfd1-p5" value="Payment callback webhook (settled/expired)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p5c" edge="1" parent="1" source="dfd1-p5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="dfd1-ds-orders" value="Update payment &amp; order status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p6a" edge="1" parent="1" source="dfd1-iface-web" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0.75;exitY=1;entryX=0;entryY=0.5;" target="dfd1-p6" value="Request invoice PDF / tracking status">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="492" y="975" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p6b" edge="1" parent="1" source="dfd1-p6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.5;entryX=0;entryY=0.7;" target="dfd1-ds-orders" value="Read order details &amp; shipping resi">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="975" />
+              <mxPoint x="880" y="882" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p7a" edge="1" parent="1" source="dfd1-iface-web" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0.4;exitY=1;entryX=0;entryY=0.5;" target="dfd1-p7" value="Submit review or tank creation">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="426" y="1215" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p7b" edge="1" parent="1" source="dfd1-p7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" target="dfd1-ds-reviews" value="Write/Read verified reviews">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="1193" />
+              <mxPoint x="880" y="1142" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p7c" edge="1" parent="1" source="dfd1-p7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.7;entryX=0;entryY=0.5;" target="dfd1-ds-gallery" value="Write/Read showcase creations &amp; likes">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="1237" />
+              <mxPoint x="880" y="1262" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p8a" edge="1" parent="1" source="dfd1-ent-admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.3;entryX=0;entryY=0.3;" target="dfd1-p8" value="Admin operations (CRUD, update resi, promos)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p8b" edge="1" parent="1" source="dfd1-p8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0;exitY=0.7;entryX=1;entryY=0.7;" target="dfd1-ent-admin" value="Sales dashboard &amp; analytics reports">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p8c" edge="1" parent="1" source="dfd1-p8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="dfd1-ds-slides" value="Manage hero banner slides">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dfd1-f-p8d" edge="1" parent="1" source="dfd1-p8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0.9;exitY=0.2;entryX=0.5;entryY=1;" target="dfd1-ds-promos" value="Manage promo codes">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="823" y="1380" />
+              <mxPoint x="1170" y="1380" />
+              <mxPoint x="1170" y="575" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p8e" edge="1" parent="1" source="dfd1-p8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=0.75;exitY=0;entryX=0.7;entryY=1;" target="dfd1-ds-orders" value="Update shipping resi &amp; order status">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="798" y="1410" />
+              <mxPoint x="1230" y="1410" />
+              <mxPoint x="1230" y="895" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dfd1-f-p8f" edge="1" parent="1" source="dfd1-p8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#37474f;strokeWidth=1.2;fontSize=10;fontStyle=1;fontColor=#263238;exitX=1;exitY=0.2;entryX=1;entryY=0.5;" target="dfd1-ds-prods" value="Update product stock &amp; catalog">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="1482" />
+              <mxPoint x="1380" y="1482" />
+              <mxPoint x="1380" y="302" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

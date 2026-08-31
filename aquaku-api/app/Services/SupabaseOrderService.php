@@ -105,6 +105,8 @@ class SupabaseOrderService
             'payment_status' => 'unpaid',
             'order_status' => 'pending',
             'subtotal' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'voucher_code' => isset($payload['voucherCode']) ? strtoupper(trim((string) $payload['voucherCode'])) : null,
             'total_amount' => $totalAmount,
             'notes' => isset($payload['notes']) ? trim((string) $payload['notes']) : null,
         ];
@@ -151,7 +153,9 @@ class SupabaseOrderService
 
         $res = $this->mapOrder($order, $insertedItems);
 
-        if (in_array($res['paymentMethod'], ['bank_transfer', 'qris', 'credit_card'], true) && $res['paymentStatus'] === 'unpaid') {
+        $onlineMethods = ['midtrans', 'bank_transfer', 'qris', 'credit_card'];
+        if (in_array($res['paymentMethod'], $onlineMethods, true) && $res['paymentStatus'] === 'unpaid') {
+            // Call Midtrans Snap and propagate any exception directly so error is visible
             $snapResult = $this->midtrans->createSnapTransaction($res);
             $res['midtransSnapToken'] = $snapResult['snapToken'];
             $res['midtransRedirectUrl'] = $snapResult['redirectUrl'];
@@ -340,6 +344,8 @@ class SupabaseOrderService
             'paymentStatus' => (string) $order['payment_status'],
             'orderStatus' => (string) $order['order_status'],
             'subtotal' => (int) $order['subtotal'],
+            'discountAmount' => isset($order['discount_amount']) ? (int) $order['discount_amount'] : 0,
+            'voucherCode' => $order['voucher_code'] ?? null,
             'totalAmount' => (int) $order['total_amount'],
             'trackingNumber' => $order['shipping_resi'] ?? null,
             'notes' => $order['notes'] ?? null,

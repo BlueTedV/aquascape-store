@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   payment_status text NOT NULL DEFAULT 'unpaid',
   order_status text NOT NULL DEFAULT 'pending',
   subtotal integer NOT NULL DEFAULT 0,
+  discount_amount integer NOT NULL DEFAULT 0,
+  voucher_code text,
   total_amount integer NOT NULL DEFAULT 0,
   notes text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),

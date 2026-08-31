@@ -6,9 +6,9 @@ const quickLinks = [
   { label: "Tank Calculator", href: "/calculator" },
   { label: "My Wishlist", href: "/wishlist" },
   { label: "Community Hub", href: "/community" },
+  { label: "Help Articles", href: "/articles" },
   { label: "Aquascape Guides", href: "/guides" },
   { label: "Shipping Policy", href: "/shipping" },
-  { label: "Track Order", href: "/track-order" },
   { label: "Contact Support", href: "/contact" },
 ];
 

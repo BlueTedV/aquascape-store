@@ -19,7 +19,13 @@ export default function MidtransSnapScript() {
     <Script
       src={snapUrl}
       data-client-key={clientKey}
-      strategy="lazyOnload"
+      strategy="afterInteractive"
+      onLoad={() => {
+        console.log("Midtrans Snap SDK loaded successfully from:", snapUrl);
+      }}
+      onError={(e) => {
+        console.error("Midtrans Snap SDK failed to load from:", snapUrl, e);
+      }}
     />
   );
 }

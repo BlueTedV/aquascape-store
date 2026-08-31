@@ -3,7 +3,7 @@
 import { FocusEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Heart, ShoppingCart, User, Menu, X, ChevronDown } from "lucide-react";
+import { Search, Heart, ShoppingCart, User, Menu, X, ChevronDown, Headphones } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { getCurrentAccount, getStoredSession } from "@/lib/api/auth";
@@ -243,6 +243,19 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
             Community
           </Link>
 
+          {/* 5. Contact Us */}
+          <Link
+            href="/contact"
+            className={`flex items-center gap-1.5 font-sans text-body-md transition-colors duration-200 ${
+              pathname === "/contact"
+                ? "border-b-2 border-primary pb-1 text-primary font-bold"
+                : "text-on-surface-variant hover:text-primary"
+            }`}
+          >
+            <Headphones size={15} />
+            Contact
+          </Link>
+
           {/* 5. Admin Manage */}
           {isAdmin && (
             <Link
@@ -397,6 +410,15 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
             className="rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
           >
             Community
+          </Link>
+
+          <Link
+            href="/contact"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-2 rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+          >
+            <Headphones size={16} />
+            Contact Us
           </Link>
 
           <div className="my-1 border-t border-outline-variant/30 pt-1">

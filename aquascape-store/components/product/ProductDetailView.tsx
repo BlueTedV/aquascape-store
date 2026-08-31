@@ -85,6 +85,8 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [rating, setRating] = useState(product.rating);
+  const [reviewCount, setReviewCount] = useState(product.reviewCount);
   const { addItem } = useAuthCart();
   const { toggleItem, isFavorited } = useWishlist();
   const favorited = isFavorited(product.id);
@@ -179,10 +181,14 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-1.5 text-xs font-bold text-price-green">
               {Array.from({ length: 5 }).map((_, index) => (
-                <Star key={index} size={14} className="fill-price-green" />
+                <Star
+                  key={index}
+                  size={14}
+                  className={index < Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-gray-300"}
+                />
               ))}
               <span className="ml-1 text-on-surface-variant">
-                {product.rating.toFixed(1)} ({product.reviewCount} reviews)
+                {rating.toFixed(1)} ({reviewCount} {reviewCount === 1 ? "review" : "reviews"})
               </span>
             </div>
             <button
@@ -319,8 +325,12 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
       <ProductReviewsSection
         productSlug={product.slug}
         productName={product.name}
-        initialRating={product.rating}
-        initialReviewCount={product.reviewCount}
+        initialRating={rating}
+        initialReviewCount={reviewCount}
+        onReviewSubmitted={(newAvg, newCount) => {
+          setRating(newAvg);
+          setReviewCount(newCount);
+        }}
       />
 
       <section className="mt-20">

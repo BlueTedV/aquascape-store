@@ -56,6 +56,8 @@ class OrderController extends Controller
             'shippingPostalCode' => ['required', 'string', 'max:20'],
             'courier' => ['required', 'string', 'max:100'],
             'shippingCost' => ['nullable', 'integer', 'min:0'],
+            'discountAmount' => ['nullable', 'integer', 'min:0'],
+            'voucherCode' => ['nullable', 'string', 'max:50'],
             'paymentMethod' => ['required', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
@@ -215,7 +217,14 @@ class OrderController extends Controller
         $updatedOrder = $this->orders->updateOrderStatusByOrderNumber($orderId, $orderStatus, $paymentStatus);
 
         if (! $updatedOrder) {
-            return response()->json(['message' => 'Order not found'], 404);
+            Log::info("Midtrans webhook notification received for unrecorded or test order_id: {$orderId}. Acknowledging 200 OK.");
+            return response()->json([
+                'status' => 'ok',
+                'message' => "Order '{$orderId}' not found in database, but notification acknowledged.",
+                'orderNumber' => $orderId,
+                'paymentStatus' => $paymentStatus,
+                'orderStatus' => $orderStatus,
+            ], 200);
         }
 
         return response()->json([

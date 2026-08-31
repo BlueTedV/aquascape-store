@@ -137,7 +137,7 @@ class SupabaseCatalogService
     {
         $rows = $this->request()
             ->withHeaders(['Prefer' => 'return=representation'])
-            ->post('/rest/v1/products', $this->productPayload($data))
+            ->post('/rest/v1/products', $this->productPayload($data, false))
             ->throw()
             ->json();
 
@@ -151,7 +151,7 @@ class SupabaseCatalogService
         $rows = $this->request()
             ->withHeaders(['Prefer' => 'return=representation'])
             ->withQueryParameters(['id' => 'eq.'.$id])
-            ->patch('/rest/v1/products', $this->productPayload($data))
+            ->patch('/rest/v1/products', $this->productPayload($data, true))
             ->throw()
             ->json();
 
@@ -170,25 +170,16 @@ class SupabaseCatalogService
             ->throw();
     }
 
-    private function productPayload(array $data): array
+    private function productPayload(array $data, bool $isUpdate = false): array
     {
         $name = trim((string) $data['name']);
         $slug = trim((string) ($data['slug'] ?? ''));
-        $tags = array_values(array_filter(array_map(
-            fn ($tag) => preg_replace('/[^A-Za-z0-9_]/', '', trim((string) $tag)),
-            $data['tags'] ?? [],
-        )));
-        $galleryUrls = array_values(array_filter(array_map('trim', $data['gallery'] ?? [])));
-        $specs = collect($data['specs'] ?? [])
-            ->map(fn ($spec) => [
-                'label' => trim((string) ($spec['label'] ?? '')),
-                'value' => trim((string) ($spec['value'] ?? '')),
-            ])
-            ->filter(fn ($spec) => $spec['label'] !== '' && $spec['value'] !== '')
-            ->values()
-            ->all();
+        $tags = isset($data['tags']) && is_array($data['tags']) ? array_values(array_filter($data['tags'])) : [];
+        $gallery = isset($data['gallery']) && is_array($data['gallery']) ? array_values(array_filter($data['gallery'])) : [];
+        $galleryUrls = $this->normalizeGallery($gallery, $data['image']);
+        $specs = isset($data['specs']) && is_array($data['specs']) ? array_values($data['specs']) : [];
 
-        return [
+        $payload = [
             'name' => $name,
             'slug' => $slug !== '' ? Str::slug($slug) : Str::slug($name),
             'category_slug' => $data['categorySlug'],
@@ -196,8 +187,6 @@ class SupabaseCatalogService
             'brand' => $data['brand'],
             'price' => (int) $data['price'],
             'compare_at_price' => isset($data['compareAtPrice']) ? (int) $data['compareAtPrice'] : null,
-            'rating' => (float) ($data['rating'] ?? 0),
-            'review_count' => (int) ($data['reviewCount'] ?? 0),
             'image_url' => $data['image'],
             'badge' => $data['badge'] ?? null,
             'featured' => (bool) ($data['featured'] ?? false),
@@ -210,6 +199,16 @@ class SupabaseCatalogService
             'gallery_urls' => $galleryUrls,
             'specs' => $specs,
         ];
+
+        if (! $isUpdate) {
+            $payload['rating'] = (float) ($data['rating'] ?? 0);
+            $payload['review_count'] = (int) ($data['reviewCount'] ?? 0);
+        } elseif (isset($data['rating']) && isset($data['reviewCount'])) {
+            $payload['rating'] = (float) $data['rating'];
+            $payload['review_count'] = (int) $data['reviewCount'];
+        }
+
+        return $payload;
     }
 
     private function request(): PendingRequest

@@ -66,7 +66,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 items-center gap-gutter md:grid-cols-2">
               <div className="relative overflow-hidden rounded-xl shadow-soft">
                 <Image
-                  src="/images/home/about.svg"
+                  src="/images/home/About.jpg"
                   alt="Aquaku Nursery and Aquascape Gallery"
                   width={900}
                   height={700}

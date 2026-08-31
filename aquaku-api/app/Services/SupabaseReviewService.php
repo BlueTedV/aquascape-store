@@ -110,6 +110,8 @@ class SupabaseReviewService
             'rating' => (int) $review['rating'],
             'comment' => (string) $review['comment'],
             'createdAt' => (string) $review['created_at'],
+            'newAverageRating' => (float) $newAverageRating,
+            'newReviewCount' => (int) $reviewCount,
         ];
     }
 
