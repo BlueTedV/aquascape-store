@@ -58,10 +58,28 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
     };
   }, [pathname]);
 
+  // Instantly reflect auth changes (login/logout/token expiry)
   useEffect(() => {
     let mounted = true;
+    function handleAuthChange(event: Event) {
+      const customEvent = event as CustomEvent<{ isAdmin?: boolean; accessToken?: string | null } | null>;
+      if (mounted) {
+        setIsAdmin(Boolean(customEvent.detail?.isAdmin && customEvent.detail?.accessToken));
+      }
+    }
 
-    if (!getStoredSession()?.accessToken) {
+    window.addEventListener("aquaku-shop-auth-change", handleAuthChange);
+    return () => {
+      mounted = false;
+      window.removeEventListener("aquaku-shop-auth-change", handleAuthChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const session = getStoredSession();
+
+    if (!session?.accessToken) {
       window.queueMicrotask(() => {
         if (mounted) setIsAdmin(false);
       });
@@ -71,12 +89,18 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
       };
     }
 
+    window.queueMicrotask(() => {
+      if (mounted) setIsAdmin(Boolean(session.isAdmin));
+    });
+
     getCurrentAccount()
       .then((account) => {
         if (mounted) setIsAdmin(account.isAdmin);
       })
       .catch(() => {
-        if (mounted) setIsAdmin(false);
+        if (mounted && !getStoredSession()?.accessToken) {
+          setIsAdmin(false);
+        }
       });
 
     return () => {

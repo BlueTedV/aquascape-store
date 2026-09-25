@@ -68,6 +68,13 @@ export interface VoucherResult {
   description: string;
 }
 
+/**
+ * Orders & Checkout Client API.
+ *
+ * Facilitates voucher validation, order creation, customer order history retrieval,
+ * and administrative status management with the Laravel backend.
+ */
+
 const API_URL = (process.env.NEXT_PUBLIC_AQUAKU_API_URL ?? process.env.AQUAKU_API_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
 
 export async function validateVoucher(code: string, subtotal: number, shippingCost = 0): Promise<VoucherResult> {
@@ -89,6 +96,12 @@ export async function validateVoucher(code: string, subtotal: number, shippingCo
   return data.data;
 }
 
+/**
+ * Submit checkout payload to create an order.
+ *
+ * Automatically includes the user's Bearer token if currently authenticated,
+ * linking the newly created order with the customer's account history.
+ */
 export async function createCheckoutOrder(payload: CheckoutPayload): Promise<Order> {
   const token = getAccessToken();
   const headers: Record<string, string> = {
@@ -145,18 +158,8 @@ export async function getOrderByNumber(orderNumber: string): Promise<Order | nul
 
 export async function getAdminOrders(status?: string): Promise<Order[]> {
   try {
-    const query = status ? `?status=${encodeURIComponent(status)}` : "";
-    const response = await fetch(`${API_URL}/api/admin/orders${query}`, {
-      headers: {
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) return [];
-
-    const data = await response.json();
-    return data.data ?? [];
+    const query = status && status !== "all" ? `?status=${encodeURIComponent(status)}` : "";
+    return await authenticatedRequest<Order[]>(`/api/admin/orders${query}`);
   } catch (error) {
     console.error("Failed to fetch admin orders", error);
     return [];
@@ -169,22 +172,10 @@ export async function updateOrderStatus(
   paymentStatus?: string,
   trackingNumber?: string | null,
 ): Promise<Order> {
-  const response = await fetch(`${API_URL}/api/admin/orders/${encodeURIComponent(id)}/status`, {
+  return authenticatedRequest<Order>(`/api/admin/orders/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
     body: JSON.stringify({ status, paymentStatus, trackingNumber }),
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to update order status.");
-  }
-
-  return data.data;
 }
 
 export async function deleteAllAdminOrders(passcode: string): Promise<{ message: string }> {
@@ -193,3 +184,50 @@ export async function deleteAllAdminOrders(passcode: string): Promise<{ message:
     body: JSON.stringify({ passcode }),
   });
 }
+
+export async function cancelCustomerOrder(orderNumber: string): Promise<{ message: string; order: Order }> {
+  const token = await getAccessToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}/api/orders/${encodeURIComponent(orderNumber)}/cancel`, {
+    method: "POST",
+    headers,
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to cancel order.");
+  }
+
+  return data.data;
+}
+
+export async function getSnapTokenForOrder(orderNumber: string): Promise<{ orderNumber: string; snapToken: string; redirectUrl: string }> {
+  const token = await getAccessToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}/api/orders/${encodeURIComponent(orderNumber)}/pay`, {
+    method: "POST",
+    headers,
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to initiate payment.");
+  }
+
+  return data.data;
+}
+

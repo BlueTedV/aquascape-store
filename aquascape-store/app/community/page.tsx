@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Heart,
   Plus,
@@ -17,16 +18,19 @@ import {
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SectionReveal from "@/components/ui/SectionReveal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import { GalleryPost } from "@/lib/types";
 import { getGalleryPosts, createGalleryPost, likeGalleryPost } from "@/lib/api/gallery";
 import { getStoredSession } from "@/lib/api/auth";
 
 export default function CommunityPage() {
+  const router = useRouter();
   const [posts, setPosts] = useState<GalleryPost[]>([]);
   const [sort, setSort] = useState<"top" | "latest">("top");
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<GalleryPost | null>(null);
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [showLoginPromptModal, setShowLoginPromptModal] = useState(false);
 
   // Create post modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -45,9 +49,19 @@ export default function CommunityPage() {
 
   useEffect(() => {
     let isMounted = true;
-    getGalleryPosts({ sort, limit: 24 })
+    const session = getStoredSession();
+    getGalleryPosts({ sort, limit: 24, accessToken: session?.accessToken })
       .then((data) => {
-        if (isMounted) setPosts(data);
+        if (isMounted) {
+          setPosts(data);
+          const initialLikes: Record<string, boolean> = {};
+          data.forEach((p) => {
+            if (p.isLiked) {
+              initialLikes[p.id] = true;
+            }
+          });
+          setLikedPosts(initialLikes);
+        }
       })
       .catch(() => {
         if (isMounted) setPosts([]);
@@ -70,15 +84,25 @@ export default function CommunityPage() {
   const handleLike = async (postId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
 
-    const isCurrentlyLiked = likedPosts[postId];
-    setLikedPosts((prev) => ({ ...prev, [postId]: !isCurrentlyLiked }));
+    const session = getStoredSession();
+    if (!session?.accessToken) {
+      setShowLoginPromptModal(true);
+      return;
+    }
+
+    const isCurrentlyLiked = Boolean(likedPosts[postId]);
+    const nextIsLiked = !isCurrentlyLiked;
+
+    // Optimistically toggle
+    setLikedPosts((prev) => ({ ...prev, [postId]: nextIsLiked }));
 
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === postId) {
           return {
             ...p,
-            likesCount: isCurrentlyLiked ? p.likesCount - 1 : p.likesCount + 1,
+            likesCount: Math.max(0, nextIsLiked ? p.likesCount + 1 : p.likesCount - 1),
+            isLiked: nextIsLiked,
           };
         }
         return p;
@@ -90,14 +114,46 @@ export default function CommunityPage() {
         prev
           ? {
               ...prev,
-              likesCount: isCurrentlyLiked ? prev.likesCount - 1 : prev.likesCount + 1,
+              likesCount: Math.max(0, nextIsLiked ? prev.likesCount + 1 : prev.likesCount - 1),
+              isLiked: nextIsLiked,
             }
           : null,
       );
     }
 
-    const session = getStoredSession();
-    await likeGalleryPost(postId, session?.accessToken);
+    try {
+      const res = await likeGalleryPost(postId, session.accessToken);
+      setLikedPosts((prev) => ({ ...prev, [postId]: res.isLiked }));
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, likesCount: Math.max(0, res.likesCount), isLiked: res.isLiked }
+            : p,
+        ),
+      );
+      if (selectedPost && selectedPost.id === postId) {
+        setSelectedPost((prev) =>
+          prev
+            ? { ...prev, likesCount: Math.max(0, res.likesCount), isLiked: res.isLiked }
+            : null,
+        );
+      }
+    } catch {
+      // Revert on error
+      setLikedPosts((prev) => ({ ...prev, [postId]: isCurrentlyLiked }));
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              likesCount: Math.max(0, isCurrentlyLiked ? p.likesCount + 1 : p.likesCount - 1),
+              isLiked: isCurrentlyLiked,
+            };
+          }
+          return p;
+        }),
+      );
+    }
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -549,6 +605,21 @@ export default function CommunityPage() {
             </div>
           </div>
         )}
+
+        {/* Guest Sign-In Prompt Modal */}
+        <ConfirmModal
+          isOpen={showLoginPromptModal}
+          onClose={() => setShowLoginPromptModal(false)}
+          onConfirm={() => {
+            setShowLoginPromptModal(false);
+            router.push("/login?redirect=/community");
+          }}
+          title="Sign In Required"
+          message="You need an active account to like and save community aquascapes. Sign in now to join the community!"
+          confirmText="Sign In / Register"
+          cancelText="Maybe Later"
+          variant="primary"
+        />
       </main>
       <Footer />
     </>

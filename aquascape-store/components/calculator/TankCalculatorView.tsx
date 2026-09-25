@@ -14,6 +14,14 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
+/**
+ * Interactive Aquascape Equipment & Substrate Planner.
+ *
+ * Computes essential planted aquarium metrics: gross and net water volume (accounting for
+ * displacement from stones, wood, and soil), substrate requirement in standard bags (3L and 9L),
+ * canister filter flow turnover (6x-8x net volume), LED lighting output (lumens/watts based on
+ * low-tech vs high-tech plant needs), CO2 injection rates (BPS), and safe livestock bioload limits.
+ */
 interface TankPreset {
   id: string;
   name: string;
@@ -99,34 +107,43 @@ export default function TankCalculatorView() {
     setHeight(h);
   };
 
-  // Calculations
+  /**
+   * Derives aquarium equipment specifications and physical capacities:
+   * - Substrate volume: accounts for front-to-back perspective slope.
+   * - Net water volume: subtracts ~18-40% displacement caused by glass thickness,
+   *   hardscape rocks/driftwood, and aqua soil.
+   * - Canister filter turnover: planted tanks require 6x-8x hourly turnover for clean CO2/nutrient delivery.
+   * - Lighting intensity: low-tech (~25 lm/L) vs high-tech (~45 lm/L) plant photon demand.
+   * - CO2 bubble rate: scales by water volume to maintain 20-30 ppm dissolved CO2 safely.
+   */
   const metrics = useMemo(() => {
+    // Gross water volume from internal tank dimensions (1000 cm³ = 1 Liter)
     const grossLiters = (length * width * height) / 1000;
     const grossGallons = grossLiters * 0.264172;
 
-    // Substrate volume
+    // Substrate volume averaging front & back slope, calculating kg (~1.15 kg/L) and 9L/3L bag packaging
     const avgSubstrateDepth = (frontSubstrateDepth + backSubstrateDepth) / 2;
     const substrateLiters = Math.round(((length * width * avgSubstrateDepth) / 1000) * 10) / 10;
     const substrateWeightKg = Math.round(substrateLiters * 1.15 * 10) / 10;
     const soil9LBags = Math.ceil(substrateLiters / 9);
     const soil3LBags = Math.ceil(substrateLiters / 3);
 
-    // Net water volume estimate (subtracting glass, hardscape ~15%, substrate)
+    // Net water volume deducting displacement from glass, hardscape rocks/driftwood (~18%), and aqua soil
     const netWaterLiters = Math.max(
       Math.round(grossLiters * 0.82 - substrateLiters * 0.4),
       Math.round(grossLiters * 0.6)
     );
 
-    // Filtration: 6x - 10x turnover flow rate (L/h)
+    // Canister filtration turnover: 6x minimum to 8x ideal hourly flow (L/h) to distribute CO2 and nutrients
     const minFilterFlow = Math.round(netWaterLiters * 6);
     const idealFilterFlow = Math.round(netWaterLiters * 8);
 
-    // Lighting Lumens & Watts
+    // Lighting intensity: low-tech (~25 lm/L) vs high-tech (~45 lm/L) plant photon demand
     const lumensMultiplier = plantType === "high-tech" ? 45 : 25;
     const recommendedLumens = Math.round(netWaterLiters * lumensMultiplier);
     const recommendedWatts = Math.round(netWaterLiters * (plantType === "high-tech" ? 0.65 : 0.35));
 
-    // CO2 Bubble Rate
+    // CO2 injection rate recommendations in Bubbles Per Second (BPS) scaled to tank capacity
     let co2Recommendation = "0.5 BPS (1 bubble / 2 sec)";
     if (netWaterLiters >= 150) {
       co2Recommendation = "3 - 5 BPS (Inline Diffuser)";
@@ -136,14 +153,14 @@ export default function TankCalculatorView() {
       co2Recommendation = "1 - 2 BPS";
     }
 
-    // Heater Power (Watts)
+    // Aquarium heater wattage sized at approximately 1 Watt per liter of water
     let heaterWatts = 50;
     if (grossLiters > 250) heaterWatts = 300;
     else if (grossLiters > 150) heaterWatts = 200;
     else if (grossLiters > 80) heaterWatts = 150;
     else if (grossLiters > 40) heaterWatts = 100;
 
-    // Safe Stocking capacity
+    // Safe biological stocking capacity: 2.5L per small fish and 1.5 dwarf shrimp per liter
     const maxFishCount = Math.floor(netWaterLiters / 2.5);
     const maxShrimpCount = Math.floor(netWaterLiters * 1.5);
 

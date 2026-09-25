@@ -7,8 +7,13 @@ use App\Services\SupabaseAuthService;
 use App\Services\SupabaseStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Throwable;
 
+/**
+ * Handles media uploads for the admin panel.
+ *
+ * Validates binary image assets and pushes them to the configured Supabase Storage bucket,
+ * returning the public CDN URL to attach to products or banners.
+ */
 class AdminUploadController extends Controller
 {
     public function __construct(
@@ -26,21 +31,6 @@ class AdminUploadController extends Controller
             $this->auth->requireAdmin($request);
 
             return $this->storage->uploadProductImage($data['image']);
-        }, 201);
-    }
-
-    private function respond(callable $callback, int $status = 200): JsonResponse
-    {
-        try {
-            return response()->json(['data' => $callback()], $status);
-        } catch (Throwable $error) {
-            report($error);
-
-            $statusCode = method_exists($error, 'getStatusCode') ? $error->getStatusCode() : 422;
-
-            return response()->json([
-                'message' => $error->getMessage() ?: 'Image upload failed.',
-            ], $statusCode >= 400 && $statusCode < 600 ? $statusCode : 422);
-        }
+        }, 201, 'Image upload failed. Please try again.');
     }
 }

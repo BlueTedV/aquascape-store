@@ -20,8 +20,22 @@ class GalleryController extends Controller
     {
         $sort = $request->string('sort', 'top')->value();
         $limit = min(30, max(1, (int) $request->integer('limit', 12)));
+        $userId = null;
 
-        return $this->respond(fn () => $this->gallery->getPosts($sort, $limit));
+        if ($request->hasHeader('Authorization')) {
+            try {
+                $account = $this->auth->accountFromRequest($request);
+                $userId = $account['user']['id'] ?? null;
+            } catch (Throwable) {
+                // Anonymous guest
+            }
+        }
+
+        return $this->respond(
+            fn () => $this->gallery->getPosts($sort, $limit, $userId),
+            200,
+            'Failed to retrieve gallery posts.'
+        );
     }
 
     public function store(Request $request): JsonResponse
@@ -41,30 +55,28 @@ class GalleryController extends Controller
             try {
                 $account = $this->auth->accountFromRequest($request);
                 $userId = $account['user']['id'] ?? null;
-                $userName = $account['user']['user_metadata']['name'] ?? $account['user']['email'] ?? null;
+                $userName = $account['user']['fullName'] ?? $account['profile']['fullName'] ?? $account['user']['email'] ?? null;
             } catch (Throwable) {
                 // Anonymous fallback
             }
         }
 
-        return $this->respond(fn () => $this->gallery->createPost($validated, $userId, $userName), 201);
+        return $this->respond(
+            fn () => $this->gallery->createPost($validated, $userId, $userName),
+            201,
+            'Failed to share gallery post.'
+        );
     }
 
-    public function like(string $id): JsonResponse
+    public function like(Request $request, string $id): JsonResponse
     {
-        return $this->respond(fn () => $this->gallery->likePost($id));
-    }
+        $account = $this->auth->accountFromRequest($request);
+        $userId = (string) $account['user']['id'];
 
-    private function respond(callable $callback, int $status = 200): JsonResponse
-    {
-        try {
-            return response()->json(['data' => $callback()], $status);
-        } catch (Throwable $error) {
-            report($error);
-
-            return response()->json([
-                'message' => $error->getMessage() ?: 'Gallery service error.',
-            ], 500);
-        }
+        return $this->respond(
+            fn () => $this->gallery->toggleLikePost($id, $userId),
+            200,
+            'Failed to update like on gallery post.'
+        );
     }
 }

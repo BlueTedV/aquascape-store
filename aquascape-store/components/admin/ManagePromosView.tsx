@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Plus, Tag, Trash2 } from "lucide-react";
 import { getAdminPromos, createPromo, deletePromo, PromoVoucher } from "@/lib/api/promos";
 import { formatIDR } from "@/lib/format";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function ManagePromosView() {
   const [promos, setPromos] = useState<PromoVoucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [promoToDelete, setPromoToDelete] = useState<PromoVoucher | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -87,14 +89,20 @@ export default function ManagePromosView() {
     }
   };
 
-  const handleDelete = async (id: string, code: string) => {
-    if (!confirm(`Are you sure you want to delete promo code '${code}'?`)) return;
+  const handleDelete = (promo: PromoVoucher) => {
+    setPromoToDelete(promo);
+  };
 
+  const confirmDeletePromo = async () => {
+    if (!promoToDelete) return;
+    const { id, code } = promoToDelete;
     setDeletingId(id);
+
     try {
       await deletePromo(id);
       setPromos((prev) => prev.filter((p) => p.id !== id));
       setSuccessMsg(`Promo code '${code}' removed.`);
+      setPromoToDelete(null);
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to delete promo.";
@@ -305,7 +313,7 @@ export default function ManagePromosView() {
                     <button
                       type="button"
                       disabled={deletingId === promo.id}
-                      onClick={() => handleDelete(promo.id, promo.code)}
+                      onClick={() => handleDelete(promo)}
                       className="shrink-0 rounded-lg p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                       title="Delete promo"
                     >
@@ -322,6 +330,22 @@ export default function ManagePromosView() {
           </div>
         </div>
       </div>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={!!promoToDelete}
+        onClose={() => setPromoToDelete(null)}
+        onConfirm={confirmDeletePromo}
+        title="Delete Promo Voucher"
+        message={
+          <span>
+            Are you sure you want to delete promo voucher <strong>&apos;{promoToDelete?.code}&apos;</strong> ({promoToDelete?.name})? Customers will no longer be able to apply this code at checkout.
+          </span>
+        }
+        confirmText="Delete Promo"
+        variant="danger"
+        isLoading={!!deletingId}
+      />
     </div>
   );
 }

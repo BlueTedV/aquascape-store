@@ -84,6 +84,7 @@ CREATE TABLE public.orders (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   discount_amount integer NOT NULL DEFAULT 0,
   voucher_code text,
+  shipping_resi text,
   CONSTRAINT orders_pkey PRIMARY KEY (id),
   CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -116,6 +117,16 @@ CREATE TABLE public.gallery_posts (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT gallery_posts_pkey PRIMARY KEY (id),
   CONSTRAINT gallery_posts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.gallery_post_likes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  post_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT gallery_post_likes_pkey PRIMARY KEY (id),
+  CONSTRAINT gallery_post_likes_post_user_unique UNIQUE (post_id, user_id),
+  CONSTRAINT gallery_post_likes_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.gallery_posts(id) ON DELETE CASCADE,
+  CONSTRAINT gallery_post_likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
 CREATE TABLE public.hero_slides (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -33,6 +33,7 @@ import {
 } from "@/lib/api/articles";
 import MarkdownEditor from "./MarkdownEditor";
 import MarkdownRenderer from "@/components/ui/MarkdownRenderer";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function ManageArticlesView() {
   const [articles, setArticles] = useState<ArticleItem[]>([]);
@@ -70,6 +71,7 @@ export default function ManageArticlesView() {
 
   // Deleting state
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [articleToDelete, setArticleToDelete] = useState<ArticleItem | null>(null);
 
   const loadArticles = async () => {
     setLoading(true);
@@ -209,8 +211,13 @@ export default function ManageArticlesView() {
     }
   };
 
-  const handleDelete = async (art: ArticleItem) => {
-    if (!confirm(`Are you sure you want to delete "${art.title}"?`)) return;
+  const handleDelete = (art: ArticleItem) => {
+    setArticleToDelete(art);
+  };
+
+  const confirmDeleteArticle = async () => {
+    if (!articleToDelete) return;
+    const art = articleToDelete;
     setDeletingId(art.id);
     setErrorMsg("");
 
@@ -218,6 +225,7 @@ export default function ManageArticlesView() {
       await deleteAdminArticle(art.id);
       setArticles((prev) => prev.filter((a) => a.id !== art.id));
       setSuccessMsg(`Article "${art.title}" deleted.`);
+      setArticleToDelete(null);
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to delete article.";
@@ -722,6 +730,22 @@ export default function ManageArticlesView() {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={!!articleToDelete}
+        onClose={() => setArticleToDelete(null)}
+        onConfirm={confirmDeleteArticle}
+        title="Delete Article"
+        message={
+          <span>
+            Are you sure you want to permanently delete <strong>&quot;{articleToDelete?.title}&quot;</strong>? This action cannot be undone.
+          </span>
+        }
+        confirmText="Delete Article"
+        variant="danger"
+        isLoading={!!deletingId}
+      />
     </div>
   );
 }

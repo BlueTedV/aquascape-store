@@ -63,6 +63,12 @@ export async function updateAdminProduct(id: string, input: ProductAdminInput) {
     body: JSON.stringify(input),
   });
 }
+
+export async function deleteAdminProduct(id: string) {
+  return authenticatedRequest<{ message: string }>(`/api/admin/products/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
 export async function uploadAdminImage(file: File) {
   const formData = new FormData();
   formData.append("image", file);

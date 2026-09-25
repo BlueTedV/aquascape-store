@@ -8,6 +8,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
 
+/**
+ * Catalog service for querying and maintaining store products.
+ *
+ * Interfaces with Supabase PostgREST endpoints, handles CRUD operations for the
+ * administrative product manager, and normalizes product objects with placeholder fallbacks.
+ */
 class SupabaseCatalogService
 {
     private string $url;
@@ -24,17 +30,121 @@ class SupabaseCatalogService
         }
     }
 
-    public function products(): array
+    public function products(array $filters = []): array
     {
-        $rows = $this->request()
+        $params = [
+            'select' => '*',
+        ];
+
+        // 1. Category Filter
+        if (! empty($filters['category']) && $filters['category'] !== 'all') {
+            $params['category_slug'] = 'eq.' . trim((string) $filters['category']);
+        }
+
+        // 2. Collection Filter
+        if (! empty($filters['collection']) && $filters['collection'] !== 'all') {
+            $params['collection'] = 'eq.' . trim((string) $filters['collection']);
+        }
+
+        // 3. Brand Filter
+        if (! empty($filters['brands'])) {
+            $brandsList = is_array($filters['brands']) ? $filters['brands'] : explode(',', (string) $filters['brands']);
+            $brandsList = array_values(array_filter(array_map('trim', $brandsList)));
+            if (count($brandsList) === 1) {
+                $params['brand'] = 'eq.' . $brandsList[0];
+            } elseif (count($brandsList) > 1) {
+                $params['brand'] = 'in.(' . implode(',', array_map(fn ($b) => '"' . str_replace('"', '', $b) . '"', $brandsList)) . ')';
+            }
+        } elseif (! empty($filters['brand'])) {
+            $params['brand'] = 'eq.' . trim((string) $filters['brand']);
+        }
+
+        // 4. Status Filter
+        if (! empty($filters['statuses'])) {
+            $statusList = is_array($filters['statuses']) ? $filters['statuses'] : explode(',', (string) $filters['statuses']);
+            if (in_array('available', $statusList, true)) {
+                $params['stock'] = 'gt.0';
+            }
+            if (in_array('sale', $statusList, true)) {
+                $params['on_sale'] = 'eq.true';
+            }
+            if (in_array('new', $statusList, true)) {
+                $params['arrival'] = 'eq.true';
+            }
+        }
+
+        // 5. Price Filters
+        if (isset($filters['maxPrice']) && is_numeric($filters['maxPrice'])) {
+            $params['price'] = 'lte.' . (int) $filters['maxPrice'];
+        }
+        if (isset($filters['minPrice']) && is_numeric($filters['minPrice'])) {
+            $params['price'] = 'gte.' . (int) $filters['minPrice'];
+        }
+
+        // 6. Search Query
+        if (! empty($filters['q'])) {
+            $q = trim((string) $filters['q']);
+            $cleanQ = str_replace(['(', ')', '"', ','], '', $q);
+            if ($cleanQ !== '') {
+                $params['or'] = "(name.ilike.*{$cleanQ}*,brand.ilike.*{$cleanQ}*,collection.ilike.*{$cleanQ}*)";
+            }
+        }
+
+        // 7. Sort Options
+        $sort = (string) ($filters['sort'] ?? 'popular');
+        $params['order'] = match ($sort) {
+            'newest' => 'arrival.desc,created_at.desc',
+            'price-asc' => 'price.asc',
+            'price-desc' => 'price.desc',
+            'rating' => 'rating.desc,review_count.desc',
+            default => 'featured.desc,review_count.desc',
+        };
+
+        // 8. Pagination
+        $limit = max(1, min(100, (int) ($filters['limit'] ?? 12)));
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $offset = ($page - 1) * $limit;
+
+        $params['limit'] = $limit;
+        $params['offset'] = $offset;
+
+        $response = $this->request()
+            ->withHeaders(['Prefer' => 'count=exact'])
+            ->get('/rest/v1/products', $params);
+
+        $rows = $response->json();
+        if (! is_array($rows)) {
+            $rows = [];
+        }
+
+        $contentRange = $response->header('Content-Range') ?? '';
+        $total = count($rows);
+        if (preg_match('/\/(\d+)$/', $contentRange, $matches)) {
+            $total = (int) $matches[1];
+        }
+
+        $totalPages = max(1, (int) ceil($total / $limit));
+        $mappedProducts = collect($rows)->map(fn (array $row) => $this->mapProduct($row))->all();
+
+        // Fetch catalog metadata (all brands and max price)
+        $metaRows = $this->request()
             ->get('/rest/v1/products', [
-                'select' => '*',
-                'order' => 'featured.desc,review_count.desc',
+                'select' => 'brand,price',
             ])
-            ->throw()
             ->json();
 
-        return collect($rows)->map(fn (array $row) => $this->mapProduct($row))->all();
+        $brands = collect($metaRows)->pluck('brand')->filter()->unique()->sort()->values()->all();
+        $maxCatalogPrice = (int) (collect($metaRows)->max('price') ?: 1000000);
+
+        return [
+            'products' => $mappedProducts,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'totalPages' => $totalPages,
+            'brands' => $brands,
+            'maxPrice' => $maxCatalogPrice,
+        ];
     }
 
     public function adminProducts(): array
@@ -162,6 +272,16 @@ class SupabaseCatalogService
         return $this->mapProductDetail($row);
     }
 
+    public function deleteProduct(string $id): bool
+    {
+        $this->request()
+            ->withQueryParameters(['id' => 'eq.'.$id])
+            ->delete('/rest/v1/products')
+            ->throw();
+
+        return true;
+    }
+
     public function deleteAllProducts(): void
     {
         $this->request()
@@ -232,6 +352,7 @@ class SupabaseCatalogService
         return $image;
     }
 
+    // Deduplicate and sanitize gallery image URLs, ensuring the primary image is always present first
     private function normalizeGallery(array $gallery, string $mainImage): array
     {
         return collect($gallery)
@@ -270,6 +391,12 @@ class SupabaseCatalogService
         ];
     }
 
+    /**
+     * Map a raw Supabase product record into a rich product detail payload.
+     *
+     * Injects category-specific default descriptions, specifications, and gallery images
+     * from `ProductContent` whenever custom values are not populated in the database.
+     */
     private function mapProductDetail(array $row): array
     {
         $product = $this->mapProduct($row);
@@ -277,12 +404,14 @@ class SupabaseCatalogService
         $gallery = $row['gallery_urls'] ?? [];
         $specs = $row['specs'] ?? [];
 
+        // Fall back to category gallery images if the database does not contain custom images
         if (! is_array($gallery) || count(array_filter($gallery)) === 0) {
             $gallery = ProductContent::galleryFor($product['slug'], $product['image']);
         } else {
             $gallery = $this->normalizeGallery($gallery, $product['image']);
         }
 
+        // Supply standard category specifications (materials, lighting, CO2) if unpopulated
         if (! is_array($specs) || count($specs) === 0) {
             $specs = $content['specs'];
         }

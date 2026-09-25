@@ -23,7 +23,7 @@ class SupabaseGalleryService
         }
     }
 
-    public function getPosts(string $sort = 'top', int $limit = 12): array
+    public function getPosts(string $sort = 'top', int $limit = 12, ?string $userId = null): array
     {
         $order = $sort === 'latest' ? 'created_at.desc' : 'likes_count.desc,created_at.desc';
 
@@ -36,7 +36,31 @@ class SupabaseGalleryService
             ->throw()
             ->json();
 
-        return collect($rows)->map(fn (array $row) => $this->mapPost($row))->all();
+        $userLikedIds = [];
+        if ($userId !== null && ! empty($rows)) {
+            try {
+                $postIds = collect($rows)->pluck('id')->all();
+                $likeRows = $this->request()
+                    ->get('/rest/v1/gallery_post_likes', [
+                        'select' => 'post_id',
+                        'user_id' => "eq.{$userId}",
+                        'post_id' => 'in.(' . implode(',', $postIds) . ')',
+                    ])
+                    ->json();
+
+                if (is_array($likeRows)) {
+                    $userLikedIds = collect($likeRows)->pluck('post_id')->all();
+                }
+            } catch (\Throwable) {
+                // Table might not exist yet
+            }
+        }
+
+        return collect($rows)->map(function (array $row) use ($userLikedIds) {
+            $mapped = $this->mapPost($row);
+            $mapped['isLiked'] = in_array($mapped['id'], $userLikedIds, true);
+            return $mapped;
+        })->all();
     }
 
     public function createPost(array $payload, ?string $userId = null, ?string $userName = null): array
@@ -72,7 +96,7 @@ class SupabaseGalleryService
         return $this->mapPost($row);
     }
 
-    public function likePost(string $id): array
+    public function toggleLikePost(string $id, string $userId): array
     {
         // 1. Fetch current post
         $rows = $this->request()
@@ -87,9 +111,104 @@ class SupabaseGalleryService
         $post = $rows[0] ?? null;
         abort_if(! is_array($post), 404, 'Gallery post not found.');
 
-        $newCount = ((int) ($post['likes_count'] ?? 0)) + 1;
+        $currentCount = max(0, (int) ($post['likes_count'] ?? 0));
+        $isLiked = false;
 
-        // 2. Update likes_count
+        // 2. Check if user already liked the post via gallery_post_likes
+        $likeRecord = null;
+        try {
+            $likeRows = $this->request()
+                ->get('/rest/v1/gallery_post_likes', [
+                    'select' => 'id',
+                    'post_id' => "eq.{$id}",
+                    'user_id' => "eq.{$userId}",
+                    'limit' => 1,
+                ])
+                ->json();
+
+            if (is_array($likeRows) && ! empty($likeRows)) {
+                $likeRecord = $likeRows[0];
+            }
+        } catch (\Throwable) {
+            // Table may not exist yet
+        }
+
+        if ($likeRecord !== null) {
+            // User already liked -> UNLIKE (decrement)
+            try {
+                $this->request()
+                    ->delete('/rest/v1/gallery_post_likes', [
+                        'post_id' => "eq.{$id}",
+                        'user_id' => "eq.{$userId}",
+                    ]);
+            } catch (\Throwable) {
+                // Ignore
+            }
+
+            $newCount = max(0, $currentCount - 1);
+            $isLiked = false;
+        } else {
+            // User has not liked -> LIKE (increment)
+            try {
+                $this->request()
+                    ->post('/rest/v1/gallery_post_likes', [
+                        'post_id' => $id,
+                        'user_id' => $userId,
+                    ]);
+            } catch (\Throwable) {
+                // Ignore
+            }
+
+            $newCount = $currentCount + 1;
+            $isLiked = true;
+        }
+
+        // 3. Update likes_count in gallery_posts
+        try {
+            $updatedRows = $this->request()
+                ->withHeaders(['Prefer' => 'return=representation'])
+                ->withQueryParameters(['id' => 'eq.' . $id])
+                ->patch('/rest/v1/gallery_posts', [
+                    'likes_count' => $newCount,
+                    'updated_at' => now()->toIso8601String(),
+                ])
+                ->throw()
+                ->json();
+
+            $updated = $updatedRows[0] ?? $post;
+        } catch (\Throwable) {
+            $updated = $post;
+        }
+
+        $updated['likes_count'] = $newCount;
+
+        $mapped = $this->mapPost($updated);
+        $mapped['isLiked'] = $isLiked;
+
+        return $mapped;
+    }
+
+    public function likePost(string $id, ?string $userId = null): array
+    {
+        if ($userId !== null) {
+            return $this->toggleLikePost($id, $userId);
+        }
+
+        // Fallback if no userId provided
+        $rows = $this->request()
+            ->get('/rest/v1/gallery_posts', [
+                'select' => '*',
+                'id' => "eq.{$id}",
+                'limit' => 1,
+            ])
+            ->throw()
+            ->json();
+
+        $post = $rows[0] ?? null;
+        abort_if(! is_array($post), 404, 'Gallery post not found.');
+
+        $newCount = max(0, ((int) ($post['likes_count'] ?? 0)) + 1);
+
         $updatedRows = $this->request()
             ->withHeaders(['Prefer' => 'return=representation'])
             ->withQueryParameters(['id' => 'eq.' . $id])
@@ -115,7 +234,8 @@ class SupabaseGalleryService
             'tankSpecs' => (string) ($row['tank_specs'] ?? ''),
             'image' => (string) ($row['image_url'] ?? '/images/home/gallery-1.svg'),
             'size' => (string) ($row['size'] ?? 'wide'),
-            'likesCount' => (int) ($row['likes_count'] ?? 0),
+            'likesCount' => max(0, (int) ($row['likes_count'] ?? 0)),
+            'isLiked' => (bool) ($row['isLiked'] ?? $row['is_liked'] ?? false),
             'createdAt' => (string) ($row['created_at'] ?? now()->toIso8601String()),
         ];
     }

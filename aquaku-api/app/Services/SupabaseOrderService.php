@@ -4,9 +4,17 @@ namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 
+/**
+ * Data service managing orders and checkout workflows.
+ *
+ * Communicates directly with Supabase PostgREST tables (`orders`, `order_items`, `products`),
+ * verifying inventory availability, deducting stock upon purchase, and generating
+ * Midtrans Snap transaction tokens for unpaid online orders.
+ */
 class SupabaseOrderService
 {
     private string $url;
@@ -15,36 +23,46 @@ class SupabaseOrderService
 
     private MidtransService $midtrans;
 
-    public function __construct(?MidtransService $midtrans = null)
+    private VoucherService $vouchers;
+
+    public function __construct(?MidtransService $midtrans = null, ?VoucherService $vouchers = null)
     {
         $this->url = rtrim((string) config('services.supabase.url'), '/');
         $this->key = (string) config('services.supabase.key');
         $this->midtrans = $midtrans ?? new MidtransService;
+        $this->vouchers = $vouchers ?? app(VoucherService::class);
 
         if ($this->url === '' || $this->key === '') {
             throw new RuntimeException('Supabase API configuration is missing.');
         }
     }
 
+    /**
+     * Create and record a new customer order.
+     *
+     * Validates live inventory levels in Supabase, persists the order and its line items,
+     * reduces available stock accordingly, and initiates a Midtrans Snap transaction
+     * if an online payment method is selected.
+     */
     public function createOrder(array $payload, ?string $userId = null): array
     {
+        // Generate human-readable order number with date prefix and random suffix (e.g. AQ-20260903-ABC123)
         $orderNumber = 'AQ-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
         $subtotal = 0;
         $itemsData = [];
 
+        // Validate items, accumulate subtotal, and verify stock availability in Supabase
         foreach ($payload['items'] as $index => $item) {
-            $itemPrice = (int) ($item['price'] ?? 0);
             $itemQty = max(1, (int) ($item['quantity'] ?? 1));
-            $itemSubtotal = $itemPrice * $itemQty;
-            $subtotal += $itemSubtotal;
+            $itemPrice = max(0, (int) ($item['price'] ?? 0));
 
             $productId = $item['id'] ?? null;
             $productSlug = $item['slug'] ?? null;
             $resolvedProdId = null;
             $currentStock = null;
 
-            // Check stock in Supabase
+            // Query product by UUID or slug to check real-time stock and true DB price
             $prodParams = [];
             if ($productId) {
                 $prodParams['id'] = "eq.{$productId}";
@@ -55,10 +73,15 @@ class SupabaseOrderService
             if (! empty($prodParams)) {
                 try {
                     $prodRows = $this->request()
-                        ->get('/rest/v1/products', array_merge(['select' => 'id,name,stock'], $prodParams))
+                        ->get('/rest/v1/products', array_merge(['select' => 'id,name,price,stock'], $prodParams))
                         ->json();
                     $prod = $prodRows[0] ?? null;
                     if ($prod) {
+                        // Enforce server-side catalog price to prevent client tampering
+                        if (isset($prod['price'])) {
+                            $itemPrice = (int) $prod['price'];
+                        }
+
                         $currentStock = (int) ($prod['stock'] ?? 0);
                         if ($currentStock < $itemQty) {
                             $prodName = $prod['name'] ?? ($item['name'] ?? 'Product');
@@ -66,15 +89,20 @@ class SupabaseOrderService
                         }
                         $resolvedProdId = $prod['id'];
                     }
+                } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+                    throw $e;
                 } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
                     throw $e;
-                } catch (\Throwable) {
-                    // Non-fatal if stock check fails due to external service issue
+                } catch (\Throwable $e) {
+                    Log::warning('Stock check failed', ['error' => $e->getMessage()]);
                 }
             }
 
+            $itemSubtotal = $itemPrice * $itemQty;
+            $subtotal += $itemSubtotal;
+
             $itemsData[] = [
-                'product_id' => $productId,
+                'product_id' => $productId ?? $resolvedProdId,
                 'product_name' => trim((string) ($item['name'] ?? 'Product')),
                 'product_slug' => trim((string) ($item['slug'] ?? 'product')),
                 'product_image' => trim((string) ($item['image'] ?? '/images/products/product-placeholder.svg')),
@@ -86,8 +114,24 @@ class SupabaseOrderService
             ];
         }
 
+        // Compute net total amount factoring in shipping fee and server-validated voucher discounts
         $shippingCost = (int) ($payload['shippingCost'] ?? 0);
-        $discountAmount = max(0, (int) ($payload['discountAmount'] ?? 0));
+        $voucherCode = ! empty($payload['voucherCode']) ? trim((string) $payload['voucherCode']) : null;
+        $discountAmount = 0;
+
+        if ($voucherCode) {
+            try {
+                $voucherResult = $this->vouchers->validate($voucherCode, $subtotal, $shippingCost);
+                $discountAmount = (int) ($voucherResult['discountAmount'] ?? 0);
+            } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+                throw $e;
+            } catch (\Throwable) {
+                // If invalid or inactive, discard discount
+                $voucherCode = null;
+                $discountAmount = 0;
+            }
+        }
+
         $totalAmount = max(0, $subtotal + $shippingCost - $discountAmount);
 
         $orderPayload = [
@@ -111,7 +155,7 @@ class SupabaseOrderService
             'notes' => isset($payload['notes']) ? trim((string) $payload['notes']) : null,
         ];
 
-        // Insert Order into Supabase
+        // Insert master order into Supabase with return representation to retrieve generated UUID
         $orderRows = $this->request()
             ->withHeaders(['Prefer' => 'return=representation'])
             ->post('/rest/v1/orders', $orderPayload)
@@ -121,7 +165,7 @@ class SupabaseOrderService
         $order = $orderRows[0] ?? $orderRows;
         $orderId = $order['id'];
 
-        // Insert Order Items and Deduct Stock
+        // Persist order items and decrement product stock in Supabase
         $insertedItems = [];
         foreach ($itemsData as $itemData) {
             $resolvedProdId = $itemData['_resolved_prod_id'] ?? null;
@@ -138,13 +182,13 @@ class SupabaseOrderService
 
             $insertedItems[] = $itemRows[0] ?? $itemRows;
 
-            // Deduct stock in Supabase if resolved
+            // Reduce product stock count, clamping at 0 to avoid negative inventory
             if ($resolvedProdId && $currentStock !== null) {
                 try {
-                    $newStock = max(0, $currentStock - $itemData['quantity']);
-                    $this->request()
-                        ->withQueryParameters(['id' => 'eq.' . $resolvedProdId])
-                        ->patch('/rest/v1/products', ['stock' => $newStock]);
+                    $this->request()->post('/rest/v1/rpc/decrement_product_stock', [
+                        'p_id' => $resolvedProdId,
+                        'qty' => $itemData['quantity'],
+                    ]);
                 } catch (\Throwable) {
                     // Non-fatal if stock patch fails
                 }
@@ -153,12 +197,19 @@ class SupabaseOrderService
 
         $res = $this->mapOrder($order, $insertedItems);
 
+        // For online payment gateways, request Snap transaction token and checkout redirect URL
         $onlineMethods = ['midtrans', 'bank_transfer', 'qris', 'credit_card'];
         if (in_array($res['paymentMethod'], $onlineMethods, true) && $res['paymentStatus'] === 'unpaid') {
-            // Call Midtrans Snap and propagate any exception directly so error is visible
             $snapResult = $this->midtrans->createSnapTransaction($res);
             $res['midtransSnapToken'] = $snapResult['snapToken'];
             $res['midtransRedirectUrl'] = $snapResult['redirectUrl'];
+
+            // Store token in shipping_resi temporarily while unpaid
+            $tokenData = 'SNAP:' . $res['midtransSnapToken'] . '|URL:' . $res['midtransRedirectUrl'];
+            $this->request()
+                ->withHeaders(['Prefer' => 'return=minimal'])
+                ->withQueryParameters(['id' => 'eq.' . $orderId])
+                ->patch('/rest/v1/orders', ['shipping_resi' => $tokenData]);
         }
 
         return $res;
@@ -190,26 +241,12 @@ class SupabaseOrderService
 
         $res = $this->mapOrder($order, $items);
 
-        // Re-generate snap token only for unpaid orders with a valid email
-        if (
-            in_array($res['paymentMethod'], ['bank_transfer', 'qris', 'credit_card'], true) &&
-            $res['paymentStatus'] === 'unpaid' &&
-            filter_var($res['customerEmail'], FILTER_VALIDATE_EMAIL)
-        ) {
-            try {
-                $snapResult = $this->midtrans->createSnapTransaction($res);
-                $res['midtransSnapToken'] = $snapResult['snapToken'];
-                $res['midtransRedirectUrl'] = $snapResult['redirectUrl'];
-            } catch (\Throwable) {
-                // Non-fatal: token generation failed, UI will show redirect URL fallback
-            }
-        }
-
         return $res;
     }
 
     public function getUserOrders(string $userId, ?string $email = null): array
     {
+        // Query orders matching either the user's UUID or their email address (capturing guest orders made with the same email)
         $orFilters = ["user_id.eq.{$userId}"];
         if ($email !== null && $email !== '') {
             $orFilters[] = "customer_email.eq.{$email}";
@@ -270,6 +307,21 @@ class SupabaseOrderService
 
     public function updateOrderStatus(string $id, string $status, ?string $paymentStatus = null, ?string $trackingNumber = null): array
     {
+        // Check current status before updating to detect transitions to cancelled
+        $previousStatus = null;
+        try {
+            $existingRows = $this->request()
+                ->get('/rest/v1/orders', [
+                    'select' => 'id,order_status',
+                    'id' => "eq.{$id}",
+                    'limit' => 1,
+                ])
+                ->json();
+            $previousStatus = $existingRows[0]['order_status'] ?? null;
+        } catch (\Throwable) {
+            // Non-fatal if pre-check fails
+        }
+
         $updatePayload = [
             'order_status' => $status,
             'updated_at' => now()->toIso8601String(),
@@ -295,6 +347,11 @@ class SupabaseOrderService
         $order = $rows[0] ?? null;
         abort_if(! is_array($order), 404, 'Order not found.');
 
+        // Restore stock when an order is cancelled
+        if ($previousStatus !== null && $previousStatus !== 'cancelled' && $status === 'cancelled') {
+            $this->restockOrderItems($id);
+        }
+
         $items = $this->request()
             ->get('/rest/v1/order_items', [
                 'select' => '*',
@@ -304,6 +361,58 @@ class SupabaseOrderService
             ->json();
 
         return $this->mapOrder($order, $items);
+    }
+
+    private function restockOrderItems(string $orderId): void
+    {
+        try {
+            $items = $this->request()
+                ->get('/rest/v1/order_items', [
+                    'select' => 'product_id,product_slug,quantity',
+                    'order_id' => "eq.{$orderId}",
+                ])
+                ->json();
+
+            if (! is_array($items)) {
+                return;
+            }
+
+            foreach ($items as $item) {
+                $qty = (int) ($item['quantity'] ?? 0);
+                if ($qty <= 0) {
+                    continue;
+                }
+
+                $prodId = $item['product_id'] ?? null;
+                $prodSlug = $item['product_slug'] ?? null;
+
+                $filter = [];
+                if ($prodId) {
+                    $filter['id'] = "eq.{$prodId}";
+                } elseif ($prodSlug) {
+                    $filter['slug'] = "eq.{$prodSlug}";
+                }
+
+                if (! empty($filter)) {
+                    $prodRows = $this->request()
+                        ->get('/rest/v1/products', array_merge(['select' => 'id,stock'], $filter))
+                        ->json();
+                    $prod = $prodRows[0] ?? null;
+                    if ($prod) {
+                        $currentStock = (int) ($prod['stock'] ?? 0);
+                        $newStock = $currentStock + $qty;
+                        $this->request()
+                            ->withQueryParameters(['id' => 'eq.' . $prod['id']])
+                            ->patch('/rest/v1/products', ['stock' => $newStock]);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to restock order items on cancellation', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function updateOrderStatusByOrderNumber(string $orderNumber, string $status, ?string $paymentStatus = null): ?array
@@ -328,6 +437,23 @@ class SupabaseOrderService
 
     private function mapOrder(array $order, array $items): array
     {
+        $trackingNumber = $order['shipping_resi'] ?? null;
+        $snapToken = null;
+        $snapUrl = null;
+
+        if (
+            in_array($order['payment_method'] ?? '', ['bank_transfer', 'qris', 'credit_card'], true) &&
+            ($order['payment_status'] ?? '') === 'unpaid' &&
+            $trackingNumber && str_starts_with($trackingNumber, 'SNAP:')
+        ) {
+            preg_match('/SNAP:(.*)\|URL:(.*)/', $trackingNumber, $matches);
+            if (count($matches) === 3) {
+                $snapToken = $matches[1];
+                $snapUrl = $matches[2];
+            }
+            $trackingNumber = null; // Hide the internal token from tracking number UI
+        }
+
         $res = [
             'id' => (string) $order['id'],
             'orderNumber' => (string) $order['order_number'],
@@ -347,7 +473,7 @@ class SupabaseOrderService
             'discountAmount' => isset($order['discount_amount']) ? (int) $order['discount_amount'] : 0,
             'voucherCode' => $order['voucher_code'] ?? null,
             'totalAmount' => (int) $order['total_amount'],
-            'trackingNumber' => $order['shipping_resi'] ?? null,
+            'trackingNumber' => $trackingNumber,
             'notes' => $order['notes'] ?? null,
             'createdAt' => (string) $order['created_at'],
             'items' => array_map(function (array $item) {
@@ -363,6 +489,11 @@ class SupabaseOrderService
                 ];
             }, $items),
         ];
+
+        if ($snapToken) {
+            $res['midtransSnapToken'] = $snapToken;
+            $res['midtransRedirectUrl'] = $snapUrl;
+        }
 
         return $res;
     }

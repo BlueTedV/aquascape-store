@@ -15,6 +15,13 @@ function getLoginRedirectPath() {
   return `/login?redirect=${encodeURIComponent(currentPath)}`;
 }
 
+/**
+ * Auth-gated wrapper around the cart context.
+ *
+ * Intercepts `addItem` calls to check if the user is authenticated.
+ * If unauthenticated or if the session is invalid, the user is redirected to the login
+ * page with a redirect query param preserving their current route.
+ */
 export function useAuthCart() {
   const router = useRouter();
   const cart = useCart();

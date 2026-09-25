@@ -33,6 +33,7 @@ export default function ProductCard({ product }: { product: Product }) {
       price: product.price,
       image: product.image,
       category: product.category,
+      stock: product.stock,
     });
 
     if (!wasAdded) return;
@@ -76,8 +77,13 @@ export default function ProductCard({ product }: { product: Product }) {
         </h3>
       </Link>
 
-      <div className="mb-2 min-h-6">
+      <div className="mb-2 min-h-6 flex items-center justify-between">
         <StarRating rating={product.rating} reviewCount={product.reviewCount} />
+        {product.stock !== undefined && (
+          <span className={`text-xs font-medium ml-2 whitespace-nowrap ${product.stock > 0 ? "text-on-surface-variant" : "text-rose-500"}`}>
+            {product.stock > 0 ? `Stock: ${product.stock}` : "Out of stock"}
+          </span>
+        )}
       </div>
 
       <p className="mt-auto pr-12 font-sans text-price-display text-price-green">
@@ -88,7 +94,12 @@ export default function ProductCard({ product }: { product: Product }) {
         type="button"
         aria-label={`Add ${product.name} to cart`}
         onClick={handleAddToCart}
-        className="absolute bottom-6 right-6 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-on-primary opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100"
+        disabled={product.stock === 0}
+        className={`absolute bottom-6 right-6 flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all duration-300 ${
+          product.stock === 0 
+            ? "bg-surface-variant text-on-surface-variant opacity-50 cursor-not-allowed" 
+            : "bg-primary text-on-primary opacity-0 group-hover:opacity-100"
+        }`}
       >
         {added ? <Check size={20} /> : <Plus size={20} />}
       </button>

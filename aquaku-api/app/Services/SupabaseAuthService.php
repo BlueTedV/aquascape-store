@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
+/**
+ * Manages authentication and user profile data via Supabase.
+ *
+ * Directs login, registration, and password recovery calls to Supabase GoTrue Auth,
+ * synchronizes extended user metadata with the `profiles` and `shipping_addresses` tables,
+ * and enforces role-based access control for administrative routes.
+ */
 class SupabaseAuthService
 {
     private string $url;
@@ -28,30 +35,48 @@ class SupabaseAuthService
 
     public function signIn(string $email, string $password): array
     {
-        $payload = $this->authRequest()
-            ->post('/auth/v1/token?grant_type=password', [
-                'email' => $email,
-                'password' => $password,
-            ])
-            ->throw()
-            ->json();
+        try {
+            // Exchange user credentials for JWT access/refresh tokens via Supabase GoTrue
+            $payload = $this->authRequest()
+                ->post('/auth/v1/token?grant_type=password', [
+                    'email' => $email,
+                    'password' => $password,
+                ])
+                ->throw()
+                ->json();
 
-        return $this->sessionPayload($payload);
+            return $this->sessionPayload($payload);
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            // Translate Supabase auth failure codes into user-friendly error responses
+            $data = $e->response ? $e->response->json() : [];
+            $msg = $data['error_description'] ?? $data['msg'] ?? $data['message'] ?? '';
+            if (str_contains(strtolower($msg), 'invalid login') || str_contains(strtolower($msg), 'invalid credentials') || ($e->response && $e->response->status() === 400)) {
+                abort(401, 'Invalid email or password.');
+            }
+            abort($e->response ? $e->response->status() : 401, $msg ?: 'Invalid email or password.');
+        }
     }
 
     public function signUp(string $email, string $password, ?string $fullName = null, ?string $phone = null): array
     {
-        $payload = $this->authRequest()
-            ->post('/auth/v1/signup', [
-                'email' => $email,
-                'password' => $password,
-                'data' => array_filter([
-                    'full_name' => $fullName,
-                    'phone' => $phone,
-                ], fn ($value) => $value !== null && $value !== ''),
-            ])
-            ->throw()
-            ->json();
+        try {
+            // Register account in GoTrue, saving full name and phone into user_metadata
+            $payload = $this->authRequest()
+                ->post('/auth/v1/signup', [
+                    'email' => $email,
+                    'password' => $password,
+                    'data' => array_filter([
+                        'full_name' => $fullName,
+                        'phone' => $phone,
+                    ], fn ($value) => $value !== null && $value !== ''),
+                ])
+                ->throw()
+                ->json();
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            $data = $e->response ? $e->response->json() : [];
+            $msg = $data['msg'] ?? $data['message'] ?? $data['error_description'] ?? 'Registration failed. Please check your details.';
+            abort($e->response && $e->response->status() >= 400 && $e->response->status() < 500 ? $e->response->status() : 422, $msg);
+        }
 
         $user = $payload['user'] ?? $payload;
 
@@ -76,6 +101,24 @@ class SupabaseAuthService
         $this->authRequest($accessToken)
             ->post('/auth/v1/logout')
             ->throw();
+    }
+
+    public function refresh(string $refreshToken): array
+    {
+        try {
+            $payload = $this->authRequest()
+                ->post('/auth/v1/token?grant_type=refresh_token', [
+                    'refresh_token' => $refreshToken,
+                ])
+                ->throw()
+                ->json();
+
+            return $this->sessionPayload($payload);
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            $data = $e->response ? $e->response->json() : [];
+            $msg = $data['error_description'] ?? $data['msg'] ?? $data['message'] ?? '';
+            abort(401, $msg ?: 'Session expired. Please log in again.');
+        }
     }
 
     public function forgotPassword(string $email): array
@@ -198,6 +241,7 @@ class SupabaseAuthService
             'updated_at' => now()->toISOString(),
         ];
 
+        // Check for existing primary address: update via PATCH or create a new address via POST
         $existing = $this->defaultShippingAddress($userId);
 
         if ($existing && isset($existing['id'])) {
@@ -237,6 +281,13 @@ class SupabaseAuthService
         }
     }
 
+    /**
+     * Determine whether a user possesses administrative privileges.
+     *
+     * Evaluates multiple sources in order: configured whitelist emails (`services.supabase.admin_emails`),
+     * JWT application metadata (`app_metadata.role`), user metadata (`user_metadata.role`),
+     * and the public database record (`profiles.role`).
+     */
     public function isAdmin(array $user, ?array $profile = null): bool
     {
         $email = strtolower((string) ($user['email'] ?? ''));

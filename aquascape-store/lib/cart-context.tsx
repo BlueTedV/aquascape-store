@@ -12,6 +12,14 @@ import {
 import { CartItem } from "./types";
 import { getStoredSession } from "./api/auth";
 
+/**
+ * Shopping Cart Context & State Provider.
+ *
+ * Manages cart line items, pricing aggregations, and local persistence.
+ * Cart items are tied to authenticated sessions (cleared on sign-out and loaded on sign-in
+ * via custom auth events) and synchronized in real time across browser tabs via storage events.
+ */
+
 const STORAGE_KEY = "aquaku-shop-cart";
 const PRODUCT_IMAGE_PLACEHOLDER = "/images/products/product-placeholder.svg";
 
@@ -57,7 +65,7 @@ const CartContext = createContext<CartContextValue>(defaultCartValue);
 function readStoredCart(): CartItem[] {
   if (typeof window === "undefined") return [];
 
-  // Only logged in users have access to persistent cart items
+  // Member-only cart persistence: clear local cart storage if no active user token exists
   if (!getStoredSession()?.accessToken) {
     try {
       window.localStorage.removeItem(STORAGE_KEY);
@@ -73,6 +81,7 @@ function readStoredCart(): CartItem[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
+    // Filter out malformed entries and ensure numeric price/quantity values
     return parsed
       .filter((item) => item && typeof item === "object" && item.id && item.name)
       .map((item) => ({
@@ -96,7 +105,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     Promise.resolve().then(() => {
       if (mounted) {
-        setItems(readStoredCart());
+        if (!getStoredSession()?.accessToken) {
+          try {
+            window.localStorage.removeItem(STORAGE_KEY);
+          } catch {
+            // Ignore
+          }
+          setItems([]);
+        } else {
+          setItems(readStoredCart());
+        }
         setIsHydrated(true);
       }
     });
@@ -105,7 +123,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Persist to localStorage whenever the cart changes (after initial load).
+  // React to login/logout events broadcast by the auth module to reload or wipe the cart
+  useEffect(() => {
+    function handleAuthChange(event: Event) {
+      const customEvent = event as CustomEvent<{ accessToken?: string | null } | null>;
+      if (!customEvent.detail || !customEvent.detail.accessToken) {
+        setItems([]);
+        try {
+          window.localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          // Ignore
+        }
+      } else {
+        setItems(readStoredCart());
+      }
+    }
+
+    window.addEventListener("aquaku-shop-auth-change", handleAuthChange);
+    return () => window.removeEventListener("aquaku-shop-auth-change", handleAuthChange);
+  }, []);
+
+  // Save cart to localStorage whenever items change (only after initial hydration and when logged in)
   useEffect(() => {
     if (!isHydrated) return;
     if (!getStoredSession()?.accessToken) {
@@ -123,7 +161,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, isHydrated]);
 
-  // Keep multiple open tabs in sync with each other.
+  // Synchronize cart changes in real time across multiple browser tabs
   useEffect(() => {
     function handleStorage(event: StorageEvent) {
       if (event.key !== STORAGE_KEY) return;
@@ -152,18 +190,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
       image: normalizeImage(item.image),
     };
 
+    // If product is already in cart, increment quantity; otherwise append new line item
     setItems((current) => {
       const existing = current.find((line) => line.id === item.id);
 
       if (existing) {
+        const newQuantity = existing.quantity + quantity;
+        const maxStock = item.stock ?? existing.stock;
+        const finalQuantity = maxStock !== undefined ? Math.min(maxStock, newQuantity) : newQuantity;
+        
         return current.map((line) =>
           line.id === item.id
-            ? { ...line, quantity: line.quantity + quantity, image: normalizedItem.image }
+            ? { ...line, quantity: finalQuantity, image: normalizedItem.image, stock: maxStock }
             : line,
         );
       }
 
-      return [...current, { ...normalizedItem, quantity }];
+      const maxStock = item.stock;
+      const finalQuantity = maxStock !== undefined ? Math.min(maxStock, quantity) : quantity;
+
+      return [...current, { ...normalizedItem, quantity: finalQuantity }];
     });
   }, []);
 
@@ -176,9 +222,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (quantity <= 0) {
         return current.filter((line) => line.id !== id);
       }
-      return current.map((line) =>
-        line.id === id ? { ...line, quantity } : line,
-      );
+      return current.map((line) => {
+        if (line.id === id) {
+          const finalQuantity = line.stock !== undefined ? Math.min(line.stock, quantity) : quantity;
+          return { ...line, quantity: finalQuantity };
+        }
+        return line;
+      });
     });
   }, []);
 

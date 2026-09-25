@@ -229,14 +229,14 @@ export default function CheckoutView() {
     }
 
     const result = await openSnapPayment(createdOrder);
-    if (result.status === "success" || result.status === "pending") {
-      clearCart();
-      setShowSuccessModal(true);
-    } else {
+    if (result.status === "error") {
       setFailedMessage(
         result.message || "The payment was cancelled or could not be completed. You can try again."
       );
       setShowFailedModal(true);
+    } else {
+      clearCart();
+      router.push(`/checkout/success/${encodeURIComponent(createdOrder.orderNumber)}`);
     }
   };
 
@@ -312,15 +312,15 @@ export default function CheckoutView() {
       setIsLoading(false);
       const result = await openSnapPayment(order);
 
-      if (result.status === "success" || result.status === "pending") {
-        clearCart();
-        setShowSuccessModal(true);
-      } else {
-        // Cancelled or Error: Do NOT clear cart and show Failed/Incomplete Modal
+      if (result.status === "error") {
         setFailedMessage(
           result.message || "The payment was cancelled or could not be completed. You can try again."
         );
         setShowFailedModal(true);
+      } else {
+        // Order successfully created in database; clear cart and route to order details
+        clearCart();
+        router.push(`/checkout/success/${encodeURIComponent(order.orderNumber)}`);
       }
     } catch (err: unknown) {
       console.error("Checkout process error:", err);

@@ -19,6 +19,10 @@ import {
   RefreshCcw,
   Printer,
   Heart,
+  Check,
+  CreditCard,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import {
   Account,
@@ -28,10 +32,17 @@ import {
   updateProfile,
   updateShippingAddress,
 } from "@/lib/api/auth";
-import { getUserOrders, Order } from "@/lib/api/orders";
+import {
+  getUserOrders,
+  cancelCustomerOrder,
+  getSnapTokenForOrder,
+  Order,
+} from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
 import OrderInvoiceModal from "@/components/order/OrderInvoiceModal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import MidtransSnapScript from "@/components/checkout/MidtransSnapScript";
 
 export default function AccountView() {
   const router = useRouter();
@@ -44,8 +55,14 @@ export default function AccountView() {
   const [saving, setSaving] = useState<"profile" | "shipping" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [copiedResi, setCopiedResi] = useState<string | null>(null);
   const [reorderSuccess, setReorderSuccess] = useState<string | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -135,10 +152,20 @@ export default function AccountView() {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/");
-    router.refresh();
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+      setShowLogoutModal(false);
+      router.push("/");
+      router.refresh();
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const handleReorder = (order: Order) => {
@@ -154,6 +181,66 @@ export default function AccountView() {
     });
     setReorderSuccess(`Added ${order.items.length} items from #${order.orderNumber} to your cart!`);
     setTimeout(() => setReorderSuccess(null), 4000);
+  };
+
+  const handlePayNow = async (order: Order) => {
+    setPayingOrderId(order.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      if (typeof window === "undefined" || !window.snap) {
+        throw new Error("Payment gateway is initializing. Please wait a moment and try again.");
+      }
+
+      let snapToken = order.midtransSnapToken;
+      if (!snapToken) {
+        const snapData = await getSnapTokenForOrder(order.orderNumber);
+        snapToken = snapData.snapToken;
+      }
+
+      window.snap.pay(snapToken, {
+        onSuccess: async () => {
+          const fresh = await getUserOrders();
+          setOrders(fresh);
+          setMessage(`Payment for #${order.orderNumber} was successful! Your order is now processing.`);
+        },
+        onPending: async () => {
+          const fresh = await getUserOrders();
+          setOrders(fresh);
+          setMessage(`Payment instruction generated for #${order.orderNumber}.`);
+        },
+        onError: () => {
+          setError("Payment failed or was cancelled.");
+        },
+        onClose: () => {
+          // Closed without paying
+        },
+      });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to initiate payment.");
+    } finally {
+      setPayingOrderId(null);
+    }
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!orderToCancel) return;
+    setCancellingOrder(true);
+    setError(null);
+
+    try {
+      const res = await cancelCustomerOrder(orderToCancel.orderNumber);
+      const fresh = await getUserOrders();
+      setOrders(fresh);
+      setMessage(res.message || `Order #${orderToCancel.orderNumber} was cancelled and stock returned to catalog.`);
+      setOrderToCancel(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to cancel order.");
+      setOrderToCancel(null);
+    } finally {
+      setCancellingOrder(false);
+    }
   };
 
   if (loading) {
@@ -174,6 +261,8 @@ export default function AccountView() {
 
   return (
     <div className="mx-auto max-w-container">
+      <MidtransSnapScript />
+
       {/* Header */}
       <div className="mb-stack-lg flex flex-col gap-stack-md sm:flex-row sm:items-end sm:justify-between border-b border-outline-variant/40 pb-6">
         <div>
@@ -297,6 +386,9 @@ export default function AccountView() {
                     key={order.id}
                     order={order}
                     onViewInvoice={(ord) => setInvoiceOrder(ord)}
+                    onPayNow={handlePayNow}
+                    onCancelOrder={(ord) => setOrderToCancel(ord)}
+                    isPaying={payingOrderId === order.id}
                   />
                 ))}
               </div>
@@ -582,6 +674,40 @@ export default function AccountView() {
         isOpen={Boolean(invoiceOrder)}
         onClose={() => setInvoiceOrder(null)}
       />
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+        title="Sign Out"
+        message="Are you sure you want to sign out of your account?"
+        confirmText="Sign Out"
+        cancelText="Stay Signed In"
+        variant="warning"
+        isLoading={loggingOut}
+      />
+
+      {/* Cancel Order Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(orderToCancel)}
+        onClose={() => setOrderToCancel(null)}
+        onConfirm={confirmCancelOrder}
+        title="Cancel Order"
+        message={
+          <div>
+            <p>
+              Are you sure you want to cancel Order <strong>#{orderToCancel?.orderNumber}</strong>?
+            </p>
+            <p className="mt-2 text-xs text-on-surface-variant">
+              This will cancel the order and immediately return the reserved items to the store stock.
+            </p>
+          </div>
+        }
+        confirmText="Yes, Cancel Order"
+        variant="danger"
+        isLoading={cancellingOrder}
+      />
     </div>
   );
 }
@@ -590,10 +716,18 @@ export default function AccountView() {
 function ActiveDeliveryCard({
   order,
   onViewInvoice,
+  onPayNow,
+  onCancelOrder,
+  isPaying,
 }: {
   order: Order;
   onViewInvoice: (order: Order) => void;
+  onPayNow: (order: Order) => void;
+  onCancelOrder: (order: Order) => void;
+  isPaying?: boolean;
 }) {
+  const [copied, setCopied] = useState(false);
+
   // Stepper calculations
   const steps = [
     { key: "pending", title: "Order Placed", desc: "Payment / Order Verified" },
@@ -635,12 +769,22 @@ function ActiveDeliveryCard({
               <button
                 type="button"
                 onClick={() => {
-                  navigator.clipboard.writeText(order.trackingNumber || "");
-                  alert("Resi code copied to clipboard!");
+                  if (order.trackingNumber) {
+                    navigator.clipboard.writeText(order.trackingNumber);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }
                 }}
-                className="rounded border border-outline-variant bg-background-white px-2 py-1 text-[11px] font-bold text-on-surface hover:bg-surface-container"
+                className="inline-flex items-center gap-1 rounded border border-outline-variant bg-background-white px-2 py-1 text-[11px] font-bold text-on-surface hover:bg-surface-container transition-colors"
               >
-                Copy Resi
+                {copied ? (
+                  <>
+                    <Check size={11} className="text-emerald-600" />
+                    <span className="text-emerald-600">Copied!</span>
+                  </>
+                ) : (
+                  "Copy Resi"
+                )}
               </button>
               <a
                 href={`https://www.cekresi.com/?noresi=${encodeURIComponent(order.trackingNumber)}`}
@@ -675,6 +819,37 @@ function ActiveDeliveryCard({
           </div>
         </div>
       </div>
+
+      {/* Pending Payment Alert & Action Banner */}
+      {order.orderStatus === "pending" && order.paymentStatus === "unpaid" && (
+        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3.5">
+          <div className="flex items-center gap-2.5 text-xs text-amber-900">
+            <AlertCircle size={18} className="shrink-0 text-amber-600" />
+            <div>
+              <p className="font-bold text-amber-950">Payment Awaiting</p>
+              <p className="text-[11px] text-amber-800">Your items are reserved. Please complete payment to start courier dispatch.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onCancelOrder(order)}
+              className="rounded border border-red-200 bg-background-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 transition-colors"
+            >
+              Cancel Order
+            </button>
+            <button
+              type="button"
+              disabled={isPaying}
+              onClick={() => onPayNow(order)}
+              className="flex items-center gap-1.5 rounded bg-primary px-3.5 py-1.5 text-xs font-bold text-on-primary shadow-xs hover:bg-primary-container disabled:opacity-60 transition-colors"
+            >
+              {isPaying ? <Loader2 size={13} className="animate-spin" /> : <CreditCard size={13} />}
+              Pay Now
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* LIVE DELIVERY TRACKER STEPPER */}
       <div className="my-6 px-2">

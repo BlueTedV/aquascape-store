@@ -7,6 +7,13 @@ use Midtrans\Config;
 use Midtrans\Snap;
 use Throwable;
 
+/**
+ * Service wrapper for Midtrans Snap payment gateway.
+ *
+ * Configures the Midtrans PHP SDK, constructs transaction parameter payloads with
+ * line items and payment channel restrictions, acquires Snap checkout tokens, and
+ * verifies webhook SHA-512 digital signatures.
+ */
 class MidtransService
 {
     private bool $isConfigured = false;
@@ -33,6 +40,13 @@ class MidtransService
         return $this->isConfigured;
     }
 
+    /**
+     * Request a Snap transaction token and payment redirect URL from Midtrans.
+     *
+     * Constructs the item details array (ensuring items sum exactly equals gross amount),
+     * customer billing/shipping details, and enables specific payment channels (such as
+     * virtual accounts or QRIS) based on the user's chosen payment method.
+     */
     public function createSnapTransaction(array $order): array
     {
         if (! $this->isConfigured) {
@@ -40,6 +54,7 @@ class MidtransService
         }
 
         try {
+            // Truncate line item attributes to 50 chars to adhere to Midtrans payload limits
             $items = array_map(function (array $item) {
                 return [
                     'id' => substr((string) ($item['productId'] ?? $item['id'] ?? 'item'), 0, 50),
@@ -49,6 +64,7 @@ class MidtransService
                 ];
             }, $order['items'] ?? []);
 
+            // Append shipping fee as an explicit line item so items sum exactly matches transaction gross_amount
             if (isset($order['shippingCost']) && (int) $order['shippingCost'] > 0) {
                 $items[] = [
                     'id' => 'SHIPPING',
@@ -90,6 +106,7 @@ class MidtransService
                 'item_details' => $items,
             ];
 
+            // Limit enabled payment options in the Snap modal according to customer selection
             $paymentMethod = $order['paymentMethod'] ?? null;
             if ($paymentMethod === 'bank_transfer') {
                 $params['enabled_payments'] = ['bca_va', 'bni_va', 'bri_va', 'cimb_va', 'permata_va', 'other_va'];
@@ -122,6 +139,12 @@ class MidtransService
         }
     }
 
+    /**
+     * Verify the authenticity of an incoming Midtrans webhook notification.
+     *
+     * Computes SHA-512 over `order_id + status_code + gross_amount + ServerKey`
+     * and compares it against the notification's signature_key using timing-safe comparison.
+     */
     public function verifyNotificationSignature(array $payload): bool
     {
         $orderId = $payload['order_id'] ?? null;

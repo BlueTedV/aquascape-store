@@ -6,11 +6,13 @@ import { Heart, ShoppingBag, Trash2, ArrowRight, Check, Sparkles } from "lucide-
 import { useWishlist } from "@/lib/wishlist-context";
 import { useAuthCart } from "@/lib/use-auth-cart";
 import ProductCard from "@/components/ui/ProductCard";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function WishlistView() {
   const { items, isHydrated, clearWishlist, itemCount } = useWishlist();
   const { addItem } = useAuthCart();
   const [addAllState, setAddAllState] = useState<"idle" | "adding" | "done">("idle");
+  const [showClearModal, setShowClearModal] = useState(false);
 
   const handleAddAllToCart = async () => {
     if (items.length === 0) return;
@@ -88,7 +90,7 @@ export default function WishlistView() {
 
             <button
               type="button"
-              onClick={clearWishlist}
+              onClick={() => setShowClearModal(true)}
               className="flex items-center gap-1.5 rounded-full border border-outline-variant bg-background-white px-4 py-2.5 text-xs font-bold text-on-surface-variant transition-colors hover:border-red-300 hover:text-red-600"
             >
               <Trash2 size={15} />
@@ -135,6 +137,21 @@ export default function WishlistView() {
           ))}
         </div>
       )}
+
+      {/* Clear Wishlist Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showClearModal}
+        onClose={() => setShowClearModal(false)}
+        onConfirm={() => {
+          clearWishlist();
+          setShowClearModal(false);
+        }}
+        title="Clear Wishlist"
+        message="Are you sure you want to remove all saved items from your wishlist?"
+        confirmText="Clear Wishlist"
+        cancelText="Keep Items"
+        variant="danger"
+      />
     </div>
   );
 }

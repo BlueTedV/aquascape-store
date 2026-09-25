@@ -7,7 +7,6 @@ use App\Services\SupabaseAuthService;
 use App\Services\SupabaseHeroSlideService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Throwable;
 
 class HeroSlideController extends Controller
 {
@@ -18,13 +17,15 @@ class HeroSlideController extends Controller
 
     public function index(): JsonResponse
     {
-        return $this->respond(fn () => $this->heroSlides->getSlides());
+        return $this->respond(
+            fn () => $this->heroSlides->getSlides(),
+            200,
+            'Failed to retrieve hero slides.'
+        );
     }
 
     public function store(Request $request): JsonResponse
     {
-        $this->auth->requireAdmin($request);
-
         $validated = $request->validate([
             'eyebrow' => ['required', 'string', 'max:100'],
             'title' => ['required', 'string', 'max:150'],
@@ -34,39 +35,24 @@ class HeroSlideController extends Controller
             'image' => ['required', 'string'],
         ]);
 
-        return $this->respond(fn () => $this->heroSlides->createSlide($validated), 201);
+        return $this->respond(
+            fn () => $this->heroSlides->createSlide($validated),
+            201,
+            'Failed to create hero slide.'
+        );
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $this->auth->requireAdmin($request);
-
         return $this->respond(fn () => [
             'deleted' => $this->heroSlides->deleteSlide($id),
-        ]);
+        ], 200, 'Failed to delete hero slide.');
     }
 
     public function destroyAll(Request $request): JsonResponse
     {
-        $this->auth->requireAdmin($request);
-
         return $this->respond(fn () => [
             'deleted' => $this->heroSlides->deleteAllSlides(),
-        ]);
-    }
-
-    private function respond(callable $callback, int $status = 200): JsonResponse
-    {
-        try {
-            return response()->json(['data' => $callback()], $status);
-        } catch (Throwable $error) {
-            report($error);
-
-            $statusCode = method_exists($error, 'getStatusCode') ? $error->getStatusCode() : 500;
-
-            return response()->json([
-                'message' => $error->getMessage() ?: 'Hero slide service error.',
-            ], $statusCode >= 400 && $statusCode < 600 ? $statusCode : 500);
-        }
+        ], 200, 'Failed to delete all hero slides.');
     }
 }

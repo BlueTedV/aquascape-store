@@ -9,6 +9,7 @@ import {
   AdminCategory,
   ProductAdminInput,
   createAdminProduct,
+  deleteAdminProduct,
   deleteAllAdminProducts,
   getAdminCategories,
   getAdminProducts,
@@ -19,6 +20,7 @@ import { getCurrentAccount } from "@/lib/api/auth";
 import { ProductDetail } from "@/lib/api/products";
 import { ProductBadge } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import ManageHeroSlidesView from "./ManageHeroSlidesView";
 import ManagePromosView from "./ManagePromosView";
 
@@ -169,6 +171,9 @@ export default function ManageProductsView() {
   const [deletingAll, setDeletingAll] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [productToDelete, setProductToDelete] = useState<ProductDetail | null>(null);
+  const [deletingSingle, setDeletingSingle] = useState(false);
+
   const handleDeleteAllProducts = async (e: FormEvent) => {
     e.preventDefault();
     if (!deletePasscode) return;
@@ -187,6 +192,27 @@ export default function ManageProductsView() {
       setDeleteError(err instanceof Error ? err.message : "Failed to delete products. Please check passcode.");
     } finally {
       setDeletingAll(false);
+    }
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setDeletingSingle(true);
+
+    try {
+      await deleteAdminProduct(productToDelete.id);
+      setProducts((current) => current.filter((p) => p.id !== productToDelete.id));
+      if (form.id === productToDelete.id) {
+        startNewProduct();
+      }
+      setMessage(`Product "${productToDelete.name}" was deleted successfully.`);
+      setError(null);
+      setProductToDelete(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete product.");
+      setProductToDelete(null);
+    } finally {
+      setDeletingSingle(false);
     }
   };
 
@@ -485,9 +511,24 @@ export default function ManageProductsView() {
               </h2>
             </div>
             {form.id && (
-              <Link href={`/product/${form.slug}`} className="text-sm font-bold text-primary hover:underline">
-                View product
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link href={`/product/${form.slug}`} target="_blank" className="text-sm font-bold text-primary hover:underline">
+                  View product
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentProduct = products.find((p) => p.id === form.id);
+                    if (currentProduct) {
+                      setProductToDelete(currentProduct);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 rounded border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white"
+                >
+                  <Trash2 size={14} />
+                  Delete Product
+                </button>
+              </div>
             )}
           </div>
 
@@ -703,7 +744,23 @@ export default function ManageProductsView() {
             </label>
           </div>
 
-          <div className="mt-stack-lg flex justify-end">
+          <div className="mt-stack-lg flex items-center justify-between">
+            {form.id ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const currentProduct = products.find((p) => p.id === form.id);
+                  if (currentProduct) {
+                    setProductToDelete(currentProduct);
+                  }
+                }}
+                className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-label-md font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white"
+              >
+                <Trash2 size={16} />
+                Delete Product
+              </button>
+            ) : <div />}
+
             <button
               type="submit"
               disabled={saving}
@@ -782,6 +839,45 @@ export default function ManageProductsView() {
           </div>
         </div>
       )}
+
+      {/* SINGLE PRODUCT DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={!!productToDelete}
+        onClose={() => setProductToDelete(null)}
+        onConfirm={confirmDeleteProduct}
+        title="Delete Product"
+        message={
+          <div className="space-y-3">
+            <p className="text-xs text-on-surface-variant">
+              Are you sure you want to permanently delete <strong className="text-on-surface font-bold">&quot;{productToDelete?.name}&quot;</strong>? This item will be removed from the catalog.
+            </p>
+            {productToDelete && (
+              <div className="flex items-center gap-3 rounded-lg border border-outline-variant/60 bg-surface-container-low p-2.5 text-left">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-surface-container">
+                  <Image
+                    src={productToDelete.image || "/images/products/product-placeholder.svg"}
+                    alt=""
+                    fill
+                    sizes="48px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-1 font-bold text-xs text-on-surface">{productToDelete.name}</p>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">{productToDelete.category} &bull; {formatIDR(productToDelete.price)}</p>
+                </div>
+              </div>
+            )}
+            <p className="text-[11px] text-on-surface-variant/80">
+              Note: Past customer order records containing this item will be safely preserved.
+            </p>
+          </div>
+        }
+        confirmText="Delete Product"
+        variant="danger"
+        isLoading={deletingSingle}
+      />
         </>
       )}
     </div>

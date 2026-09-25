@@ -16,16 +16,20 @@ CREATE TABLE IF NOT EXISTS public.orders (
   payment_status text NOT NULL DEFAULT 'unpaid',
   order_status text NOT NULL DEFAULT 'pending',
   subtotal integer NOT NULL DEFAULT 0,
+  discount_amount integer NOT NULL DEFAULT 0,
+  voucher_code text,
   total_amount integer NOT NULL DEFAULT 0,
-  notes text,
   shipping_resi text,
+  notes text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT orders_pkey PRIMARY KEY (id)
 );
 
--- Migration statement if table already exists
+-- Safe migration statements if the table already exists
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_resi text;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS discount_amount integer NOT NULL DEFAULT 0;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS voucher_code text;
 
 CREATE TABLE IF NOT EXISTS public.order_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -47,5 +51,5 @@ ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
 GRANT ALL ON public.orders TO service_role;
 GRANT ALL ON public.order_items TO service_role;
-GRANT SELECT, INSERT ON public.orders TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.orders TO anon, authenticated;
 GRANT SELECT, INSERT ON public.order_items TO anon, authenticated;

@@ -1,15 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatIDR } from "@/lib/format";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 const SHIPPING_FLAT_RATE = 25000;
 const FREE_SHIPPING_THRESHOLD = 500000;
 
 export default function CartView() {
+  const [showClearModal, setShowClearModal] = useState(false);
   const {
     items,
     itemCount,
@@ -136,8 +139,9 @@ export default function CartView() {
                   <button
                     type="button"
                     aria-label={`Increase quantity of ${item.name}`}
+                    disabled={item.stock !== undefined && item.quantity >= item.stock}
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded text-on-surface-variant hover:bg-background-white hover:text-primary"
+                    className="flex h-8 w-8 items-center justify-center rounded text-on-surface-variant hover:bg-background-white hover:text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:cursor-not-allowed"
                   >
                     <Plus size={14} />
                   </button>
@@ -171,7 +175,7 @@ export default function CartView() {
             </Link>
             <button
               type="button"
-              onClick={clearCart}
+              onClick={() => setShowClearModal(true)}
               className="text-sm font-bold text-on-surface-variant transition-colors hover:text-error"
             >
               Clear Cart
@@ -223,6 +227,21 @@ export default function CartView() {
           </p>
         </aside>
       </div>
+
+      {/* Clear Cart Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showClearModal}
+        onClose={() => setShowClearModal(false)}
+        onConfirm={() => {
+          clearCart();
+          setShowClearModal(false);
+        }}
+        title="Clear Cart"
+        message="Are you sure you want to remove all items from your shopping cart?"
+        confirmText="Clear Cart"
+        cancelText="Keep Items"
+        variant="danger"
+      />
     </div>
   );
 }

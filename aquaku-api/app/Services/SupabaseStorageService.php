@@ -7,6 +7,13 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
 
+/**
+ * Media asset service for Supabase Storage.
+ *
+ * Directs file uploads (binary uploads and base64 strings) into configured Supabase
+ * storage buckets using the service-role key, organizing files into dated subfolders
+ * and returning public access URLs.
+ */
 class SupabaseStorageService
 {
     private string $url;

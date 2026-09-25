@@ -31,6 +31,7 @@ function RelatedProductCard({ product }: { product: ProductDetail }) {
       image: product.image,
       category: product.category,
       unit: product.unit,
+      stock: product.stock,
     });
 
     if (!wasAdded) return;
@@ -110,6 +111,7 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
       category: product.category,
       unit: product.unit,
       quantity,
+      stock: product.stock,
     });
 
     if (!wasAdded) return;

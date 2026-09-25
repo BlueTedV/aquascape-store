@@ -7,7 +7,6 @@ use App\Services\SupabaseArticleService;
 use App\Services\SupabaseAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Throwable;
 
 class ArticleController extends Controller
 {
@@ -21,7 +20,11 @@ class ArticleController extends Controller
         $query = $request->query('q') ?? $request->query('query');
         $category = $request->query('category');
 
-        return $this->respond(fn () => $this->articles->getArticles($query, $category, true));
+        return $this->respond(
+            fn () => $this->articles->getArticles($query, $category, true),
+            200,
+            'Failed to retrieve articles.'
+        );
     }
 
     public function show(string $slug): JsonResponse
@@ -31,22 +34,23 @@ class ArticleController extends Controller
             abort_if(! $article, 404, 'Article not found.');
 
             return $article;
-        });
+        }, 200, 'Failed to retrieve article.');
     }
 
     public function adminIndex(Request $request): JsonResponse
     {
-        $this->auth->requireAdmin($request);
         $query = $request->query('q') ?? $request->query('query');
         $category = $request->query('category');
 
-        return $this->respond(fn () => $this->articles->getArticles($query, $category, false));
+        return $this->respond(
+            fn () => $this->articles->getArticles($query, $category, false),
+            200,
+            'Failed to retrieve articles for admin.'
+        );
     }
 
     public function store(Request $request): JsonResponse
     {
-        $this->auth->requireAdmin($request);
-
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255'],
@@ -63,13 +67,15 @@ class ArticleController extends Controller
             'featured' => ['nullable', 'boolean'],
         ]);
 
-        return $this->respond(fn () => $this->articles->createArticle($validated), 201);
+        return $this->respond(
+            fn () => $this->articles->createArticle($validated),
+            201,
+            'Failed to create article.'
+        );
     }
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $this->auth->requireAdmin($request);
-
         $validated = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255'],
@@ -86,30 +92,17 @@ class ArticleController extends Controller
             'featured' => ['nullable', 'boolean'],
         ]);
 
-        return $this->respond(fn () => $this->articles->updateArticle($id, $validated));
+        return $this->respond(
+            fn () => $this->articles->updateArticle($id, $validated),
+            200,
+            'Failed to update article.'
+        );
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $this->auth->requireAdmin($request);
-
         return $this->respond(fn () => [
             'deleted' => $this->articles->deleteArticle($id),
-        ]);
-    }
-
-    private function respond(callable $callback, int $status = 200): JsonResponse
-    {
-        try {
-            return response()->json(['data' => $callback()], $status);
-        } catch (Throwable $error) {
-            report($error);
-
-            $statusCode = method_exists($error, 'getStatusCode') ? $error->getStatusCode() : 500;
-
-            return response()->json([
-                'message' => $error->getMessage() ?: 'Article service error.',
-            ], $statusCode >= 400 && $statusCode < 600 ? $statusCode : 500);
-        }
+        ], 200, 'Failed to delete article.');
     }
 }

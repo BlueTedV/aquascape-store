@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\SupabaseAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Throwable;
 
 class AccountController extends Controller
 {
@@ -19,7 +18,11 @@ class AccountController extends Controller
             'phone' => ['nullable', 'string', 'max:40'],
         ]);
 
-        return $this->respond(fn () => $this->auth->updateProfile($request, $data));
+        return $this->respond(
+            fn () => $this->auth->updateProfile($request, $data),
+            200,
+            'Failed to update profile. Please try again.'
+        );
     }
 
     public function updateShippingAddress(Request $request): JsonResponse
@@ -35,21 +38,10 @@ class AccountController extends Controller
             'country' => ['required', 'string', 'max:80'],
         ]);
 
-        return $this->respond(fn () => $this->auth->updateShippingAddress($request, $data));
-    }
-
-    private function respond(callable $callback): JsonResponse
-    {
-        try {
-            return response()->json(['data' => $callback()]);
-        } catch (Throwable $error) {
-            report($error);
-
-            $statusCode = method_exists($error, 'getStatusCode') ? $error->getStatusCode() : 422;
-
-            return response()->json([
-                'message' => $error->getMessage() ?: 'Account request failed.',
-            ], $statusCode >= 400 && $statusCode < 600 ? $statusCode : 422);
-        }
+        return $this->respond(
+            fn () => $this->auth->updateShippingAddress($request, $data),
+            200,
+            'Failed to update shipping address. Please try again.'
+        );
     }
 }

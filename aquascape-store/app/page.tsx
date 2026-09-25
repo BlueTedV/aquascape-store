@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // Cache for 5 minutes via ISR
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";

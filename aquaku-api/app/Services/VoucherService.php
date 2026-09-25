@@ -4,6 +4,13 @@ namespace App\Services;
 
 use Throwable;
 
+/**
+ * Discount and coupon validation service.
+ *
+ * Checks voucher codes against dynamic Supabase promotions with a fallback to hardcoded
+ * defaults, enforcing minimum order subtotal requirements and calculating discount deductions
+ * based on percentage, fixed price, or shipping discount types.
+ */
 class VoucherService
 {
     private array $defaultVouchers = [
@@ -45,6 +52,12 @@ class VoucherService
         private readonly SupabasePromoService $promos,
     ) {}
 
+    /**
+     * Validate a coupon code and compute applicable discount amounts.
+     *
+     * Ensures minimum cart value conditions are met and calculates discounts
+     * according to voucher schemes (`percentage`, `fixed`, or `shipping`), capped by `maxDiscount`.
+     */
     public function validate(string $code, int $subtotal, int $shippingCost = 0): array
     {
         $normalizedCode = strtoupper(trim($code));
@@ -55,6 +68,7 @@ class VoucherService
 
         $voucher = null;
 
+        // Lookup promotion in Supabase promos table, falling back to static default codes
         try {
             $voucher = $this->promos->getPromoByCode($normalizedCode);
         } catch (Throwable) {
@@ -69,6 +83,7 @@ class VoucherService
             abort(404, "Voucher code '{$normalizedCode}' is invalid or expired.");
         }
 
+        // Verify that the order subtotal meets the voucher's minimum spending condition
         $minSubtotal = (int) ($voucher['minSubtotal'] ?? $voucher['min_subtotal'] ?? 0);
         if ($subtotal < $minSubtotal) {
             $minFormatted = 'Rp ' . number_format($minSubtotal, 0, ',', '.');
@@ -79,6 +94,7 @@ class VoucherService
         $value = (int) ($voucher['value'] ?? 0);
         $maxDiscount = (int) ($voucher['maxDiscount'] ?? $voucher['max_discount'] ?? 0);
 
+        // Calculate discount value according to type: percentage (capped by maxDiscount), flat amount, or shipping offset
         $discount = 0;
         if ($type === 'percentage') {
             $calculated = (int) round(($subtotal * $value) / 100);

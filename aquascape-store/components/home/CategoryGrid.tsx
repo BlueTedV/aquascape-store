@@ -22,7 +22,7 @@ function isRealUploadedImage(image: string | null | undefined): boolean {
 }
 
 export default async function CategoryGrid() {
-  const products = await getProducts();
+  const { products } = await getProducts({ limit: 100 });
 
   const dynamicCategories = categories.map((category) => {
     const catSlug = category.slug.toLowerCase();

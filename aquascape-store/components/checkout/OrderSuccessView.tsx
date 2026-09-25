@@ -2,11 +2,28 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, Copy, ShoppingBag, Truck, Clock, ArrowRight, ExternalLink, Printer, CalendarClock, FileText } from "lucide-react";
+import {
+  CheckCircle2,
+  Copy,
+  ShoppingBag,
+  Truck,
+  Clock,
+  ArrowRight,
+  ExternalLink,
+  Printer,
+  CalendarClock,
+  FileText,
+  CreditCard,
+  XCircle,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import { useState } from "react";
-import { Order } from "@/lib/api/orders";
+import { Order, cancelCustomerOrder, getSnapTokenForOrder, getOrderByNumber } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
 import OrderInvoiceModal from "@/components/order/OrderInvoiceModal";
+import MidtransSnapScript from "@/components/checkout/MidtransSnapScript";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 /** Returns an estimated delivery date string based on the courier name stored in the order. */
 function getEstimatedDelivery(courierName: string, orderDate: string): string {
@@ -53,8 +70,14 @@ interface OrderSuccessViewProps {
 }
 
 export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
+  const [currentOrder, setCurrentOrder] = useState<Order>(order);
   const [copied, setCopied] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const steps = [
     { key: "pending", title: "Order Placed", desc: "Verified" },
@@ -64,33 +87,161 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
   ];
 
   const currentStepIndex =
-    order.orderStatus === "pending"
+    currentOrder.orderStatus === "pending"
       ? 0
-      : order.orderStatus === "processing"
+      : currentOrder.orderStatus === "processing"
         ? 1
-        : order.orderStatus === "shipped"
+        : currentOrder.orderStatus === "shipped"
           ? 2
           : 3;
 
+  const handlePayNow = async () => {
+    setIsPaying(true);
+    setActionError(null);
+    setActionMessage(null);
+
+    try {
+      if (typeof window === "undefined" || !window.snap) {
+        throw new Error("Payment gateway is initializing. Please wait a moment and try again.");
+      }
+
+      let snapToken = currentOrder.midtransSnapToken;
+      if (!snapToken) {
+        const snapData = await getSnapTokenForOrder(currentOrder.orderNumber);
+        snapToken = snapData.snapToken;
+      }
+
+      window.snap.pay(snapToken, {
+        onSuccess: async () => {
+          const updated = await getOrderByNumber(currentOrder.orderNumber);
+          if (updated) setCurrentOrder(updated);
+          setActionMessage("Payment successful! Your order is now processing.");
+        },
+        onPending: async () => {
+          const updated = await getOrderByNumber(currentOrder.orderNumber);
+          if (updated) setCurrentOrder(updated);
+          setActionMessage("Payment instruction generated. Awaiting bank/wallet transfer.");
+        },
+        onError: () => {
+          setActionError("Payment failed or was denied. You can try again.");
+        },
+        onClose: () => {
+          // Closed without paying
+        },
+      });
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : "Failed to launch payment.");
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  const confirmCancelOrder = async () => {
+    setIsCancelling(true);
+    setActionError(null);
+
+    try {
+      const res = await cancelCustomerOrder(currentOrder.orderNumber);
+      setCurrentOrder(res.order);
+      setShowCancelModal(false);
+      setActionMessage(res.message || `Order #${currentOrder.orderNumber} was cancelled and stock returned.`);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : "Failed to cancel order.");
+      setShowCancelModal(false);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-container px-edge-margin-mobile pb-20 pt-24 md:px-edge-margin-desktop">
+      <MidtransSnapScript />
+
       {/* Top Banner */}
       <div className="mx-auto flex max-w-3xl flex-col items-center rounded-lg bg-background-white p-stack-lg text-center shadow-soft">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <CheckCircle2 size={40} />
+        <div className={`flex h-16 w-16 items-center justify-center rounded-full ${
+          currentOrder.orderStatus === "cancelled" ? "bg-red-100 text-red-600" : "bg-primary/10 text-primary"
+        }`}>
+          {currentOrder.orderStatus === "cancelled" ? <XCircle size={40} /> : <CheckCircle2 size={40} />}
         </div>
-        <h1 className="mt-4 font-display text-headline-lg text-on-surface">Thank You for Your Order!</h1>
+        <h1 className="mt-4 font-display text-headline-lg text-on-surface">
+          {currentOrder.orderStatus === "cancelled" ? "Order Cancelled" : "Thank You for Your Order!"}
+        </h1>
         <p className="mt-2 text-body-md text-on-surface-variant">
-          We have received your order <span className="font-bold text-primary">#{order.orderNumber}</span>.
+          {currentOrder.orderStatus === "cancelled"
+            ? `Order #${currentOrder.orderNumber} has been cancelled.`
+            : `We have received your order #${currentOrder.orderNumber}.`}
         </p>
 
         {/* Status Badge */}
         <div className="mt-4 flex items-center gap-2 rounded-full bg-surface-container px-4 py-1.5 text-xs font-bold text-on-surface">
           <Clock size={14} className="text-primary" />
-          <span>Status: {order.orderStatus.toUpperCase()}</span>
+          <span>Status: {currentOrder.orderStatus.toUpperCase()}</span>
           <span className="text-on-surface-variant">•</span>
-          <span>Payment: {order.paymentStatus.toUpperCase()}</span>
+          <span>Payment: {currentOrder.paymentStatus.toUpperCase()}</span>
         </div>
+
+        {/* Action Notifications */}
+        {actionMessage && (
+          <div className="mt-4 w-full rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs font-bold text-emerald-800 text-center">
+            {actionMessage}
+          </div>
+        )}
+        {actionError && (
+          <div className="mt-4 w-full rounded-lg bg-red-50 border border-red-200 p-3 text-xs font-bold text-red-800 text-center">
+            {actionError}
+          </div>
+        )}
+
+        {/* Pending Payment Action Banner */}
+        {currentOrder.paymentStatus === "unpaid" && currentOrder.orderStatus === "pending" && (
+          <div className="mt-5 w-full rounded-lg border border-amber-300 bg-amber-50 p-4 text-left shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle size={20} className="mt-0.5 shrink-0 text-amber-600" />
+                <div>
+                  <h3 className="font-bold text-sm text-amber-900">Payment is Pending</h3>
+                  <p className="text-xs text-amber-800 mt-0.5">
+                    Your items are reserved in our inventory. Complete payment to begin packing &amp; delivery.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelModal(true)}
+                  className="rounded border border-red-200 bg-background-white px-3.5 py-2 text-xs font-bold text-red-700 hover:bg-red-50 transition-colors"
+                >
+                  Cancel Order
+                </button>
+                <button
+                  type="button"
+                  disabled={isPaying}
+                  onClick={handlePayNow}
+                  className="flex items-center gap-1.5 rounded bg-primary px-4 py-2 text-xs font-bold text-on-primary shadow-sm hover:bg-primary-container disabled:opacity-60 transition-colors"
+                >
+                  {isPaying ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
+                  Pay Now ({formatIDR(currentOrder.totalAmount)})
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cancelled Alert */}
+        {currentOrder.orderStatus === "cancelled" && (
+          <div className="mt-5 w-full rounded-lg border border-red-200 bg-red-50 p-4 text-left">
+            <div className="flex items-center gap-2.5 text-red-800">
+              <XCircle size={20} className="text-red-600 shrink-0" />
+              <div>
+                <h3 className="font-bold text-sm">Order Cancelled &amp; Stock Returned</h3>
+                <p className="text-xs text-red-700 mt-0.5">
+                  This order was cancelled. Reserved items have been returned to the catalog stock.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mx-auto mt-stack-lg grid max-w-4xl gap-gutter lg:grid-cols-[1fr_360px]">
@@ -102,40 +253,40 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
               <div className="flex items-center gap-2 text-primary font-display text-body-lg font-bold">
                 <Truck size={20} />
                 <span>
-                  {order.orderStatus === "completed" ? "Order Delivered & Completed" : "Live Package Tracking"}
+                  {currentOrder.orderStatus === "completed" ? "Order Delivered & Completed" : "Live Package Tracking"}
                 </span>
               </div>
               <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary uppercase">
-                {order.orderStatus}
+                {currentOrder.orderStatus}
               </span>
             </div>
 
             {/* Estimated Delivery Date */}
-            {order.orderStatus !== "completed" && order.orderStatus !== "cancelled" && (
+            {currentOrder.orderStatus !== "completed" && currentOrder.orderStatus !== "cancelled" && (
               <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-xs">
                 <CalendarClock size={15} className="shrink-0 text-emerald-600" />
                 <div>
                   <p className="font-bold uppercase tracking-wide text-emerald-800 text-[10px]">Estimated Delivery</p>
                   <p className="font-semibold text-emerald-900">
-                    {getEstimatedDelivery(order.courier, order.createdAt)}
+                    {getEstimatedDelivery(currentOrder.courier, currentOrder.createdAt)}
                   </p>
                 </div>
               </div>
             )}
 
             {/* Resi Banner */}
-            {order.trackingNumber ? (
+            {currentOrder.trackingNumber ? (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-purple-50 p-4 border border-purple-200">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Shipping Resi / Waybill No.</p>
-                  <p className="font-mono text-base font-bold text-purple-950 mt-0.5">{order.trackingNumber}</p>
-                  <p className="text-xs text-purple-700 mt-0.5">Courier: <strong>{order.courier}</strong></p>
+                  <p className="font-mono text-base font-bold text-purple-950 mt-0.5">{currentOrder.trackingNumber}</p>
+                  <p className="text-xs text-purple-700 mt-0.5">Courier: <strong>{currentOrder.courier}</strong></p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(order.trackingNumber || "");
+                      navigator.clipboard.writeText(currentOrder.trackingNumber || "");
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
                     }}
@@ -145,7 +296,7 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
                     {copied ? "Copied!" : "Copy Resi"}
                   </button>
                   <a
-                    href={`https://www.cekresi.com/?noresi=${encodeURIComponent(order.trackingNumber)}`}
+                    href={`https://www.cekresi.com/?noresi=${encodeURIComponent(currentOrder.trackingNumber)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1.5 rounded bg-purple-700 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-purple-800 shadow-xs"
@@ -201,10 +352,10 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
 
           {/* Purchased Items List */}
           <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
-            <h2 className="font-display text-body-lg font-bold text-on-surface">Items Ordered ({order.items.length})</h2>
+            <h2 className="font-display text-body-lg font-bold text-on-surface">Items Ordered ({currentOrder.items.length})</h2>
 
             <div className="mt-stack-sm divide-y divide-outline-variant/40">
-              {order.items.map((item) => {
+              {currentOrder.items.map((item) => {
                 const imageSrc =
                   !item.productImage ||
                   item.productImage.includes("picsum.photos") ||
@@ -243,22 +394,22 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
             <h2 className="font-display text-body-lg font-bold text-on-surface">Delivery Address</h2>
 
             <div className="mt-stack-sm space-y-2 text-xs text-on-surface-variant">
-              <p className="font-bold text-on-surface">{order.customerName}</p>
-              <p>{order.customerPhone}</p>
-              <p>{order.customerEmail}</p>
+              <p className="font-bold text-on-surface">{currentOrder.customerName}</p>
+              <p>{currentOrder.customerPhone}</p>
+              <p>{currentOrder.customerEmail}</p>
               <p className="pt-2 text-on-surface">
-                {order.shippingAddress}, {order.shippingCity}, {order.shippingPostalCode}
+                {currentOrder.shippingAddress}, {currentOrder.shippingCity}, {currentOrder.shippingPostalCode}
               </p>
               <div className="mt-3 flex items-center gap-1.5 text-primary font-medium">
                 <Truck size={14} />
-                <span>Courier: {order.courier}</span>
+                <span>Courier: {currentOrder.courier}</span>
               </div>
-              {order.notes && (
+              {currentOrder.notes && (
                 <div className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 p-2.5">
                   <FileText size={13} className="mt-0.5 shrink-0 text-amber-600" />
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Order Notes</p>
-                    <p className="text-xs text-amber-900">{order.notes}</p>
+                    <p className="text-xs text-amber-900">{currentOrder.notes}</p>
                   </div>
                 </div>
               )}
@@ -267,20 +418,44 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
             <div className="mt-stack-md border-t border-outline-variant/40 pt-4 space-y-2 text-xs text-on-surface-variant">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="font-bold text-on-surface">{formatIDR(order.subtotal)}</span>
+                <span className="font-bold text-on-surface">{formatIDR(currentOrder.subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping Fee</span>
-                <span className="font-bold text-on-surface">{order.shippingCost === 0 ? "FREE" : formatIDR(order.shippingCost)}</span>
+                <span className="font-bold text-on-surface">{currentOrder.shippingCost === 0 ? "FREE" : formatIDR(currentOrder.shippingCost)}</span>
               </div>
               <div className="flex justify-between pt-2 text-sm font-bold text-on-surface border-t border-outline-variant/40">
                 <span>Total</span>
-                <span className="font-sans text-price-green">{formatIDR(order.totalAmount)}</span>
+                <span className="font-sans text-price-green">{formatIDR(currentOrder.totalAmount)}</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
+            {currentOrder.paymentStatus === "unpaid" && currentOrder.orderStatus === "pending" && (
+              <>
+                <button
+                  type="button"
+                  disabled={isPaying}
+                  onClick={handlePayNow}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded bg-price-green text-label-md font-bold text-white shadow-md transition-all hover:brightness-95 disabled:opacity-60"
+                >
+                  {isPaying ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+                  <span>Pay Now ({formatIDR(currentOrder.totalAmount)})</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isCancelling}
+                  onClick={() => setShowCancelModal(true)}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded border border-red-200 bg-red-50 text-label-md font-bold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-60"
+                >
+                  <XCircle size={16} />
+                  <span>Cancel This Order</span>
+                </button>
+              </>
+            )}
+
             <button
               type="button"
               onClick={() => setShowInvoiceModal(true)}
@@ -311,9 +486,30 @@ export default function OrderSuccessView({ order }: OrderSuccessViewProps) {
 
       {/* Invoice Modal */}
       <OrderInvoiceModal
-        order={order}
+        order={currentOrder}
         isOpen={showInvoiceModal}
         onClose={() => setShowInvoiceModal(false)}
+      />
+
+      {/* Cancel Order Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={confirmCancelOrder}
+        title="Cancel Order"
+        message={
+          <div>
+            <p>
+              Are you sure you want to cancel Order <strong>#{currentOrder.orderNumber}</strong>?
+            </p>
+            <p className="mt-2 text-xs text-on-surface-variant">
+              This will cancel the order and immediately return the reserved items to the store stock.
+            </p>
+          </div>
+        }
+        confirmText="Yes, Cancel Order"
+        variant="danger"
+        isLoading={isCancelling}
       />
     </div>
   );

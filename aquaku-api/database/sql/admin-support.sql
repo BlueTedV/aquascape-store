@@ -38,12 +38,12 @@ grant usage on schema public to anon, authenticated, service_role;
 
 grant select on public.categories to anon, authenticated, service_role;
 grant select on public.products to anon, authenticated, service_role;
-grant select, insert, update on public.products to service_role;
-grant select, insert, update on public.profiles to service_role;
-grant select, insert, update on public.shipping_addresses to service_role;
+grant select, insert, update, delete on public.products to service_role;
+grant select, insert, update, delete on public.profiles to service_role;
+grant select, insert, update, delete on public.shipping_addresses to service_role;
 
 alter default privileges in schema public grant select on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant select, insert, update on tables to service_role;
+alter default privileges in schema public grant select, insert, update, delete on tables to service_role;
 
 -- Bootstrap admin access by using one of these options:
 -- 1. Add one or more emails to ADMIN_EMAILS in Laravel .env, for example ADMIN_EMAILS=you@example.com,partner@example.com

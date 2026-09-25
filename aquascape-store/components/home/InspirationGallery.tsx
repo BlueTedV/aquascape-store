@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, ArrowRight, X, Sparkles } from "lucide-react";
 import { GalleryPost } from "@/lib/types";
 import { getGalleryPosts, likeGalleryPost } from "@/lib/api/gallery";
 import { getStoredSession } from "@/lib/api/auth";
 import SectionHeading from "@/components/ui/SectionHeading";
 import SectionReveal from "@/components/ui/SectionReveal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 const aspectClasses: Record<string, string> = {
   tall: "aspect-[4/5]",
@@ -17,26 +19,48 @@ const aspectClasses: Record<string, string> = {
 };
 
 export default function InspirationGallery() {
+  const router = useRouter();
   const [posts, setPosts] = useState<GalleryPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<GalleryPost | null>(null);
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [showLoginPromptModal, setShowLoginPromptModal] = useState(false);
 
   useEffect(() => {
-    getGalleryPosts({ sort: "top", limit: 6 }).then((data) => setPosts(data));
+    const session = getStoredSession();
+    getGalleryPosts({ sort: "top", limit: 6, accessToken: session?.accessToken }).then((data) => {
+      setPosts(data);
+      const initialLikes: Record<string, boolean> = {};
+      data.forEach((p) => {
+        if (p.isLiked) {
+          initialLikes[p.id] = true;
+        }
+      });
+      setLikedPosts(initialLikes);
+    });
   }, []);
 
   const handleLike = async (postId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
 
-    const isCurrentlyLiked = likedPosts[postId];
-    setLikedPosts((prev) => ({ ...prev, [postId]: !isCurrentlyLiked }));
+    const session = getStoredSession();
+    if (!session?.accessToken) {
+      setShowLoginPromptModal(true);
+      return;
+    }
+
+    const isCurrentlyLiked = Boolean(likedPosts[postId]);
+    const nextIsLiked = !isCurrentlyLiked;
+
+    // Optimistically toggle
+    setLikedPosts((prev) => ({ ...prev, [postId]: nextIsLiked }));
 
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === postId) {
           return {
             ...p,
-            likesCount: isCurrentlyLiked ? p.likesCount - 1 : p.likesCount + 1,
+            likesCount: Math.max(0, nextIsLiked ? p.likesCount + 1 : p.likesCount - 1),
+            isLiked: nextIsLiked,
           };
         }
         return p;
@@ -48,14 +72,46 @@ export default function InspirationGallery() {
         prev
           ? {
               ...prev,
-              likesCount: isCurrentlyLiked ? prev.likesCount - 1 : prev.likesCount + 1,
+              likesCount: Math.max(0, nextIsLiked ? prev.likesCount + 1 : prev.likesCount - 1),
+              isLiked: nextIsLiked,
             }
           : null,
       );
     }
 
-    const session = getStoredSession();
-    await likeGalleryPost(postId, session?.accessToken);
+    try {
+      const res = await likeGalleryPost(postId, session.accessToken);
+      setLikedPosts((prev) => ({ ...prev, [postId]: res.isLiked }));
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, likesCount: Math.max(0, res.likesCount), isLiked: res.isLiked }
+            : p,
+        ),
+      );
+      if (selectedPost && selectedPost.id === postId) {
+        setSelectedPost((prev) =>
+          prev
+            ? { ...prev, likesCount: Math.max(0, res.likesCount), isLiked: res.isLiked }
+            : null,
+        );
+      }
+    } catch {
+      // Revert on error
+      setLikedPosts((prev) => ({ ...prev, [postId]: isCurrentlyLiked }));
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              likesCount: Math.max(0, isCurrentlyLiked ? p.likesCount + 1 : p.likesCount - 1),
+              isLiked: isCurrentlyLiked,
+            };
+          }
+          return p;
+        }),
+      );
+    }
   };
 
   return (
@@ -71,63 +127,80 @@ export default function InspirationGallery() {
       />
 
       {/* Masonry Grid */}
-      <div className="columns-1 gap-gutter sm:columns-2 lg:columns-3">
-        {posts.map((item) => {
-          const sizeKey = item.size ?? "wide";
-          const isLiked = likedPosts[item.id];
-
-          return (
-            <div
-              key={item.id}
-              onClick={() => setSelectedPost(item)}
-              className={`group relative mb-gutter break-inside-avoid overflow-hidden rounded-xl shadow-soft transition-all duration-300 hover:shadow-lg cursor-pointer ${
-                aspectClasses[sizeKey] || "aspect-[4/3]"
-              }`}
+      {posts.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low p-12 text-center">
+          <p className="font-sans text-body-md text-on-surface-variant">
+            No community showcases posted yet. Be the first to share your tank setup!
+          </p>
+          <div className="mt-4">
+            <Link
+              href="/community"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 font-sans font-medium text-on-primary shadow-sm transition-all hover:bg-primary-hover"
             >
-              <Image
-                src={item.image}
-                alt={item.title || "Aquascape photography"}
-                fill
-                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+              <Sparkles size={16} />
+              <span>Share Your Aquascape</span>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="columns-1 gap-gutter sm:columns-2 lg:columns-3">
+          {posts.map((item) => {
+            const sizeKey = item.size ?? "wide";
+            const isLiked = likedPosts[item.id];
 
-              {/* Heart Badge Top Right */}
-              <div className="absolute right-3 top-3 z-10">
-                <button
-                  type="button"
-                  onClick={(e) => handleLike(item.id, e)}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md transition-all ${
-                    isLiked
-                      ? "bg-rose-500 text-white shadow-md"
-                      : "bg-black/40 text-white hover:bg-black/60"
-                  }`}
-                >
-                  <Heart size={14} className={isLiked ? "fill-white" : ""} />
-                  <span>{item.likesCount}</span>
-                </button>
-              </div>
+            return (
+              <div
+                key={item.id}
+                onClick={() => setSelectedPost(item)}
+                className={`group relative mb-gutter break-inside-avoid overflow-hidden rounded-xl shadow-soft transition-all duration-300 hover:shadow-lg cursor-pointer ${
+                  aspectClasses[sizeKey] || "aspect-[4/3]"
+                }`}
+              >
+                <Image
+                  src={item.image}
+                  alt={item.title || "Aquascape photography"}
+                  fill
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
 
-              {/* Bottom Info Gradient Bar */}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white transition-all">
-                <h3 className="font-sans font-bold text-body-lg text-white">
-                  {item.title}
-                </h3>
-                <p className="font-sans text-xs text-white/80">
-                  by {item.authorName}
-                </p>
-              </div>
+                {/* Heart Badge Top Right */}
+                <div className="absolute right-3 top-3 z-10">
+                  <button
+                    type="button"
+                    onClick={(e) => handleLike(item.id, e)}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-md transition-all ${
+                      isLiked
+                        ? "bg-rose-500 text-white shadow-md"
+                        : "bg-black/40 text-white hover:bg-black/60"
+                    }`}
+                  >
+                    <Heart size={14} className={isLiked ? "fill-white" : ""} />
+                    <span>{item.likesCount}</span>
+                  </button>
+                </div>
 
-              {/* Overlay hover CTA */}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 backdrop-blur-[2px] transition-all duration-300 group-hover:opacity-100">
-                <span className="rounded-full bg-white/90 px-5 py-2 font-sans text-label-md font-semibold text-primary shadow-lg backdrop-blur-md">
-                  View Tank Specs
-                </span>
+                {/* Bottom Info Gradient Bar */}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white transition-all">
+                  <h3 className="font-sans font-bold text-body-lg text-white">
+                    {item.title}
+                  </h3>
+                  <p className="font-sans text-xs text-white/80">
+                    by {item.authorName}
+                  </p>
+                </div>
+
+                {/* Overlay hover CTA */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 backdrop-blur-[2px] transition-all duration-300 group-hover:opacity-100">
+                  <span className="rounded-full bg-white/90 px-5 py-2 font-sans text-label-md font-semibold text-primary shadow-lg backdrop-blur-md">
+                    View Tank Specs
+                  </span>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="mt-8 text-center">
         <Link
@@ -231,6 +304,21 @@ export default function InspirationGallery() {
           </div>
         </div>
       )}
+
+      {/* Guest Sign-In Prompt Modal */}
+      <ConfirmModal
+        isOpen={showLoginPromptModal}
+        onClose={() => setShowLoginPromptModal(false)}
+        onConfirm={() => {
+          setShowLoginPromptModal(false);
+          router.push("/login?redirect=/community");
+        }}
+        title="Sign In Required"
+        message="You need an active account to like and save community aquascapes. Sign in now to join the community!"
+        confirmText="Sign In / Register"
+        cancelText="Maybe Later"
+        variant="primary"
+      />
     </SectionReveal>
   );
 }

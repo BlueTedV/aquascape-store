@@ -1,1 +1,36 @@
+# Documents & Office files
+*.docx
+*.doc
+*.pptx
+*.ppt
+*.xlsx
+*.xls
+*.pdf
+
+# Diagrams and DrawIO files
+diagrams/
+diagram/
+*.drawio
+*.drawio.xml
+*.drawio.bkp
+*.drawio.png
+*.drawio.svg
+
+# Random Images
+images/*.png
+images/*.jpg
+images/*.jpeg
+
+# Archives & Compressed files
 *.zip
+*.tar.gz
+*.rar
+*.7z
+
+# OS metadata & Temp files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*$*.docx
+*$*.pptx
+*$*.xlsx

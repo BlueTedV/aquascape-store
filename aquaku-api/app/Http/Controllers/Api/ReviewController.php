@@ -9,6 +9,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
+/**
+ * Handles product review listings and submissions.
+ *
+ * Supports both verified user reviews and anonymous guest contributions.
+ */
 class ReviewController extends Controller
 {
     public function __construct(
@@ -18,9 +23,19 @@ class ReviewController extends Controller
 
     public function index(string $slug): JsonResponse
     {
-        return $this->respond(fn () => $this->reviews->getReviewsForProduct($slug));
+        return $this->respond(
+            fn () => $this->reviews->getReviewsForProduct($slug),
+            200,
+            'Failed to retrieve reviews.'
+        );
     }
 
+    /**
+     * Submit a review for a product.
+     *
+     * Optionally associates the review with a registered user if an Authorization
+     * header is provided, while allowing anonymous submissions if absent.
+     */
     public function store(string $slug, Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -39,19 +54,10 @@ class ReviewController extends Controller
             }
         }
 
-        return $this->respond(fn () => $this->reviews->createReview($slug, $validated, $userId), 201);
-    }
-
-    private function respond(callable $callback, int $status = 200): JsonResponse
-    {
-        try {
-            return response()->json(['data' => $callback()], $status);
-        } catch (Throwable $error) {
-            report($error);
-
-            return response()->json([
-                'message' => $error->getMessage() ?: 'Review action failed.',
-            ], 500);
-        }
+        return $this->respond(
+            fn () => $this->reviews->createReview($slug, $validated, $userId),
+            201,
+            'Failed to submit review.'
+        );
     }
 }

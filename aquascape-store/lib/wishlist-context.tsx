@@ -24,7 +24,18 @@ interface WishlistContextType {
   clearWishlist: () => void;
 }
 
-const WishlistContext = createContext<WishlistContextType | null>(null);
+const defaultWishlistValue: WishlistContextType = {
+  items: [],
+  isHydrated: false,
+  itemCount: 0,
+  addItem: () => {},
+  removeItem: () => {},
+  toggleItem: () => false,
+  isFavorited: () => false,
+  clearWishlist: () => {},
+};
+
+const WishlistContext = createContext<WishlistContextType>(defaultWishlistValue);
 
 function readStoredWishlist(): Product[] {
   if (typeof window === "undefined") return [];
@@ -144,8 +155,5 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
 export function useWishlist(): WishlistContextType {
   const context = useContext(WishlistContext);
-  if (!context) {
-    throw new Error("useWishlist must be used within a WishlistProvider");
-  }
-  return context;
+  return context ?? defaultWishlistValue;
 }

@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Loader2, Plus, Sparkles, Trash2, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
 import { getHeroSlides, createHeroSlide, deleteHeroSlide, HeroSlideItem } from "@/lib/api/hero-slides";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function ManageHeroSlidesView() {
   const [slides, setSlides] = useState<HeroSlideItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [slideToDelete, setSlideToDelete] = useState<HeroSlideItem | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -76,14 +78,20 @@ export default function ManageHeroSlidesView() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this hero slide?")) return;
+  const handleDelete = (slide: HeroSlideItem) => {
+    setSlideToDelete(slide);
+  };
 
+  const confirmDeleteSlide = async () => {
+    if (!slideToDelete) return;
+    const id = slideToDelete.id;
     setDeletingId(id);
+
     try {
       await deleteHeroSlide(id);
       setSlides((prev) => prev.filter((s) => s.id !== id));
       setSuccessMsg("Hero slide removed.");
+      setSlideToDelete(null);
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to delete slide.";
@@ -320,7 +328,7 @@ export default function ManageHeroSlidesView() {
                     <button
                       type="button"
                       disabled={deletingId === slide.id}
-                      onClick={() => handleDelete(slide.id)}
+                      onClick={() => handleDelete(slide)}
                       className="shrink-0 rounded-lg p-2 text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                       title="Remove slide"
                     >
@@ -337,6 +345,22 @@ export default function ManageHeroSlidesView() {
           </div>
         </div>
       </div>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={!!slideToDelete}
+        onClose={() => setSlideToDelete(null)}
+        onConfirm={confirmDeleteSlide}
+        title="Remove Hero Slide"
+        message={
+          <span>
+            Are you sure you want to remove the slide <strong>&quot;{slideToDelete?.title}&quot;</strong>? This will remove it from the homepage carousel.
+          </span>
+        }
+        confirmText="Remove Slide"
+        variant="danger"
+        isLoading={!!deletingId}
+      />
     </div>
   );
 }

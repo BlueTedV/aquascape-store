@@ -8,8 +8,13 @@ use App\Services\SupabaseCatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Throwable;
 
+/**
+ * Administrative controller for catalog management.
+ *
+ * All operations require admin privileges verified against Supabase user roles.
+ * Provides product creation, modification, deletion, and protected bulk wipe capabilities.
+ */
 class AdminProductController extends Controller
 {
     public function __construct(
@@ -19,35 +24,44 @@ class AdminProductController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return $this->respond(function () use ($request) {
-            $this->auth->requireAdmin($request);
-
+        return $this->respond(function () {
             return $this->catalog->adminProducts();
-        });
+        }, 200, 'Failed to fetch admin products.');
     }
 
     public function store(Request $request): JsonResponse
     {
         $data = $this->validatedProduct($request);
 
-        return $this->respond(function () use ($request, $data) {
-            $this->auth->requireAdmin($request);
-
+        return $this->respond(function () use ($data) {
             return $this->catalog->createProduct($data);
-        }, 201);
+        }, 201, 'Failed to create product.');
     }
 
     public function update(string $id, Request $request): JsonResponse
     {
         $data = $this->validatedProduct($request);
 
-        return $this->respond(function () use ($request, $id, $data) {
-            $this->auth->requireAdmin($request);
-
+        return $this->respond(function () use ($id, $data) {
             return $this->catalog->updateProduct($id, $data);
-        });
+        }, 200, 'Failed to update product.');
     }
 
+    public function destroy(string $id, Request $request): JsonResponse
+    {
+        return $this->respond(function () use ($id) {
+            $this->catalog->deleteProduct($id);
+
+            return ['message' => 'Product deleted successfully.'];
+        }, 200, 'Failed to delete product.');
+    }
+
+    /**
+     * Purge all products from the catalog.
+     *
+     * Gated by a required passcode configuration (`services.admin.delete_passcode`)
+     * to prevent unintended catalog wipes from the admin panel.
+     */
     public function destroyAll(Request $request): JsonResponse
     {
         $request->validate([
@@ -55,8 +69,6 @@ class AdminProductController extends Controller
         ]);
 
         return $this->respond(function () use ($request) {
-            $this->auth->requireAdmin($request);
-
             $passcode = $request->input('passcode');
             $expectedPasscode = config('services.admin.delete_passcode');
 
@@ -67,7 +79,7 @@ class AdminProductController extends Controller
             $this->catalog->deleteAllProducts();
 
             return ['message' => 'All products have been deleted successfully.'];
-        });
+        }, 200, 'Failed to delete all products.');
     }
 
     private function validatedProduct(Request $request): array
@@ -98,20 +110,5 @@ class AdminProductController extends Controller
             'specs.*.label' => ['nullable', 'string', 'max:80'],
             'specs.*.value' => ['nullable', 'string', 'max:240'],
         ]);
-    }
-
-    private function respond(callable $callback, int $status = 200): JsonResponse
-    {
-        try {
-            return response()->json(['data' => $callback()], $status);
-        } catch (Throwable $error) {
-            report($error);
-
-            $statusCode = method_exists($error, 'getStatusCode') ? $error->getStatusCode() : 422;
-
-            return response()->json([
-                'message' => $error->getMessage() ?: 'Admin product request failed.',
-            ], $statusCode >= 400 && $statusCode < 600 ? $statusCode : 422);
-        }
     }
 }

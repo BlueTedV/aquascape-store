@@ -11,6 +11,7 @@ export interface Product {
   image: string;
   badge?: ProductBadge;
   featured?: boolean;
+  stock?: number;
 }
 
 export interface Category {
@@ -64,4 +65,5 @@ export interface CartItem {
   category?: string;
   unit?: string;
   quantity: number;
+  stock?: number;
 }
