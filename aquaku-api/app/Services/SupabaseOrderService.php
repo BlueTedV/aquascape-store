@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -52,7 +53,47 @@ class SupabaseOrderService
         $subtotal = 0;
         $itemsData = [];
 
-        // Validate items, accumulate subtotal, and verify stock availability in Supabase
+        // 1. Batch query all products in cart to check real-time stock and true DB price in 1 single HTTP request
+        $productIds = collect($payload['items'])->pluck('id')->filter()->unique()->values()->all();
+        $productSlugs = collect($payload['items'])->pluck('slug')->filter()->unique()->values()->all();
+
+        $filters = [];
+        if (! empty($productIds)) {
+            $filters[] = 'id.in.(' . implode(',', array_map(fn ($id) => '"' . str_replace('"', '', $id) . '"', $productIds)) . ')';
+        }
+        if (! empty($productSlugs)) {
+            $filters[] = 'slug.in.(' . implode(',', array_map(fn ($s) => '"' . str_replace('"', '', $s) . '"', $productSlugs)) . ')';
+        }
+
+        $dbProducts = [];
+        if (! empty($filters)) {
+            try {
+                $prodRows = $this->request()
+                    ->get('/rest/v1/products', [
+                        'select' => 'id,name,price,stock,slug',
+                        'or' => '(' . implode(',', $filters) . ')',
+                    ])
+                    ->json();
+                if (is_array($prodRows)) {
+                    foreach ($prodRows as $prod) {
+                        if (isset($prod['id'])) {
+                            $dbProducts[$prod['id']] = $prod;
+                        }
+                        if (isset($prod['slug'])) {
+                            $dbProducts[$prod['slug']] = $prod;
+                        }
+                    }
+                }
+            } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+                throw $e;
+            } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+                throw $e;
+            } catch (\Throwable $e) {
+                Log::warning('Batch stock check failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Validate items, accumulate subtotal, and verify stock availability
         foreach ($payload['items'] as $index => $item) {
             $itemQty = max(1, (int) ($item['quantity'] ?? 1));
             $itemPrice = max(0, (int) ($item['price'] ?? 0));
@@ -62,40 +103,21 @@ class SupabaseOrderService
             $resolvedProdId = null;
             $currentStock = null;
 
-            // Query product by UUID or slug to check real-time stock and true DB price
-            $prodParams = [];
-            if ($productId) {
-                $prodParams['id'] = "eq.{$productId}";
-            } elseif ($productSlug) {
-                $prodParams['slug'] = "eq.{$productSlug}";
-            }
+            $prod = ($productId && isset($dbProducts[$productId]))
+                ? $dbProducts[$productId]
+                : (($productSlug && isset($dbProducts[$productSlug])) ? $dbProducts[$productSlug] : null);
 
-            if (! empty($prodParams)) {
-                try {
-                    $prodRows = $this->request()
-                        ->get('/rest/v1/products', array_merge(['select' => 'id,name,price,stock'], $prodParams))
-                        ->json();
-                    $prod = $prodRows[0] ?? null;
-                    if ($prod) {
-                        // Enforce server-side catalog price to prevent client tampering
-                        if (isset($prod['price'])) {
-                            $itemPrice = (int) $prod['price'];
-                        }
-
-                        $currentStock = (int) ($prod['stock'] ?? 0);
-                        if ($currentStock < $itemQty) {
-                            $prodName = $prod['name'] ?? ($item['name'] ?? 'Product');
-                            abort(422, "Product '{$prodName}' has insufficient stock. Requested: {$itemQty}, Available: {$currentStock}.");
-                        }
-                        $resolvedProdId = $prod['id'];
-                    }
-                } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
-                    throw $e;
-                } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
-                    throw $e;
-                } catch (\Throwable $e) {
-                    Log::warning('Stock check failed', ['error' => $e->getMessage()]);
+            if ($prod) {
+                if (isset($prod['price'])) {
+                    $itemPrice = (int) $prod['price'];
                 }
+
+                $currentStock = (int) ($prod['stock'] ?? 0);
+                if ($currentStock < $itemQty) {
+                    $prodName = $prod['name'] ?? ($item['name'] ?? 'Product');
+                    abort(422, "Product '{$prodName}' has insufficient stock. Requested: {$itemQty}, Available: {$currentStock}.");
+                }
+                $resolvedProdId = $prod['id'];
             }
 
             $itemSubtotal = $itemPrice * $itemQty;
@@ -165,24 +187,25 @@ class SupabaseOrderService
         $order = $orderRows[0] ?? $orderRows;
         $orderId = $order['id'];
 
-        // Persist order items and decrement product stock in Supabase
-        $insertedItems = [];
+        // Persist order items in Supabase (batch insert in 1 HTTP call)
+        $batchPayload = array_map(function ($itemData) use ($orderId) {
+            unset($itemData['_resolved_prod_id'], $itemData['_current_stock']);
+            return array_merge($itemData, ['order_id' => $orderId]);
+        }, $itemsData);
+
+        $itemRows = $this->request()
+            ->withHeaders(['Prefer' => 'return=representation'])
+            ->post('/rest/v1/order_items', $batchPayload)
+            ->throw()
+            ->json();
+
+        $insertedItems = is_array($itemRows) ? $itemRows : [$itemRows];
+
+        // Reduce product stock count, clamping at 0 to avoid negative inventory
         foreach ($itemsData as $itemData) {
             $resolvedProdId = $itemData['_resolved_prod_id'] ?? null;
             $currentStock = $itemData['_current_stock'] ?? null;
 
-            unset($itemData['_resolved_prod_id'], $itemData['_current_stock']);
-
-            $itemPayload = array_merge($itemData, ['order_id' => $orderId]);
-            $itemRows = $this->request()
-                ->withHeaders(['Prefer' => 'return=representation'])
-                ->post('/rest/v1/order_items', $itemPayload)
-                ->throw()
-                ->json();
-
-            $insertedItems[] = $itemRows[0] ?? $itemRows;
-
-            // Reduce product stock count, clamping at 0 to avoid negative inventory
             if ($resolvedProdId && $currentStock !== null) {
                 try {
                     $this->request()->post('/rest/v1/rpc/decrement_product_stock', [
@@ -194,6 +217,8 @@ class SupabaseOrderService
                 }
             }
         }
+
+        Cache::forget('admin_analytics_summary');
 
         $res = $this->mapOrder($order, $insertedItems);
 
@@ -219,7 +244,7 @@ class SupabaseOrderService
     {
         $rows = $this->request()
             ->get('/rest/v1/orders', [
-                'select' => '*',
+                'select' => '*,order_items(*)',
                 'order_number' => "eq.{$orderNumber}",
                 'limit' => 1,
             ])
@@ -231,17 +256,10 @@ class SupabaseOrderService
             return null;
         }
 
-        $items = $this->request()
-            ->get('/rest/v1/order_items', [
-                'select' => '*',
-                'order_id' => "eq.{$order['id']}",
-            ])
-            ->throw()
-            ->json();
+        $items = $order['order_items'] ?? [];
+        unset($order['order_items']);
 
-        $res = $this->mapOrder($order, $items);
-
-        return $res;
+        return $this->mapOrder($order, $items);
     }
 
     public function getUserOrders(string $userId, ?string $email = null): array
@@ -253,7 +271,7 @@ class SupabaseOrderService
         }
 
         $params = [
-            'select' => '*',
+            'select' => '*,order_items(*)',
             'or' => '(' . implode(',', $orFilters) . ')',
             'order' => 'created_at.desc',
         ];
@@ -264,13 +282,8 @@ class SupabaseOrderService
             ->json();
 
         return collect($orders)->map(function (array $order) {
-            $items = $this->request()
-                ->get('/rest/v1/order_items', [
-                    'select' => '*',
-                    'order_id' => "eq.{$order['id']}",
-                ])
-                ->throw()
-                ->json();
+            $items = $order['order_items'] ?? [];
+            unset($order['order_items']);
 
             return $this->mapOrder($order, $items);
         })->all();
@@ -279,7 +292,7 @@ class SupabaseOrderService
     public function getAdminOrders(?string $status = null): array
     {
         $params = [
-            'select' => '*',
+            'select' => '*,order_items(*)',
             'order' => 'created_at.desc',
         ];
 
@@ -293,13 +306,8 @@ class SupabaseOrderService
             ->json();
 
         return collect($orders)->map(function (array $order) {
-            $items = $this->request()
-                ->get('/rest/v1/order_items', [
-                    'select' => '*',
-                    'order_id' => "eq.{$order['id']}",
-                ])
-                ->throw()
-                ->json();
+            $items = $order['order_items'] ?? [];
+            unset($order['order_items']);
 
             return $this->mapOrder($order, $items);
         })->all();
@@ -359,6 +367,8 @@ class SupabaseOrderService
             ])
             ->throw()
             ->json();
+
+        Cache::forget('admin_analytics_summary');
 
         return $this->mapOrder($order, $items);
     }
@@ -500,101 +510,105 @@ class SupabaseOrderService
 
     public function getAdminAnalytics(): array
     {
-        $orders = $this->request()
-            ->get('/rest/v1/orders', [
-                'select' => '*',
-                'order' => 'created_at.desc',
-            ])
-            ->json();
+        return Cache::remember('admin_analytics_summary', 60, function () {
+            $orders = $this->request()
+                ->get('/rest/v1/orders', [
+                    'select' => '*',
+                    'order' => 'created_at.desc',
+                ])
+                ->json();
 
-        $products = $this->request()
-            ->get('/rest/v1/products', [
-                'select' => 'id,name,slug,stock,image_url,price',
-            ])
-            ->json();
+            $products = $this->request()
+                ->get('/rest/v1/products', [
+                    'select' => 'id,name,slug,stock,image_url,price',
+                ])
+                ->json();
 
-        $orderItems = $this->request()
-            ->get('/rest/v1/order_items', [
-                'select' => '*',
-            ])
-            ->json();
+            $orderItems = $this->request()
+                ->get('/rest/v1/order_items', [
+                    'select' => '*',
+                ])
+                ->json();
 
-        $totalRevenue = 0;
-        $totalOrders = count($orders);
+            $totalRevenue = 0;
+            $totalOrders = count($orders);
 
-        $statusCounts = [
-            'pending' => 0,
-            'processing' => 0,
-            'shipped' => 0,
-            'completed' => 0,
-            'cancelled' => 0,
-        ];
+            $statusCounts = [
+                'pending' => 0,
+                'processing' => 0,
+                'shipped' => 0,
+                'completed' => 0,
+                'cancelled' => 0,
+            ];
 
-        foreach ($orders as $o) {
-            $st = $o['order_status'] ?? 'pending';
-            if (isset($statusCounts[$st])) {
-                $statusCounts[$st]++;
+            foreach ($orders as $o) {
+                $st = $o['order_status'] ?? 'pending';
+                if (isset($statusCounts[$st])) {
+                    $statusCounts[$st]++;
+                }
+                if ($st !== 'cancelled' && (($o['payment_status'] ?? '') === 'paid' || in_array($st, ['processing', 'shipped', 'completed'], true))) {
+                    $totalRevenue += (int) ($o['total_amount'] ?? 0);
+                }
             }
-            if ($st !== 'cancelled' && (($o['payment_status'] ?? '') === 'paid' || in_array($st, ['processing', 'shipped', 'completed'], true))) {
-                $totalRevenue += (int) ($o['total_amount'] ?? 0);
+
+            $paidOrdersCount = array_sum([$statusCounts['processing'], $statusCounts['shipped'], $statusCounts['completed']]);
+            $avgOrderValue = $paidOrdersCount > 0 ? (int) round($totalRevenue / $paidOrdersCount) : ($totalOrders > 0 ? (int) round($totalRevenue / $totalOrders) : 0);
+
+            // Low stock products
+            $lowStockProducts = collect($products)
+                ->filter(fn ($p) => (int) ($p['stock'] ?? 0) <= 3)
+                ->map(fn ($p) => [
+                    'id' => (string) $p['id'],
+                    'name' => (string) $p['name'],
+                    'slug' => (string) $p['slug'],
+                    'stock' => (int) $p['stock'],
+                    'price' => (int) $p['price'],
+                    'image' => (string) ($p['image_url'] ?? '/images/products/product-placeholder.svg'),
+                ])
+                ->values()
+                ->all();
+
+            // Top selling products
+            $productSales = [];
+            foreach ($orderItems as $item) {
+                $pName = $item['product_name'] ?? 'Product';
+                $qty = (int) ($item['quantity'] ?? 1);
+                $sub = (int) ($item['subtotal'] ?? 0);
+
+                if (! isset($productSales[$pName])) {
+                    $productSales[$pName] = [
+                        'name' => $pName,
+                        'totalQty' => 0,
+                        'totalRevenue' => 0,
+                        'image' => $item['product_image'] ?? '/images/products/product-placeholder.svg',
+                    ];
+                }
+                $productSales[$pName]['totalQty'] += $qty;
+                $productSales[$pName]['totalRevenue'] += $sub;
             }
-        }
 
-        $paidOrdersCount = array_sum([$statusCounts['processing'], $statusCounts['shipped'], $statusCounts['completed']]);
-        $avgOrderValue = $paidOrdersCount > 0 ? (int) round($totalRevenue / $paidOrdersCount) : ($totalOrders > 0 ? (int) round($totalRevenue / $totalOrders) : 0);
+            $topProducts = collect($productSales)
+                ->sortByDesc('totalQty')
+                ->take(5)
+                ->values()
+                ->all();
 
-        // Low stock products
-        $lowStockProducts = collect($products)
-            ->filter(fn ($p) => (int) ($p['stock'] ?? 0) <= 3)
-            ->map(fn ($p) => [
-                'id' => (string) $p['id'],
-                'name' => (string) $p['name'],
-                'slug' => (string) $p['slug'],
-                'stock' => (int) $p['stock'],
-                'price' => (int) $p['price'],
-                'image' => (string) ($p['image_url'] ?? '/images/products/product-placeholder.svg'),
-            ])
-            ->values()
-            ->all();
-
-        // Top selling products
-        $productSales = [];
-        foreach ($orderItems as $item) {
-            $pName = $item['product_name'] ?? 'Product';
-            $qty = (int) ($item['quantity'] ?? 1);
-            $sub = (int) ($item['subtotal'] ?? 0);
-
-            if (! isset($productSales[$pName])) {
-                $productSales[$pName] = [
-                    'name' => $pName,
-                    'totalQty' => 0,
-                    'totalRevenue' => 0,
-                    'image' => $item['product_image'] ?? '/images/products/product-placeholder.svg',
-                ];
-            }
-            $productSales[$pName]['totalQty'] += $qty;
-            $productSales[$pName]['totalRevenue'] += $sub;
-        }
-
-        $topProducts = collect($productSales)
-            ->sortByDesc('totalQty')
-            ->take(5)
-            ->values()
-            ->all();
-
-        return [
-            'totalRevenue' => $totalRevenue,
-            'totalOrders' => $totalOrders,
-            'averageOrderValue' => $avgOrderValue,
-            'statusCounts' => $statusCounts,
-            'lowStockCount' => count($lowStockProducts),
-            'lowStockProducts' => $lowStockProducts,
-            'topProducts' => $topProducts,
-        ];
+            return [
+                'totalRevenue' => $totalRevenue,
+                'totalOrders' => $totalOrders,
+                'averageOrderValue' => $avgOrderValue,
+                'statusCounts' => $statusCounts,
+                'lowStockCount' => count($lowStockProducts),
+                'lowStockProducts' => $lowStockProducts,
+                'topProducts' => $topProducts,
+            ];
+        });
     }
 
     public function deleteAllOrders(): void
     {
+        Cache::forget('admin_analytics_summary');
+
         $this->request()
             ->withQueryParameters(['id' => 'not.is.null'])
             ->delete('/rest/v1/order_items')

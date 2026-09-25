@@ -18,7 +18,7 @@ export default async function FeaturedProducts() {
           action={{ label: "View All Products", href: "/shop" }}
         />
 
-        <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-gutter lg:grid-cols-4">
           {featuredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

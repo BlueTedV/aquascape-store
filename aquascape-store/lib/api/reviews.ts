@@ -23,7 +23,7 @@ export async function getProductReviews(productSlug: string): Promise<Review[]> 
       headers: {
         Accept: "application/json",
       },
-      cache: "no-store",
+      next: { revalidate: 60, tags: ["reviews"] },
     });
 
     if (!response.ok) return [];

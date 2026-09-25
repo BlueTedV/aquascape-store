@@ -9,6 +9,7 @@ const nextConfig = {
     root: projectRoot,
   },
   images: {
+    minimumCacheTTL: 2592000,
     remotePatterns: [
       {
         protocol: "https",

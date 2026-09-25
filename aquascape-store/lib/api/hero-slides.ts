@@ -22,7 +22,7 @@ export async function getHeroSlides(): Promise<HeroSlideItem[]> {
   try {
     const response = await fetch(`${API_URL}/api/hero-slides`, {
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 120, tags: ["hero-slides"] },
     });
 
     if (response.ok) {

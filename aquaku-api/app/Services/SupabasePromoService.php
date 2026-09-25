@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -22,38 +23,56 @@ class SupabasePromoService
         }
     }
 
+    public function promoVersion(): int
+    {
+        return (int) Cache::get('promos_version', 1);
+    }
+
+    public function clearPromoCache(): void
+    {
+        Cache::increment('promos_version');
+    }
+
     public function getPromos(bool $activeOnly = false): array
     {
-        $query = ['select' => '*', 'order' => 'created_at.desc'];
-        if ($activeOnly) {
-            $query['is_active'] = 'eq.true';
-        }
+        $v = $this->promoVersion();
+        $cacheKey = "promos_v{$v}_" . ($activeOnly ? 'active' : 'all');
 
-        $rows = $this->request()
-            ->get('/rest/v1/promos', $query)
-            ->throw()
-            ->json();
+        return Cache::remember($cacheKey, 600, function () use ($activeOnly) {
+            $query = ['select' => '*', 'order' => 'created_at.desc'];
+            if ($activeOnly) {
+                $query['is_active'] = 'eq.true';
+            }
 
-        return collect($rows)->map(fn (array $row) => $this->mapPromo($row))->all();
+            $rows = $this->request()
+                ->get('/rest/v1/promos', $query)
+                ->throw()
+                ->json();
+
+            return collect($rows)->map(fn (array $row) => $this->mapPromo($row))->all();
+        });
     }
 
     public function getPromoByCode(string $code): ?array
     {
+        $v = $this->promoVersion();
         $normalizedCode = strtoupper(trim($code));
 
-        $rows = $this->request()
-            ->get('/rest/v1/promos', [
-                'select' => '*',
-                'code' => "eq.{$normalizedCode}",
-                'is_active' => 'eq.true',
-                'limit' => 1,
-            ])
-            ->throw()
-            ->json();
+        return Cache::remember("promo_v{$v}_{$normalizedCode}", 600, function () use ($normalizedCode) {
+            $rows = $this->request()
+                ->get('/rest/v1/promos', [
+                    'select' => '*',
+                    'code' => "eq.{$normalizedCode}",
+                    'is_active' => 'eq.true',
+                    'limit' => 1,
+                ])
+                ->throw()
+                ->json();
 
-        $row = $rows[0] ?? null;
+            $row = $rows[0] ?? null;
 
-        return is_array($row) ? $this->mapPromo($row) : null;
+            return is_array($row) ? $this->mapPromo($row) : null;
+        });
     }
 
     public function createPromo(array $payload): array
@@ -83,6 +102,8 @@ class SupabasePromoService
             ->throw()
             ->json();
 
+        $this->clearPromoCache();
+
         $row = $insertedRows[0] ?? $insertedRows;
 
         return $this->mapPromo($row);
@@ -94,6 +115,8 @@ class SupabasePromoService
             ->withQueryParameters(['id' => "eq.{$id}"])
             ->delete('/rest/v1/promos')
             ->throw();
+
+        $this->clearPromoCache();
 
         return true;
     }

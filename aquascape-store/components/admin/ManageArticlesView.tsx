@@ -22,6 +22,7 @@ import {
   Check,
   FileText,
 } from "lucide-react";
+import Skeleton from "@/components/ui/Skeleton";
 import {
   ArticleItem,
   ArticleAdminInput,
@@ -372,9 +373,23 @@ export default function ManageArticlesView() {
       {/* Articles List / Table */}
       <div className="overflow-hidden rounded-2xl border border-outline-variant/40 bg-white shadow-sm">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant">
-            <Loader2 size={24} className="animate-spin text-primary" />
-            <p className="mt-2 text-xs">Loading help articles...</p>
+          <div className="divide-y divide-outline-variant/30 p-4 space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between pt-3 first:pt-0">
+                <div className="space-y-2 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-20 rounded-full" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <Skeleton className="h-5 w-64" />
+                  <Skeleton className="h-3.5 w-96 max-w-full" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredArticles.length === 0 ? (
           <div className="py-16 text-center text-on-surface-variant">

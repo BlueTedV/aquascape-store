@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Loader2, Plus, Sparkles, Trash2, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
 import { getHeroSlides, createHeroSlide, deleteHeroSlide, HeroSlideItem } from "@/lib/api/hero-slides";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import Skeleton from "@/components/ui/Skeleton";
 
 export default function ManageHeroSlidesView() {
   const [slides, setSlides] = useState<HeroSlideItem[]>([]);
@@ -284,7 +285,19 @@ export default function ManageHeroSlidesView() {
             </h3>
 
             {loading ? (
-              <div className="py-12 text-center text-sm text-on-surface-variant">Loading hero slides...</div>
+              <div className="space-y-4">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 space-y-3 sm:flex sm:items-center sm:gap-4 sm:space-y-0">
+                    <Skeleton className="h-24 w-full sm:w-40 rounded-lg shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-3.5 w-24" />
+                      <Skeleton className="h-5 w-48" />
+                      <Skeleton className="h-3 w-64 max-w-full" />
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+                  </div>
+                ))}
+              </div>
             ) : slides.length === 0 ? (
               <div className="py-12 text-center text-sm text-on-surface-variant">
                 No hero slides created yet. Using default store carousel slides.

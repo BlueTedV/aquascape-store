@@ -1,4 +1,0 @@
-
-> aquaku-shop@0.1.0 lint
-> eslint app components data lib
-

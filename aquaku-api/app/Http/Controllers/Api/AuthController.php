@@ -74,7 +74,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return $this->respond(
-            fn () => $this->auth->accountFromRequest($request),
+            fn () => $request->attributes->get('account') ?? $this->auth->accountFromRequest($request),
             200,
             'Authentication session expired. Please log in again.'
         );

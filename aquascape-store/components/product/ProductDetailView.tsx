@@ -3,12 +3,27 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AlertTriangle, Check, CheckCircle2, Heart, Minus, Plus, ShoppingCart, Star, Truck, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Heart,
+  Minus,
+  Plus,
+  ShoppingCart,
+  Sliders,
+  Star,
+  Truck,
+  XCircle,
+} from "lucide-react";
 import { ProductDetail } from "@/lib/api/products";
 import { formatIDR } from "@/lib/format";
 import { useAuthCart } from "@/lib/use-auth-cart";
 import { useWishlist } from "@/lib/wishlist-context";
 import ProductReviewsSection from "./ProductReviewsSection";
+import MobileSwipeGallery from "./MobileSwipeGallery";
+import MobileStickyBuyBar from "./MobileStickyBuyBar";
 
 const DESCRIPTION_PREVIEW_LENGTH = 330;
 
@@ -82,7 +97,8 @@ function RelatedProductCard({ product }: { product: ProductDetail }) {
 }
 
 export default function ProductDetailView({ product, relatedProducts }: ProductDetailViewProps) {
-  const [activeImage, setActiveImage] = useState(product.gallery[0]);
+  const [specsOpen, setSpecsOpen] = useState(true);
+  const [shippingOpen, setShippingOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
@@ -121,7 +137,7 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
   };
 
   return (
-    <div className="mx-auto max-w-[980px] px-5 pb-20 pt-24 md:px-8">
+    <div className="mx-auto max-w-[980px] px-4 sm:px-6 pb-28 pt-20 sm:pt-24 md:px-8 md:pb-20">
       <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
         <Link href="/" className="hover:text-primary">Home</Link>
         <span>/</span>
@@ -133,51 +149,16 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
       </nav>
 
       <section className="grid items-start gap-8 lg:grid-cols-[520px_minmax(0,1fr)]">
-        <div className="min-w-0">
-          <div className="relative aspect-[1.08/1] max-h-[430px] overflow-hidden rounded-md bg-background-white shadow-soft">
-            <Image
-              src={activeImage}
-              alt={product.name}
-              fill
-              priority
-              sizes="(min-width: 1024px) 520px, 100vw"
-              className="object-cover"
-            />
-            {(isOutOfStock || isLowStock || product.onSale || product.arrival || product.badge) && (
-              <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase text-white shadow-xs ${
-                isOutOfStock ? "bg-red-600" : isLowStock ? "bg-amber-500" : "bg-primary-fixed text-on-primary-fixed"
-              }`}>
-                {isOutOfStock ? "Out of Stock" : isLowStock ? `Only ${product.stock} Left` : product.onSale ? "On Sale" : product.arrival ? "New Arrival" : product.badge}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-4 grid grid-cols-4 gap-3">
-            {product.gallery.map((image, index) => {
-              const selected = image === activeImage;
-
-              return (
-                <button
-                  key={image}
-                  type="button"
-                  aria-label={`Show product image ${index + 1}`}
-                  onClick={() => setActiveImage(image)}
-                  className={`relative aspect-square overflow-hidden rounded border bg-background-white transition-colors ${
-                    selected ? "border-primary ring-2 ring-primary/20" : "border-outline-variant hover:border-primary"
-                  }`}
-                >
-                  <Image
-                    src={image}
-                    alt={`${product.name} view ${index + 1}`}
-                    fill
-                    sizes="110px"
-                    className="object-cover"
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <MobileSwipeGallery
+          gallery={product.gallery}
+          productName={product.name}
+          badge={product.badge}
+          isOutOfStock={isOutOfStock}
+          isLowStock={isLowStock}
+          onSale={product.onSale}
+          arrival={product.arrival}
+          stock={product.stock}
+        />
 
         <div className="min-w-0">
           <div className="flex items-start justify-between gap-3">
@@ -310,16 +291,69 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
             </p>
           </div>
 
-          <section className="mt-6">
-            <h2 className="font-display text-lg font-bold text-on-surface">Specifications</h2>
-            <dl className="mt-3 divide-y divide-outline-variant/40 border-y border-outline-variant/40">
-              {product.specs.map((spec) => (
-                <div key={spec.label} className="grid grid-cols-[118px_1fr] gap-3 py-2.5">
-                  <dt className="text-xs font-bold text-on-surface">{spec.label}</dt>
-                  <dd className="text-xs leading-5 text-on-surface-variant">{spec.value}</dd>
+          {/* Specifications Collapsible Accordion */}
+          {product.specs && product.specs.length > 0 && (
+            <section className="mt-6 overflow-hidden rounded-xl border border-outline-variant/50 bg-background-white shadow-soft">
+              <button
+                type="button"
+                onClick={() => setSpecsOpen((v) => !v)}
+                className="flex w-full items-center justify-between p-4 text-left font-display text-base font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+              >
+                <div className="flex items-center gap-2">
+                  <Sliders size={16} className="text-primary" />
+                  <span>Specifications &amp; Care</span>
                 </div>
-              ))}
-            </dl>
+                <ChevronDown
+                  size={18}
+                  className={`text-on-surface-variant transition-transform duration-200 ${
+                    specsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {specsOpen && (
+                <dl className="divide-y divide-outline-variant/30 border-t border-outline-variant/30 px-4 py-2 animate-in fade-in duration-200">
+                  {product.specs.map((spec) => (
+                    <div key={spec.label} className="grid grid-cols-[120px_1fr] gap-3 py-2.5">
+                      <dt className="text-xs font-bold text-on-surface">{spec.label}</dt>
+                      <dd className="text-xs leading-5 text-on-surface-variant">{spec.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </section>
+          )}
+
+          {/* Shipping & Guarantee Accordion */}
+          <section className="mt-3 overflow-hidden rounded-xl border border-outline-variant/50 bg-background-white shadow-soft">
+            <button
+              type="button"
+              onClick={() => setShippingOpen((v) => !v)}
+              className="flex w-full items-center justify-between p-4 text-left font-display text-base font-bold text-on-surface transition-colors hover:bg-surface-container-low"
+            >
+              <div className="flex items-center gap-2">
+                <Truck size={16} className="text-primary" />
+                <span>Packaging &amp; Live Guarantee</span>
+              </div>
+              <ChevronDown
+                size={18}
+                className={`text-on-surface-variant transition-transform duration-200 ${
+                  shippingOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {shippingOpen && (
+              <div className="space-y-2 border-t border-outline-variant/30 px-4 py-3.5 text-xs leading-relaxed text-on-surface-variant animate-in fade-in duration-200">
+                <p>
+                  📦 <strong>Specialized Thermo-Insulation:</strong> Live aquatic plants and livestock are packed in climate-regulated insulated packaging with oxygen injection.
+                </p>
+                <p>
+                  ⚡ <strong>Fast 24-Hour Dispatch:</strong> Ready stock items are dispatched within 24 hours via reliable express couriers across Indonesia.
+                </p>
+                <p>
+                  🛡️ <strong>Live Arrival Guarantee:</strong> Guaranteed 100% pest-free and healthy arrival. Submit an unboxing video within 24 hours for instant replacement or store credit.
+                </p>
+              </div>
+            )}
           </section>
         </div>
       </section>
@@ -345,12 +379,33 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-4">
           {relatedProducts.map((item) => (
             <RelatedProductCard key={item.slug} product={item} />
           ))}
         </div>
       </section>
+
+      {/* Mobile-Exclusive Sticky Action Bar & Bottom Sheet */}
+      <MobileStickyBuyBar
+        product={product}
+        onAddToCart={async (qty) => {
+          const wasAdded = await addItem({
+            id: product.id,
+            slug: product.slug,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            category: product.category,
+            unit: product.unit,
+            quantity: qty,
+            stock: product.stock,
+          });
+          return wasAdded;
+        }}
+        favorited={favorited}
+        onToggleWishlist={() => toggleItem(product)}
+      />
     </div>
   );
 }

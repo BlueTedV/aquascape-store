@@ -31,6 +31,30 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
+  /* Safe area helpers for modern mobile viewports (iOS home indicator, notches) */
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
+  }
+
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top, 0px), 10px);
+  }
+
+  .bottom-safe {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Clearance for persistent mobile bottom navigation bar */
+  .has-mobile-nav {
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 768px) {
+    .has-mobile-nav {
+      padding-bottom: 0;
+    }
+  }
+
   /* Reveal-on-scroll utility, toggled by SectionReveal via IntersectionObserver */
   .reveal {
     opacity: 0;

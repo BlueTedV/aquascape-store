@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Loader2, Plus, Tag, Trash2 } from "lucide-re
 import { getAdminPromos, createPromo, deletePromo, PromoVoucher } from "@/lib/api/promos";
 import { formatIDR } from "@/lib/format";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import Skeleton from "@/components/ui/Skeleton";
 
 export default function ManagePromosView() {
   const [promos, setPromos] = useState<PromoVoucher[]>([]);
@@ -275,7 +276,20 @@ export default function ManagePromosView() {
             </h3>
 
             {loading ? (
-              <div className="py-12 text-center text-sm text-on-surface-variant">Loading promo vouchers...</div>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border border-outline-variant/60 bg-surface-container-low p-4 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-6 w-24 rounded" />
+                        <Skeleton className="h-4 w-36" />
+                      </div>
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                  </div>
+                ))}
+              </div>
             ) : promos.length === 0 ? (
               <div className="py-12 text-center text-sm text-on-surface-variant">
                 No promo vouchers created yet.

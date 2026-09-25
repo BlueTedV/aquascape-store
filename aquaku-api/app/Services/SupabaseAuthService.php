@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -98,6 +99,8 @@ class SupabaseAuthService
 
     public function signOut(string $accessToken): void
     {
+        Cache::forget('auth_account_' . hash('sha256', $accessToken));
+
         $this->authRequest($accessToken)
             ->post('/auth/v1/logout')
             ->throw();
@@ -171,32 +174,36 @@ class SupabaseAuthService
     public function accountFromRequest(Request $request): array
     {
         $accessToken = $this->bearerToken($request);
-        $user = $this->userFromToken($accessToken);
-        $userId = (string) $user['id'];
-        $profile = $this->profile($userId);
+        $cacheKey = 'auth_account_' . hash('sha256', $accessToken);
 
-        if ($profile === null && isset($user['id'])) {
-            try {
-                $this->upsertProfile(
-                    $userId,
-                    $user['user_metadata']['full_name'] ?? null,
-                    $user['user_metadata']['phone'] ?? null
-                );
-                $profile = $this->profile($userId);
-            } catch (\Throwable $e) {
-                report($e);
+        return Cache::remember($cacheKey, 60, function () use ($accessToken) {
+            $user = $this->userFromToken($accessToken);
+            $userId = (string) $user['id'];
+            $profile = $this->profile($userId);
+
+            if ($profile === null && isset($user['id'])) {
+                try {
+                    $this->upsertProfile(
+                        $userId,
+                        $user['user_metadata']['full_name'] ?? null,
+                        $user['user_metadata']['phone'] ?? null
+                    );
+                    $profile = $this->profile($userId);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
-        }
 
-        $shippingAddress = $this->defaultShippingAddress($userId);
+            $shippingAddress = $this->defaultShippingAddress($userId);
 
-        return [
-            'accessToken' => $accessToken,
-            'user' => $this->mapUser($user, $profile),
-            'profile' => $profile,
-            'shippingAddress' => $shippingAddress,
-            'isAdmin' => $this->isAdmin($user, $profile),
-        ];
+            return [
+                'accessToken' => $accessToken,
+                'user' => $this->mapUser($user, $profile),
+                'profile' => $profile,
+                'shippingAddress' => $shippingAddress,
+                'isAdmin' => $this->isAdmin($user, $profile),
+            ];
+        });
     }
 
     public function requireAdmin(Request $request): array
@@ -210,6 +217,9 @@ class SupabaseAuthService
 
     public function updateProfile(Request $request, array $data): array
     {
+        $accessToken = $this->bearerToken($request);
+        Cache::forget('auth_account_' . hash('sha256', $accessToken));
+
         $account = $this->accountFromRequest($request);
         $userId = (string) $account['user']['id'];
 
@@ -219,11 +229,16 @@ class SupabaseAuthService
             $data['phone'] ?? null,
         );
 
+        Cache::forget('auth_account_' . hash('sha256', $accessToken));
+
         return $this->accountFromRequest($request);
     }
 
     public function updateShippingAddress(Request $request, array $data): array
     {
+        $accessToken = $this->bearerToken($request);
+        Cache::forget('auth_account_' . hash('sha256', $accessToken));
+
         $account = $this->accountFromRequest($request);
         $userId = (string) $account['user']['id'];
 
@@ -256,6 +271,8 @@ class SupabaseAuthService
                 ->post('/rest/v1/shipping_addresses', $payload)
                 ->throw();
         }
+
+        Cache::forget('auth_account_' . hash('sha256', $accessToken));
 
         return $this->accountFromRequest($request);
     }

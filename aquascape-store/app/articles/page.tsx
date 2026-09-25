@@ -20,6 +20,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { ArticleItem, ARTICLE_CATEGORIES, getArticles } from "@/lib/api/articles";
 import MarkdownRenderer from "@/components/ui/MarkdownRenderer";
+import Skeleton from "@/components/ui/Skeleton";
 
 function ArticlesContent() {
   const searchParams = useSearchParams();
@@ -187,9 +188,30 @@ function ArticlesContent() {
             </div>
 
             {loading ? (
-              <div className="py-20 text-center text-on-surface-variant">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="mt-3 text-xs">Loading articles...</p>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col justify-between rounded-2xl border border-outline-variant/30 bg-white p-6 shadow-sm space-y-4"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-4 w-24 rounded-full" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                      <Skeleton className="h-6 w-3/4 rounded" />
+                      <Skeleton className="h-3.5 w-full rounded" />
+                      <Skeleton className="h-3.5 w-5/6 rounded" />
+                    </div>
+                    <div className="pt-4 border-t border-outline-variant/30 flex justify-between items-center">
+                      <div className="flex gap-1.5">
+                        <Skeleton className="h-4 w-12 rounded" />
+                        <Skeleton className="h-4 w-14 rounded" />
+                      </div>
+                      <Skeleton className="h-4 w-20 rounded" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : articles.length === 0 ? (
               <div className="py-20 text-center text-on-surface-variant rounded-2xl bg-white p-8 border border-outline-variant/30">

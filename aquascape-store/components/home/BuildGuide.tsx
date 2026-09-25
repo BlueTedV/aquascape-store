@@ -1,8 +1,26 @@
-import * as Icons from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import {
+  RectangleHorizontal,
+  Layers,
+  Mountain,
+  Sprout,
+  Droplets,
+  Sun,
+  Fish,
+  type LucideIcon,
+} from "lucide-react";
 import { buildSteps } from "@/data/buildSteps";
 import SectionHeading from "@/components/ui/SectionHeading";
 import SectionReveal from "@/components/ui/SectionReveal";
+
+const STEP_ICONS: Record<string, LucideIcon> = {
+  RectangleHorizontal,
+  Layers,
+  Mountain,
+  Sprout,
+  Droplets,
+  Sun,
+  Fish,
+};
 
 export default function BuildGuide() {
   return (
@@ -19,9 +37,7 @@ export default function BuildGuide() {
       <div className="-mx-edge-margin-mobile overflow-x-auto px-edge-margin-mobile md:mx-0 md:px-0">
         <div className="flex min-w-[840px] items-center justify-between gap-2 md:min-w-0">
           {buildSteps.map((item, i) => {
-            const Icon = Icons[
-              item.icon as keyof typeof Icons
-            ] as unknown as LucideIcon;
+            const Icon = STEP_ICONS[item.icon];
 
             return (
               <div key={item.id} className="flex flex-1 items-center">

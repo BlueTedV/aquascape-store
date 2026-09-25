@@ -67,6 +67,7 @@ export default function ProductCard({ product }: { product: Product }) {
           alt={product.name}
           width={600}
           height={600}
+          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
       </Link>
@@ -98,7 +99,7 @@ export default function ProductCard({ product }: { product: Product }) {
         className={`absolute bottom-6 right-6 flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all duration-300 ${
           product.stock === 0 
             ? "bg-surface-variant text-on-surface-variant opacity-50 cursor-not-allowed" 
-            : "bg-primary text-on-primary opacity-0 group-hover:opacity-100"
+            : "bg-primary text-on-primary opacity-100 md:opacity-0 md:group-hover:opacity-100"
         }`}
       >
         {added ? <Check size={20} /> : <Plus size={20} />}

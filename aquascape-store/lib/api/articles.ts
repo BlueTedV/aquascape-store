@@ -230,7 +230,9 @@ export async function getArticles(params?: {
 
     const queryStr = searchParams.toString();
     const endpoint = `/api/articles${queryStr ? `?${queryStr}` : ""}`;
-    const data = await publicRequest<ArticleItem[]>(endpoint);
+    const data = await publicRequest<ArticleItem[]>(endpoint, {
+      next: { revalidate: 120, tags: ["articles"] },
+    });
     if (Array.isArray(data) && data.length > 0) {
       return data;
     }
@@ -243,7 +245,9 @@ export async function getArticles(params?: {
 
 export async function getArticleBySlug(slug: string): Promise<ArticleItem | null> {
   try {
-    const data = await publicRequest<ArticleItem>(`/api/articles/${encodeURIComponent(slug)}`);
+    const data = await publicRequest<ArticleItem>(`/api/articles/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 120, tags: ["articles"] },
+    });
     if (data) return data;
   } catch (err) {
     console.warn("Articles API detail unavailable:", err);

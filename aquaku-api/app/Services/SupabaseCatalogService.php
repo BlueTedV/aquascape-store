@@ -4,9 +4,12 @@ namespace App\Services;
 
 use App\Support\ProductContent;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 /**
  * Catalog service for querying and maintaining store products.
@@ -30,217 +33,285 @@ class SupabaseCatalogService
         }
     }
 
+    public function catalogVersion(): int
+    {
+        return (int) Cache::get('catalog_version', 1);
+    }
+
+    public function clearCatalogCache(): void
+    {
+        Cache::increment('catalog_version');
+        Cache::forget('catalog_meta');
+        Cache::forget('catalog_categories');
+    }
+
+    public function catalogMetadata(): array
+    {
+        $v = $this->catalogVersion();
+
+        return Cache::remember("catalog_v{$v}_meta", 600, function () {
+            try {
+                $response = $this->request()
+                    ->get('/rest/v1/products', [
+                        'select' => 'brand,price',
+                    ]);
+
+                $metaRows = $response->successful() ? $response->json() : [];
+            } catch (Throwable $e) {
+                Log::warning("Supabase catalog metadata request failed: {$e->getMessage()}");
+                $metaRows = [];
+            }
+
+            if (! is_array($metaRows)) {
+                $metaRows = [];
+            }
+
+            $brands = collect($metaRows)->pluck('brand')->filter()->unique()->sort()->values()->all();
+            $maxCatalogPrice = (int) (collect($metaRows)->max('price') ?: 10000000);
+
+            return [
+                'brands' => ! empty($brands) ? $brands : ['ADA', 'Aqua Studio', 'Twinstar', 'UNS'],
+                'maxPrice' => $maxCatalogPrice ?: 10000000,
+            ];
+        });
+    }
+
     public function products(array $filters = []): array
     {
-        $params = [
-            'select' => '*',
-        ];
+        $v = $this->catalogVersion();
+        $cacheKey = "catalog_v{$v}_products_" . md5(json_encode($filters));
 
-        // 1. Category Filter
-        if (! empty($filters['category']) && $filters['category'] !== 'all') {
-            $params['category_slug'] = 'eq.' . trim((string) $filters['category']);
-        }
+        return Cache::remember($cacheKey, 120, function () use ($filters) {
+            $params = [
+                'select' => '*',
+            ];
 
-        // 2. Collection Filter
-        if (! empty($filters['collection']) && $filters['collection'] !== 'all') {
-            $params['collection'] = 'eq.' . trim((string) $filters['collection']);
-        }
-
-        // 3. Brand Filter
-        if (! empty($filters['brands'])) {
-            $brandsList = is_array($filters['brands']) ? $filters['brands'] : explode(',', (string) $filters['brands']);
-            $brandsList = array_values(array_filter(array_map('trim', $brandsList)));
-            if (count($brandsList) === 1) {
-                $params['brand'] = 'eq.' . $brandsList[0];
-            } elseif (count($brandsList) > 1) {
-                $params['brand'] = 'in.(' . implode(',', array_map(fn ($b) => '"' . str_replace('"', '', $b) . '"', $brandsList)) . ')';
+            // 1. Category Filter
+            if (! empty($filters['category']) && $filters['category'] !== 'all') {
+                $params['category_slug'] = 'eq.' . trim((string) $filters['category']);
             }
-        } elseif (! empty($filters['brand'])) {
-            $params['brand'] = 'eq.' . trim((string) $filters['brand']);
-        }
 
-        // 4. Status Filter
-        if (! empty($filters['statuses'])) {
-            $statusList = is_array($filters['statuses']) ? $filters['statuses'] : explode(',', (string) $filters['statuses']);
-            if (in_array('available', $statusList, true)) {
-                $params['stock'] = 'gt.0';
+            // 2. Collection Filter
+            if (! empty($filters['collection']) && $filters['collection'] !== 'all') {
+                $params['collection'] = 'eq.' . trim((string) $filters['collection']);
             }
-            if (in_array('sale', $statusList, true)) {
-                $params['on_sale'] = 'eq.true';
+
+            // 3. Brand Filter
+            if (! empty($filters['brands'])) {
+                $brandsList = is_array($filters['brands']) ? $filters['brands'] : explode(',', (string) $filters['brands']);
+                $brandsList = array_values(array_filter(array_map('trim', $brandsList)));
+                if (count($brandsList) === 1) {
+                    $params['brand'] = 'eq.' . $brandsList[0];
+                } elseif (count($brandsList) > 1) {
+                    $params['brand'] = 'in.(' . implode(',', array_map(fn ($b) => '"' . str_replace('"', '', $b) . '"', $brandsList)) . ')';
+                }
+            } elseif (! empty($filters['brand'])) {
+                $params['brand'] = 'eq.' . trim((string) $filters['brand']);
             }
-            if (in_array('new', $statusList, true)) {
-                $params['arrival'] = 'eq.true';
+
+            // 4. Status Filter
+            if (! empty($filters['statuses'])) {
+                $statusList = is_array($filters['statuses']) ? $filters['statuses'] : explode(',', (string) $filters['statuses']);
+                if (in_array('available', $statusList, true)) {
+                    $params['stock'] = 'gt.0';
+                }
+                if (in_array('sale', $statusList, true)) {
+                    $params['on_sale'] = 'eq.true';
+                }
+                if (in_array('new', $statusList, true)) {
+                    $params['arrival'] = 'eq.true';
+                }
             }
-        }
 
-        // 5. Price Filters
-        if (isset($filters['maxPrice']) && is_numeric($filters['maxPrice'])) {
-            $params['price'] = 'lte.' . (int) $filters['maxPrice'];
-        }
-        if (isset($filters['minPrice']) && is_numeric($filters['minPrice'])) {
-            $params['price'] = 'gte.' . (int) $filters['minPrice'];
-        }
-
-        // 6. Search Query
-        if (! empty($filters['q'])) {
-            $q = trim((string) $filters['q']);
-            $cleanQ = str_replace(['(', ')', '"', ','], '', $q);
-            if ($cleanQ !== '') {
-                $params['or'] = "(name.ilike.*{$cleanQ}*,brand.ilike.*{$cleanQ}*,collection.ilike.*{$cleanQ}*)";
+            // 5. Price Filters
+            if (isset($filters['maxPrice']) && is_numeric($filters['maxPrice'])) {
+                $params['price'] = 'lte.' . (int) $filters['maxPrice'];
             }
-        }
+            if (isset($filters['minPrice']) && is_numeric($filters['minPrice'])) {
+                $params['price'] = 'gte.' . (int) $filters['minPrice'];
+            }
 
-        // 7. Sort Options
-        $sort = (string) ($filters['sort'] ?? 'popular');
-        $params['order'] = match ($sort) {
-            'newest' => 'arrival.desc,created_at.desc',
-            'price-asc' => 'price.asc',
-            'price-desc' => 'price.desc',
-            'rating' => 'rating.desc,review_count.desc',
-            default => 'featured.desc,review_count.desc',
-        };
+            // 6. Search Query
+            if (! empty($filters['q'])) {
+                $q = trim((string) $filters['q']);
+                $cleanQ = str_replace(['(', ')', '"', ','], '', $q);
+                if ($cleanQ !== '') {
+                    $params['or'] = "(name.ilike.*{$cleanQ}*,brand.ilike.*{$cleanQ}*,collection.ilike.*{$cleanQ}*)";
+                }
+            }
 
-        // 8. Pagination
-        $limit = max(1, min(100, (int) ($filters['limit'] ?? 12)));
-        $page = max(1, (int) ($filters['page'] ?? 1));
-        $offset = ($page - 1) * $limit;
+            // 7. Sort Options
+            $sort = (string) ($filters['sort'] ?? 'popular');
+            $params['order'] = match ($sort) {
+                'newest' => 'arrival.desc,created_at.desc',
+                'price-asc' => 'price.asc',
+                'price-desc' => 'price.desc',
+                'rating' => 'rating.desc,review_count.desc',
+                default => 'featured.desc,review_count.desc',
+            };
 
-        $params['limit'] = $limit;
-        $params['offset'] = $offset;
+            // 8. Pagination
+            $limit = max(1, min(100, (int) ($filters['limit'] ?? 12)));
+            $page = max(1, (int) ($filters['page'] ?? 1));
+            $offset = ($page - 1) * $limit;
 
-        $response = $this->request()
-            ->withHeaders(['Prefer' => 'count=exact'])
-            ->get('/rest/v1/products', $params);
+            $params['limit'] = $limit;
+            $params['offset'] = $offset;
 
-        $rows = $response->json();
-        if (! is_array($rows)) {
-            $rows = [];
-        }
+            try {
+                $response = $this->request()
+                    ->withHeaders(['Prefer' => 'count=exact'])
+                    ->get('/rest/v1/products', $params);
 
-        $contentRange = $response->header('Content-Range') ?? '';
-        $total = count($rows);
-        if (preg_match('/\/(\d+)$/', $contentRange, $matches)) {
-            $total = (int) $matches[1];
-        }
+                if (! $response->successful()) {
+                    Log::warning("Supabase products request failed ({$response->status()}): {$response->body()}");
+                    $rows = [];
+                    $total = 0;
+                } else {
+                    $rows = $response->json();
+                    if (! is_array($rows)) {
+                        $rows = [];
+                    }
 
-        $totalPages = max(1, (int) ceil($total / $limit));
-        $mappedProducts = collect($rows)->map(fn (array $row) => $this->mapProduct($row))->all();
+                    $contentRange = $response->header('Content-Range') ?? '';
+                    $total = count($rows);
+                    if (preg_match('/\/(\d+)$/', $contentRange, $matches)) {
+                        $total = (int) $matches[1];
+                    }
+                }
+            } catch (Throwable $e) {
+                Log::error("Supabase products query failed: {$e->getMessage()}");
+                $rows = [];
+                $total = 0;
+            }
 
-        // Fetch catalog metadata (all brands and max price)
-        $metaRows = $this->request()
-            ->get('/rest/v1/products', [
-                'select' => 'brand,price',
-            ])
-            ->json();
+            $totalPages = max(1, (int) ceil($total / $limit));
+            $mappedProducts = collect($rows)->map(fn (array $row) => $this->mapProduct($row))->all();
 
-        $brands = collect($metaRows)->pluck('brand')->filter()->unique()->sort()->values()->all();
-        $maxCatalogPrice = (int) (collect($metaRows)->max('price') ?: 1000000);
+            // Fetch catalog metadata using cached metadata query
+            $meta = $this->catalogMetadata();
 
-        return [
-            'products' => $mappedProducts,
-            'total' => $total,
-            'page' => $page,
-            'limit' => $limit,
-            'totalPages' => $totalPages,
-            'brands' => $brands,
-            'maxPrice' => $maxCatalogPrice,
-        ];
+            return [
+                'products' => $mappedProducts,
+                'total' => $total,
+                'page' => $page,
+                'limit' => $limit,
+                'totalPages' => $totalPages,
+                'brands' => $meta['brands'],
+                'maxPrice' => $meta['maxPrice'],
+            ];
+        });
     }
 
     public function adminProducts(): array
     {
-        $rows = $this->request()
-            ->get('/rest/v1/products', [
-                'select' => '*',
-                'order' => 'created_at.desc',
-            ])
-            ->throw()
-            ->json();
+        $v = $this->catalogVersion();
+        return Cache::remember("catalog_v{$v}_admin_products", 60, function () {
+            $rows = $this->request()
+                ->get('/rest/v1/products', [
+                    'select' => '*',
+                    'order' => 'created_at.desc',
+                ])
+                ->throw()
+                ->json();
 
-        return collect($rows)->map(fn (array $row) => $this->mapProductDetail($row))->all();
+            return collect($rows)->map(fn (array $row) => $this->mapProductDetail($row))->all();
+        });
     }
 
     public function featured(int $limit = 4): array
     {
-        $rows = $this->request()
-            ->get('/rest/v1/products', [
-                'select' => '*',
-                'featured' => 'eq.true',
-                'order' => 'review_count.desc',
-                'limit' => $limit,
-            ])
-            ->throw()
-            ->json();
+        $v = $this->catalogVersion();
+        return Cache::remember("catalog_v{$v}_featured_{$limit}", 300, function () use ($limit) {
+            $rows = $this->request()
+                ->get('/rest/v1/products', [
+                    'select' => '*',
+                    'featured' => 'eq.true',
+                    'order' => 'review_count.desc',
+                    'limit' => $limit,
+                ])
+                ->throw()
+                ->json();
 
-        return collect($rows)->map(fn (array $row) => $this->mapProduct($row))->all();
+            return collect($rows)->map(fn (array $row) => $this->mapProduct($row))->all();
+        });
     }
 
     public function product(string $slug): ?array
     {
-        $rows = $this->request()
-            ->get('/rest/v1/products', [
-                'select' => '*',
-                'slug' => "eq.{$slug}",
-                'limit' => 1,
-            ])
-            ->throw()
-            ->json();
+        $v = $this->catalogVersion();
+        return Cache::remember("catalog_v{$v}_product_{$slug}", 300, function () use ($slug) {
+            $rows = $this->request()
+                ->get('/rest/v1/products', [
+                    'select' => '*',
+                    'slug' => "eq.{$slug}",
+                    'limit' => 1,
+                ])
+                ->throw()
+                ->json();
 
-        $row = $rows[0] ?? null;
+            $row = $rows[0] ?? null;
 
-        return is_array($row) ? $this->mapProductDetail($row) : null;
+            return is_array($row) ? $this->mapProductDetail($row) : null;
+        });
     }
 
     public function related(string $slug, int $limit = 4): array
     {
-        $product = $this->product($slug);
+        $v = $this->catalogVersion();
+        return Cache::remember("catalog_v{$v}_related_{$slug}_{$limit}", 300, function () use ($slug, $limit) {
+            $product = $this->product($slug);
 
-        if (! $product) {
-            return [];
-        }
+            if (! $product) {
+                return [];
+            }
 
-        $sameCategory = $this->request()
-            ->get('/rest/v1/products', [
-                'select' => '*',
-                'category_slug' => "eq.{$product['categorySlug']}",
-                'slug' => "neq.{$slug}",
-                'limit' => $limit,
-            ])
-            ->throw()
-            ->json();
+            $sameCategory = $this->request()
+                ->get('/rest/v1/products', [
+                    'select' => '*',
+                    'category_slug' => "eq.{$product['categorySlug']}",
+                    'slug' => "neq.{$slug}",
+                    'limit' => $limit,
+                ])
+                ->throw()
+                ->json();
 
-        $related = collect($sameCategory)->map(fn (array $row) => $this->mapProductDetail($row));
+            $related = collect($sameCategory)->map(fn (array $row) => $this->mapProductDetail($row));
 
-        if ($related->count() >= $limit) {
-            return $related->take($limit)->values()->all();
-        }
+            if ($related->count() >= $limit) {
+                return $related->take($limit)->values()->all();
+            }
 
-        $fallback = $this->request()
-            ->get('/rest/v1/products', [
-                'select' => '*',
-                'category_slug' => "neq.{$product['categorySlug']}",
-                'slug' => "neq.{$slug}",
-                'limit' => $limit - $related->count(),
-            ])
-            ->throw()
-            ->json();
+            $fallback = $this->request()
+                ->get('/rest/v1/products', [
+                    'select' => '*',
+                    'category_slug' => "neq.{$product['categorySlug']}",
+                    'slug' => "neq.{$slug}",
+                    'limit' => $limit - $related->count(),
+                ])
+                ->throw()
+                ->json();
 
-        return $related
-            ->concat(collect($fallback)->map(fn (array $row) => $this->mapProductDetail($row)))
-            ->take($limit)
-            ->values()
-            ->all();
+            return $related
+                ->concat(collect($fallback)->map(fn (array $row) => $this->mapProductDetail($row)))
+                ->take($limit)
+                ->values()
+                ->all();
+        });
     }
 
     public function categories(): array
     {
-        return $this->request()
-            ->get('/rest/v1/categories', [
-                'select' => '*',
-                'order' => 'name.asc',
-            ])
-            ->throw()
-            ->json();
+        $v = $this->catalogVersion();
+        return Cache::remember("catalog_v{$v}_categories", 600, function () {
+            return $this->request()
+                ->get('/rest/v1/categories', [
+                    'select' => '*',
+                    'order' => 'name.asc',
+                ])
+                ->throw()
+                ->json();
+        });
     }
 
     public function createProduct(array $data): array
@@ -250,6 +321,8 @@ class SupabaseCatalogService
             ->post('/rest/v1/products', $this->productPayload($data, false))
             ->throw()
             ->json();
+
+        $this->clearCatalogCache();
 
         $row = $rows[0] ?? $rows;
 
@@ -265,6 +338,8 @@ class SupabaseCatalogService
             ->throw()
             ->json();
 
+        $this->clearCatalogCache();
+
         $row = $rows[0] ?? null;
 
         abort_if(! is_array($row), 404, 'Product not found.');
@@ -279,6 +354,8 @@ class SupabaseCatalogService
             ->delete('/rest/v1/products')
             ->throw();
 
+        $this->clearCatalogCache();
+
         return true;
     }
 
@@ -288,6 +365,8 @@ class SupabaseCatalogService
             ->withQueryParameters(['id' => 'not.is.null'])
             ->delete('/rest/v1/products')
             ->throw();
+
+        $this->clearCatalogCache();
     }
 
     private function productPayload(array $data, bool $isUpdate = false): array
@@ -334,6 +413,12 @@ class SupabaseCatalogService
     private function request(): PendingRequest
     {
         return Http::baseUrl($this->url)
+            ->timeout(12)
+            ->connectTimeout(5)
+            ->retry(2, 150, throw: false)
+            ->withOptions([
+                'version' => 1.1,
+            ])
             ->acceptJson()
             ->withHeaders([
                 'apikey' => $this->key,

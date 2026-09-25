@@ -6,6 +6,7 @@ import { AlertTriangle, Loader2, Lock, RefreshCw, Search, Truck, Trash2, X, Prin
 import { Order, deleteAllAdminOrders, getAdminOrders, updateOrderStatus } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
 import OrderInvoiceModal from "@/components/order/OrderInvoiceModal";
+import Skeleton from "@/components/ui/Skeleton";
 
 const ORDER_STATUSES = [
   { value: "all", label: "All Orders" },
@@ -178,8 +179,45 @@ export default function ManageOrdersView() {
 
   if (loading && orders.length === 0) {
     return (
-      <div className="mx-auto flex min-h-[400px] max-w-container items-center justify-center text-primary">
-        <Loader2 size={28} className="animate-spin" />
+      <div className="mx-auto max-w-container space-y-6">
+        {/* Status Filter Tabs Skeleton */}
+        <div className="flex flex-wrap items-center gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-24 rounded-full" />
+          ))}
+        </div>
+
+        {/* Search Bar Skeleton */}
+        <div className="flex gap-3">
+          <Skeleton className="h-11 flex-1 rounded-xl" />
+          <Skeleton className="h-11 w-32 rounded-xl" />
+        </div>
+
+        {/* Order Cards Skeleton */}
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-outline-variant/40 bg-background-white p-5 shadow-xs space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/20 pb-3">
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-12 w-12 rounded-lg shrink-0" />
+                <div className="space-y-1.5 flex-1">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+                <Skeleton className="h-6 w-28" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

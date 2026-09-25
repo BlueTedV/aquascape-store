@@ -128,11 +128,20 @@ export function clearStoredSession() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(STORAGE_KEY);
   window.localStorage.removeItem("aquaku-shop-cart");
+  invalidateAccountCache();
   window.dispatchEvent(new CustomEvent("aquaku-shop-auth-change", { detail: null }));
 }
 
 export function getAccessToken() {
   return getStoredSession()?.accessToken ?? null;
+}
+
+let cachedAccountPromise: Promise<Account> | null = null;
+let cachedAccountTime = 0;
+
+export function invalidateAccountCache() {
+  cachedAccountPromise = null;
+  cachedAccountTime = 0;
 }
 
 let refreshPromise: Promise<AuthSession | null> | null = null;
@@ -312,8 +321,19 @@ export async function resetPassword(email: string, password: string) {
   });
 }
 
-export async function getCurrentAccount() {
-  return requestApi<Account>("/api/auth/me", {}, true);
+export async function getCurrentAccount(forceRefresh = false): Promise<Account> {
+  const now = Date.now();
+  if (!forceRefresh && cachedAccountPromise && now - cachedAccountTime < 60000) {
+    return cachedAccountPromise;
+  }
+
+  cachedAccountTime = now;
+  cachedAccountPromise = requestApi<Account>("/api/auth/me", {}, true).catch((err) => {
+    invalidateAccountCache();
+    throw err;
+  });
+
+  return cachedAccountPromise;
 }
 
 export async function logout() {
@@ -321,10 +341,12 @@ export async function logout() {
     await requestApi<{ ok: boolean }>("/api/auth/logout", { method: "POST" }, true);
   } finally {
     clearStoredSession();
+    invalidateAccountCache();
   }
 }
 
 export async function updateProfile(input: ProfileInput) {
+  invalidateAccountCache();
   return requestApi<Account>(
     "/api/account/profile",
     {
@@ -336,6 +358,7 @@ export async function updateProfile(input: ProfileInput) {
 }
 
 export async function updateShippingAddress(input: ShippingInput) {
+  invalidateAccountCache();
   return requestApi<Account>(
     "/api/account/shipping-address",
     {

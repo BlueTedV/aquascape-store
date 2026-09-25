@@ -1,48 +1,76 @@
-import Image from "next/image";
-import Link from "next/link";
-import * as Icons from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { categories } from "@/data/categories";
-import { getProducts } from "@/lib/api/products";
 import SectionHeading from "@/components/ui/SectionHeading";
 import SectionReveal from "@/components/ui/SectionReveal";
+import CategoryGridClient, { CategoryDisplayItem } from "./CategoryGridClient";
+import { categories } from "@/data/categories";
+import { getProducts, ApiProduct } from "@/lib/api/products";
 
-function isRealUploadedImage(image: string | null | undefined): boolean {
-  if (!image) return false;
-  const trimmed = image.trim();
-  if (
-    trimmed === "" ||
-    trimmed.includes("product-placeholder.svg") ||
-    trimmed.includes("picsum.photos") ||
-    trimmed.includes("fastly.picsum.photos")
-  ) {
-    return false;
-  }
-  return true;
+// Fallback high-resolution aquascaping photos if a category has no live products in DB yet
+const FALLBACK_CATEGORY_IMAGES: Record<string, string> = {
+  plants: "/images/home/style-dutch.jpg",
+  hardscape: "/images/home/style-iwagumi.jpg",
+  fish: "/images/home/Hero.jpg",
+  shrimp: "/images/home/style-jungle.jpg",
+  equipment: "/images/hero/hero-equipment.jpg",
+  substrate: "/images/home/style-nature.jpg",
+  others: "/images/home/style-nature.jpg",
+};
+
+function getCategoryCandidateImages(categorySlug: string, products: ApiProduct[]): string[] {
+  const slug = categorySlug.toLowerCase();
+
+  const matching = products.filter((p) => {
+    const pSlug = (p.categorySlug || "").toLowerCase();
+    const pCat = (p.category || "").toLowerCase();
+    const pCollection = (p.collection || "").toLowerCase();
+
+    if (slug === "substrate" || slug === "others") {
+      return (
+        pSlug === "substrate" ||
+        pSlug === "others" ||
+        pCat.includes("substrate") ||
+        pCat.includes("soil") ||
+        pCollection.includes("substrate") ||
+        pCollection.includes("soil")
+      );
+    }
+
+    return pSlug === slug || pCat === slug || pCat.includes(slug);
+  });
+
+  const images = matching
+    .map((p) => p.image)
+    .filter((img): img is string => Boolean(img) && !img.includes("product-placeholder.svg"));
+
+  return Array.from(new Set(images));
 }
 
 export default async function CategoryGrid() {
   const { products } = await getProducts({ limit: 100 });
 
-  const dynamicCategories = categories.map((category) => {
-    const catSlug = category.slug.toLowerCase();
-    const catName = category.name.toLowerCase();
+  const categoriesWithImages: CategoryDisplayItem[] = categories.map((cat) => {
+    const slug = cat.slug.toLowerCase();
+    const candidates = getCategoryCandidateImages(slug, products);
 
-    const productWithImage = products.find((p) => {
-      const pSlug = (p.categorySlug || "").toLowerCase();
-      const pName = (p.category || "").toLowerCase();
-
-      const isCategoryMatch =
-        pSlug === catSlug ||
-        pName === catName ||
-        (catSlug === "substrate" && (pSlug === "others" || pName.includes("substrate")));
-
-      return isCategoryMatch && isRealUploadedImage(p.image);
-    });
+    // Pick an initial random image from candidate product images
+    let initialImage = "";
+    if (candidates.length > 0) {
+      const randomIndex = Math.floor(Math.random() * candidates.length);
+      initialImage = candidates[randomIndex];
+    } else {
+      initialImage =
+        FALLBACK_CATEGORY_IMAGES[slug] ||
+        FALLBACK_CATEGORY_IMAGES[cat.id.replace("cat-", "")] ||
+        "/images/home/style-nature.jpg";
+    }
 
     return {
-      ...category,
-      image: productWithImage?.image || category.image,
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      href: cat.href,
+      icon: cat.icon,
+      initialImage,
+      candidateImages: candidates.length > 0 ? candidates : [initialImage],
     };
   });
 
@@ -52,44 +80,7 @@ export default async function CategoryGrid() {
       className="mx-auto max-w-container px-edge-margin-mobile py-section-gap-mobile md:px-edge-margin-desktop md:py-section-gap"
     >
       <SectionHeading title="Shop by Category" />
-
-      <div className="grid grid-cols-2 gap-gutter md:grid-cols-3 lg:grid-cols-6">
-        {dynamicCategories.map((category) => {
-          const Icon = category.icon
-            ? (Icons[
-                category.icon as keyof typeof Icons
-              ] as unknown as LucideIcon)
-            : null;
-
-          return (
-            <Link
-              key={category.id}
-              href={category.href}
-              className="group block text-center"
-            >
-              <div className="mb-4 aspect-square overflow-hidden rounded-lg shadow-soft">
-                {category.image ? (
-                  <Image
-                    src={category.image}
-                    alt={category.name}
-                    width={400}
-                    height={400}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-surface-container-high transition-colors group-hover:bg-primary-fixed">
-                    {Icon && <Icon size={36} className="text-primary" />}
-                  </div>
-                )}
-              </div>
-              <span className="font-sans text-label-md text-on-surface transition-colors group-hover:text-primary">
-                {category.name}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+      <CategoryGridClient categories={categoriesWithImages} />
     </SectionReveal>
   );
 }
-

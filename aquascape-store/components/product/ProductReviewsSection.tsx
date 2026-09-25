@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Star, MessageSquarePlus, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { Review, getProductReviews, createProductReview } from "@/lib/api/reviews";
 import { getStoredSession } from "@/lib/api/auth";
+import Skeleton from "@/components/ui/Skeleton";
 
 interface ProductReviewsSectionProps {
   productSlug: string;
@@ -186,8 +187,25 @@ export default function ProductReviewsSection({
       {/* Reviews List */}
       <div className="mt-8 space-y-4">
         {loading ? (
-          <div className="flex h-32 items-center justify-center text-primary">
-            <Loader2 size={24} className="animate-spin" />
+          <div className="space-y-4">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="rounded-lg bg-background-white p-5 shadow-soft border border-outline-variant/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div className="space-y-1">
+                      <Skeleton className="h-3.5 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <div className="space-y-1.5 pt-1">
+                  <Skeleton className="h-3.5 w-full" />
+                  <Skeleton className="h-3.5 w-3/4" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : reviews.length === 0 ? (
           <div className="rounded-lg border border-dashed border-outline-variant/60 p-8 text-center">

@@ -73,7 +73,6 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       <Navbar activeCategory={initialCategory} />
       <main className="bg-surface-container-low">
         <ProductCatalog
-          key={`${initialCategory ?? "all"}-${initialCollection ?? "all"}-${initialPage}-${initialSort}-${initialQuery ?? "none"}`}
           products={catalogResult.products}
           total={catalogResult.total}
           currentPage={catalogResult.page}

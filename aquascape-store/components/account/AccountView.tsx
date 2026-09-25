@@ -24,6 +24,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
+import Skeleton from "@/components/ui/Skeleton";
 import {
   Account,
   getCurrentAccount,
@@ -245,8 +246,51 @@ export default function AccountView() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex min-h-[420px] max-w-container items-center justify-center text-primary">
-        <Loader2 size={28} className="animate-spin" />
+      <div className="mx-auto max-w-container">
+        {/* Header Skeleton */}
+        <div className="mb-stack-lg flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-outline-variant/40 pb-6">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-4 w-44" />
+          </div>
+          <Skeleton className="h-10 w-28 rounded" />
+        </div>
+
+        {/* Tabs Bar Skeleton */}
+        <div className="mb-stack-lg flex gap-3 border-b border-outline-variant/40 pb-3">
+          <Skeleton className="h-10 w-48 rounded-lg" />
+          <Skeleton className="h-10 w-48 rounded-lg" />
+          <Skeleton className="h-10 w-32 rounded-lg" />
+        </div>
+
+        {/* Main Content Skeleton */}
+        <div className="space-y-6">
+          <div className="rounded-lg bg-background-white p-6 shadow-soft space-y-4">
+            <div className="flex justify-between items-center border-b border-outline-variant/40 pb-4">
+              <Skeleton className="h-6 w-44" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-outline-variant/40 p-5 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="space-y-1">
+                    <Skeleton className="h-5 w-36" />
+                    <Skeleton className="h-3.5 w-48" />
+                  </div>
+                  <Skeleton className="h-6 w-28" />
+                </div>
+                <div className="py-2">
+                  <Skeleton className="h-2 w-full rounded-full" />
+                </div>
+                <div className="flex gap-3">
+                  <Skeleton className="h-12 w-12 rounded" />
+                  <Skeleton className="h-12 w-12 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -361,8 +405,25 @@ export default function AccountView() {
             </div>
 
             {loadingOrders ? (
-              <div className="flex h-36 items-center justify-center text-primary">
-                <Loader2 size={24} className="animate-spin" />
+              <div className="space-y-stack-md">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border border-outline-variant/40 bg-background-white p-5 space-y-4 shadow-xs">
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-5 w-40" />
+                        <Skeleton className="h-3.5 w-48" />
+                      </div>
+                      <Skeleton className="h-6 w-28 rounded-full" />
+                    </div>
+                    <div className="py-2">
+                      <Skeleton className="h-2 w-full rounded-full" />
+                    </div>
+                    <div className="flex gap-3">
+                      <Skeleton className="h-14 w-14 rounded" />
+                      <Skeleton className="h-14 w-14 rounded" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : activeDeliveries.length === 0 ? (
               <div className="rounded-lg border border-dashed border-outline-variant/60 p-8 text-center">
@@ -408,8 +469,25 @@ export default function AccountView() {
             </div>
 
             {loadingOrders ? (
-              <div className="flex h-36 items-center justify-center text-primary">
-                <Loader2 size={24} className="animate-spin" />
+              <div className="space-y-4">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border border-outline-variant/60 bg-surface-container-low p-4 space-y-3">
+                    <div className="flex justify-between items-center border-b border-outline-variant/30 pb-3">
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-40" />
+                      </div>
+                      <Skeleton className="h-6 w-24 rounded-full" />
+                    </div>
+                    <div className="flex gap-3">
+                      <Skeleton className="h-12 w-12 rounded" />
+                      <div className="space-y-1.5 flex-1">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-3 w-28" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : pastOrders.length === 0 ? (
               <div className="p-6 text-center text-xs text-on-surface-variant">

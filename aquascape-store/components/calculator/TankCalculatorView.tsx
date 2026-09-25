@@ -12,6 +12,8 @@ import {
   Sparkles,
   ArrowRight,
   ShoppingBag,
+  ChevronDown,
+  Sliders,
 } from "lucide-react";
 
 /**
@@ -92,6 +94,9 @@ export default function TankCalculatorView() {
 
   // Plant High-Tech vs Low-Tech Target
   const [plantType, setPlantType] = useState<"high-tech" | "low-tech">("high-tech");
+
+  // Tab switcher for mobile & desktop settings ("presets" vs "substrate")
+  const [activeSettingsTab, setActiveSettingsTab] = useState<"presets" | "substrate">("presets");
 
   const handleSelectPreset = (preset: TankPreset) => {
     setSelectedPreset(preset.id);
@@ -201,177 +206,266 @@ export default function TankCalculatorView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* LEFT COLUMN: Controls & Input Parameters */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Preset Buttons */}
-          <div className="rounded-xl bg-background-white p-6 shadow-soft">
-            <h3 className="font-display text-body-lg font-bold text-on-surface mb-3 flex items-center justify-between">
-              <span>1. Standard Tank Presets</span>
-              <span className="text-[11px] font-sans font-normal text-on-surface-variant">L x W x H (cm)</span>
-            </h3>
+        <div className="lg:col-span-5 space-y-4">
+          <div className="rounded-xl bg-background-white p-5 sm:p-6 shadow-soft border border-outline-variant/60">
+            {/* Tab Switcher Header */}
+            <div className="flex rounded-xl bg-surface-container-high/60 p-1 mb-5 border border-outline-variant/40">
+              <button
+                type="button"
+                onClick={() => setActiveSettingsTab("presets")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                  activeSettingsTab === "presets"
+                    ? "bg-background-white text-primary shadow-xs ring-1 ring-black/5"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                <Sliders size={14} />
+                <span>Standard Presets</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSettingsTab("substrate")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                  activeSettingsTab === "substrate"
+                    ? "bg-background-white text-primary shadow-xs ring-1 ring-black/5"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                <Layers size={14} />
+                <span>Substrate &amp; Plant</span>
+              </button>
+            </div>
 
-            <div className="space-y-2">
-              {TANK_PRESETS.map((preset) => {
-                const isSelected = selectedPreset === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => handleSelectPreset(preset)}
-                    className={`w-full text-left p-3.5 rounded-lg border transition-all ${
-                      isSelected
-                        ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
-                        : "border-outline-variant/60 bg-surface-container-low hover:bg-surface-container"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm text-on-surface">{preset.name}</span>
-                      <span className="font-mono text-xs font-bold text-primary">
-                        {preset.length} × {preset.width} × {preset.height} cm
+            {/* TAB 1: Standard Preset Tanks */}
+            {activeSettingsTab === "presets" && (
+              <div className="flex flex-col justify-between min-h-[360px] animate-in fade-in duration-200">
+                <div className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface mb-1.5 flex items-center justify-between">
+                      <span>1. Standard Tank Preset</span>
+                      <span className="text-[10px] font-mono text-primary font-bold">
+                        {selectedPreset !== "custom" ? `${length} × ${width} × ${height} cm` : "Custom"}
+                      </span>
+                    </label>
+                    
+                    {/* Compacted Dropdown */}
+                    <div className="relative">
+                      <select
+                        value={selectedPreset}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "custom") {
+                            setSelectedPreset("custom");
+                          } else {
+                            const preset = TANK_PRESETS.find((p) => p.id === val);
+                            if (preset) handleSelectPreset(preset);
+                          }
+                        }}
+                        className="w-full appearance-none rounded-lg border border-outline-variant/80 bg-surface-container-low px-3.5 py-2.5 pr-10 text-xs font-bold text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                      >
+                        {TANK_PRESETS.map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {preset.name} — {preset.length} × {preset.width} × {preset.height} cm ({preset.category})
+                          </option>
+                        ))}
+                        <option value="custom">✏️ Custom Dimensions...</option>
+                      </select>
+                      <ChevronDown
+                        size={16}
+                        className="pointer-events-none absolute right-3 top-3 text-on-surface-variant"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Selected Preset Info Card / Custom Dimension Helper */}
+                  {selectedPreset !== "custom" ? (
+                    <div className="rounded-lg bg-primary/5 border border-primary/15 p-2.5 text-xs">
+                      <div className="flex items-center justify-between font-bold text-primary text-[11px] mb-0.5">
+                        <span>{TANK_PRESETS.find((p) => p.id === selectedPreset)?.category}</span>
+                        <span className="font-mono bg-primary/10 px-2 py-0.5 rounded-full">
+                          {length} × {width} × {height} cm
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                        {TANK_PRESETS.find((p) => p.id === selectedPreset)?.description}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5 text-xs">
+                      <div className="flex items-center justify-between font-bold text-amber-900 text-[11px] mb-0.5">
+                        <span>Custom Tank Sizing</span>
+                        <span className="font-mono bg-amber-500/20 px-2 py-0.5 rounded-full">
+                          {length} × {width} × {height} cm
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-900/80 leading-relaxed">
+                        Specify custom tank dimensions below. Calculations update in real-time.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Custom Dimension Inputs */}
+                  <div className="border-t border-outline-variant/60 pt-2.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                        Dimensions (Panjang × Lebar × Tinggi)
                       </span>
                     </div>
-                    <p className="text-xs text-on-surface-variant mt-1">{preset.description}</p>
-                  </button>
-                );
-              })}
-            </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-medium text-on-surface-variant mb-1">
+                          Length (P)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={10}
+                            max={300}
+                            value={length}
+                            onChange={(e) => handleCustomDimension(Number(e.target.value) || 10, width, height)}
+                            className="w-full rounded-md border border-outline-variant bg-surface-container-low px-2 py-1.5 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none"
+                          />
+                          <span className="absolute right-2 top-1.5 text-[10px] text-gray-400">cm</span>
+                        </div>
+                      </div>
 
-            {/* Custom Dimension Inputs */}
-            <div className="mt-6 border-t border-outline-variant/60 pt-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block mb-3">
-                Or Custom Tank Dimensions (cm)
-              </span>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-medium text-on-surface-variant mb-1">
-                    Length (Panjang)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min={10}
-                      max={300}
-                      value={length}
-                      onChange={(e) => handleCustomDimension(Number(e.target.value) || 10, width, height)}
-                      className="w-full rounded-md border border-outline-variant bg-surface-container-low px-3 py-2 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none"
-                    />
-                    <span className="absolute right-2 top-2 text-[10px] text-gray-400">cm</span>
+                      <div>
+                        <label className="block text-[10px] font-medium text-on-surface-variant mb-1">
+                          Width (L)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={10}
+                            max={200}
+                            value={width}
+                            onChange={(e) => handleCustomDimension(length, Number(e.target.value) || 10, height)}
+                            className="w-full rounded-md border border-outline-variant bg-surface-container-low px-2 py-1.5 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none"
+                          />
+                          <span className="absolute right-2 top-1.5 text-[10px] text-gray-400">cm</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-medium text-on-surface-variant mb-1">
+                          Height (T)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min={10}
+                            max={200}
+                            value={height}
+                            onChange={(e) => handleCustomDimension(length, width, Number(e.target.value) || 10)}
+                            className="w-full rounded-md border border-outline-variant bg-surface-container-low px-2 py-1.5 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none"
+                          />
+                          <span className="absolute right-2 top-1.5 text-[10px] text-gray-400">cm</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-medium text-on-surface-variant mb-1">
-                    Width (Lebar)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min={10}
-                      max={200}
-                      value={width}
-                      onChange={(e) => handleCustomDimension(length, Number(e.target.value) || 10, height)}
-                      className="w-full rounded-md border border-outline-variant bg-surface-container-low px-3 py-2 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none"
-                    />
-                    <span className="absolute right-2 top-2 text-[10px] text-gray-400">cm</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-on-surface-variant mb-1">
-                    Height (Tinggi)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min={10}
-                      max={200}
-                      value={height}
-                      onChange={(e) => handleCustomDimension(length, width, Number(e.target.value) || 10)}
-                      className="w-full rounded-md border border-outline-variant bg-surface-container-low px-3 py-2 text-xs font-mono font-bold text-on-surface focus:border-primary focus:outline-none"
-                    />
-                    <span className="absolute right-2 top-2 text-[10px] text-gray-400">cm</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Substrate Slope & Scape Style */}
-          <div className="rounded-xl bg-background-white p-6 shadow-soft space-y-5">
-            <h3 className="font-display text-body-lg font-bold text-on-surface">
-              2. Substrate Slope &amp; Plant Target
-            </h3>
-
-            <div>
-              <div className="flex justify-between text-xs font-medium mb-1.5">
-                <span className="text-on-surface">Front Substrate Depth (Depan):</span>
-                <span className="font-mono font-bold text-primary">{frontSubstrateDepth} cm</span>
-              </div>
-              <input
-                type="range"
-                min={2}
-                max={6}
-                step={0.5}
-                value={frontSubstrateDepth}
-                onChange={(e) => setFrontSubstrateDepth(parseFloat(e.target.value))}
-                className="w-full accent-primary"
-              />
-              <span className="text-[11px] text-gray-400">Recommended: 3 - 4 cm for carpet plants.</span>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs font-medium mb-1.5">
-                <span className="text-on-surface">Back Substrate Depth (Belakang / Kemiringan):</span>
-                <span className="font-mono font-bold text-primary">{backSubstrateDepth} cm</span>
-              </div>
-              <input
-                type="range"
-                min={4}
-                max={15}
-                step={0.5}
-                value={backSubstrateDepth}
-                onChange={(e) => setBackSubstrateDepth(parseFloat(e.target.value))}
-                className="w-full accent-primary"
-              />
-              <span className="text-[11px] text-gray-400">Creates depth perception and room for deep stem plant roots.</span>
-            </div>
-
-            {/* Plant Level Segmented Control */}
-            <div className="border-t border-outline-variant/60 pt-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant block mb-2">
-                Planted Ecosystem Target
-              </span>
-              <div className="grid grid-cols-2 gap-2">
+                {/* Quick Next Tab Switcher Button */}
                 <button
                   type="button"
-                  onClick={() => setPlantType("high-tech")}
-                  className={`p-3 rounded-lg border text-xs font-bold transition-all text-left ${
-                    plantType === "high-tech"
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-outline-variant/60 bg-surface-container-low text-on-surface"
-                  }`}
+                  onClick={() => setActiveSettingsTab("substrate")}
+                  className="w-full mt-4 flex items-center justify-between rounded-lg bg-surface-container-low border border-outline-variant/60 px-3.5 py-2.5 text-xs font-bold text-on-surface hover:bg-surface-container hover:text-primary transition-all"
                 >
-                  <p className="font-bold">High-Tech Planted</p>
-                  <p className="text-[10px] font-normal text-on-surface-variant mt-0.5">
-                    CO2 Injected, High Lighting, Rotala / Monte Carlo
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPlantType("low-tech")}
-                  className={`p-3 rounded-lg border text-xs font-bold transition-all text-left ${
-                    plantType === "low-tech"
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-outline-variant/60 bg-surface-container-low text-on-surface"
-                  }`}
-                >
-                  <p className="font-bold">Low-Tech Natural</p>
-                  <p className="text-[10px] font-normal text-on-surface-variant mt-0.5">
-                    No CO2, Moderate Lighting, Anubias / Bucephalandra
-                  </p>
+                  <span>Configure Substrate Slope &amp; Plants</span>
+                  <ArrowRight size={14} className="text-primary" />
                 </button>
               </div>
-            </div>
+            )}
+
+            {/* TAB 2: Substrate Slope & Plant Target */}
+            {activeSettingsTab === "substrate" && (
+              <div className="flex flex-col justify-between min-h-[360px] animate-in fade-in duration-200">
+                <div className="space-y-3.5">
+                  <div>
+                    <div className="flex justify-between text-xs font-medium mb-1">
+                      <span className="text-on-surface font-bold">2. Front Substrate Depth:</span>
+                      <span className="font-mono font-bold text-primary">{frontSubstrateDepth} cm</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={2}
+                      max={6}
+                      step={0.5}
+                      value={frontSubstrateDepth}
+                      onChange={(e) => setFrontSubstrateDepth(parseFloat(e.target.value))}
+                      className="w-full accent-primary h-2 bg-surface-container rounded-lg cursor-pointer"
+                    />
+                    <span className="text-[10px] text-on-surface-variant">Recommended: 3 - 4 cm for carpet plants.</span>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-medium mb-1">
+                      <span className="text-on-surface font-bold">Back Substrate Depth (Slope):</span>
+                      <span className="font-mono font-bold text-primary">{backSubstrateDepth} cm</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={4}
+                      max={15}
+                      step={0.5}
+                      value={backSubstrateDepth}
+                      onChange={(e) => setBackSubstrateDepth(parseFloat(e.target.value))}
+                      className="w-full accent-primary h-2 bg-surface-container rounded-lg cursor-pointer"
+                    />
+                    <span className="text-[10px] text-on-surface-variant">Creates depth perception and room for deep stem roots.</span>
+                  </div>
+
+                  {/* Plant Level Segmented Control */}
+                  <div className="border-t border-outline-variant/60 pt-2.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant block mb-2">
+                      Planted Ecosystem Target
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPlantType("high-tech")}
+                        className={`p-2.5 rounded-lg border text-xs font-bold transition-all text-left ${
+                          plantType === "high-tech"
+                            ? "border-primary bg-primary/10 text-primary shadow-xs"
+                            : "border-outline-variant/60 bg-surface-container-low text-on-surface hover:bg-surface-container"
+                        }`}
+                      >
+                        <p className="font-bold text-[11px]">High-Tech Planted</p>
+                        <p className="text-[9px] font-normal text-on-surface-variant mt-0.5 line-clamp-2">
+                          CO2, High Light, Rotala / Monte Carlo
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPlantType("low-tech")}
+                        className={`p-2.5 rounded-lg border text-xs font-bold transition-all text-left ${
+                          plantType === "low-tech"
+                            ? "border-primary bg-primary/10 text-primary shadow-xs"
+                            : "border-outline-variant/60 bg-surface-container-low text-on-surface hover:bg-surface-container"
+                        }`}
+                      >
+                        <p className="font-bold text-[11px]">Low-Tech Natural</p>
+                        <p className="text-[9px] font-normal text-on-surface-variant mt-0.5 line-clamp-2">
+                          No CO2, Moderate Light, Anubias / Moss
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Prev Tab Switcher Button */}
+                <button
+                  type="button"
+                  onClick={() => setActiveSettingsTab("presets")}
+                  className="w-full mt-4 flex items-center justify-between rounded-lg bg-surface-container-low border border-outline-variant/60 px-3.5 py-2.5 text-xs font-bold text-on-surface hover:bg-surface-container hover:text-primary transition-all"
+                >
+                  <span>← Back to Tank Dimensions</span>
+                  <span className="font-mono text-[10px] text-primary">{length}×{width}×{height}cm</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

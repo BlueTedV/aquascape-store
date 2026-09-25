@@ -4,6 +4,7 @@ import { Poppins, Inter } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
 import { WishlistProvider } from "@/lib/wishlist-context";
 import AuthHashHandler from "@/components/auth/AuthHashHandler";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -35,12 +36,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-scroll-behavior="smooth" className={`${poppins.variable} ${inter.variable}`}>
-      <body>
+      <body className="has-mobile-nav">
         <Suspense fallback={null}>
           <AuthHashHandler />
         </Suspense>
         <CartProvider>
-          <WishlistProvider>{children}</WishlistProvider>
+          <WishlistProvider>
+            {children}
+            <MobileBottomNav />
+          </WishlistProvider>
         </CartProvider>
       </body>
     </html>

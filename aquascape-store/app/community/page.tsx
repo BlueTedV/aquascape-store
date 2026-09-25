@@ -19,6 +19,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SectionReveal from "@/components/ui/SectionReveal";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import Skeleton from "@/components/ui/Skeleton";
 import { GalleryPost } from "@/lib/types";
 import { getGalleryPosts, createGalleryPost, likeGalleryPost } from "@/lib/api/gallery";
 import { getStoredSession } from "@/lib/api/auth";
@@ -255,8 +256,26 @@ export default function CommunityPage() {
 
             {/* Masonry Post Grid */}
             {loading ? (
-              <div className="py-20 text-center font-sans text-body-lg text-on-surface-variant">
-                Loading community showcase...
+              <div className="mt-8 columns-1 gap-gutter sm:columns-2 lg:columns-3">
+                {[
+                  "aspect-[4/5]",
+                  "aspect-square",
+                  "aspect-[4/3]",
+                  "aspect-square",
+                  "aspect-[4/5]",
+                  "aspect-[4/3]",
+                ].map((aspect, i) => (
+                  <div key={i} className="mb-gutter break-inside-avoid overflow-hidden rounded-xl bg-background-white p-3 shadow-soft space-y-3">
+                    <Skeleton className={`w-full ${aspect} rounded-lg`} />
+                    <div className="flex justify-between items-center px-1">
+                      <div className="space-y-1 flex-1">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-7 w-12 rounded-full" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : posts.length === 0 ? (
               <div className="py-20 text-center font-sans text-body-lg text-on-surface-variant">

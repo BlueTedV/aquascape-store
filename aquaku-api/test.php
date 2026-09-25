@@ -1,1 +1,0 @@
-<?php require 'vendor/autoload.php'; $app = require_once 'bootstrap/app.php'; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); $res = \Illuminate\Support\Facades\Http::withHeaders(['apikey' => config('services.supabase.key')])->get(config('services.supabase.url').'/rest/v1/orders', ['limit' => 1])->json(); print_r(array_keys($res[0] ?? []));

@@ -26,10 +26,14 @@ export async function getGalleryPosts(options?: {
   }
 
   try {
-    const response = await fetch(`${API_URL}/api/gallery?sort=${sort}&limit=${limit}`, {
-      headers,
-      cache: "no-store",
-    });
+    const fetchOptions: RequestInit = { headers };
+    if (!token) {
+      fetchOptions.next = { revalidate: 60, tags: ["gallery"] };
+    } else {
+      fetchOptions.cache = "no-store";
+    }
+
+    const response = await fetch(`${API_URL}/api/gallery?sort=${sort}&limit=${limit}`, fetchOptions);
 
     if (response.ok) {
       const payload = (await response.json()) as ApiResponse<GalleryPost[]>;

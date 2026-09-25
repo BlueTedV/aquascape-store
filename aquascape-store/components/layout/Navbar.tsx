@@ -297,6 +297,16 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
 
         {/* Right Icon Actions */}
         <div className="flex items-center gap-1 md:gap-2">
+          {/* Mobile Search Button */}
+          <button
+            type="button"
+            aria-label="Search products"
+            onClick={() => setSearchOpen(true)}
+            className="rounded-full p-2 text-on-surface-variant transition-colors hover:text-primary sm:hidden"
+          >
+            <Search size={20} />
+          </button>
+
           <form
             onSubmit={submitSearch}
             onBlur={closeSearchOnBlur}
@@ -379,13 +389,40 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
         </div>
       </div>
 
+      {/* Mobile Search Overlay Bar */}
+      {searchOpen && (
+        <div className="absolute inset-0 z-50 flex items-center bg-white px-4 shadow-md sm:hidden animate-in fade-in slide-in-from-top-1 duration-150">
+          <form onSubmit={submitSearch} className="flex w-full items-center gap-2">
+            <Search size={18} className="shrink-0 text-primary" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search plants, stones, fish..."
+              className="w-full bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant/60"
+              autoFocus
+            />
+            <button
+              type="button"
+              aria-label="Close search"
+              onClick={() => setSearchOpen(false)}
+              className="rounded-full p-1.5 text-on-surface-variant hover:text-primary"
+            >
+              <X size={18} />
+            </button>
+          </form>
+        </div>
+      )}
+
       {/* Mobile Drawer Menu */}
       {mobileOpen && (
-        <div className="glass-nav flex flex-col gap-1 border-t border-outline-variant/30 px-edge-margin-mobile py-stack-md md:hidden">
+        <div className="glass-nav flex flex-col gap-1 border-t border-outline-variant/30 px-edge-margin-mobile py-stack-md shadow-xl md:hidden animate-in fade-in slide-in-from-top-2 duration-150">
           <Link
             href="/"
             onClick={() => setMobileOpen(false)}
-            className="rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+            className="rounded px-3 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
           >
             Home
           </Link>
@@ -395,7 +432,7 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
             <button
               type="button"
               onClick={() => setMobileShopOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+              className="flex w-full items-center justify-between rounded px-3 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
             >
               <span>Shop Catalog</span>
               <ChevronDown
@@ -423,33 +460,33 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
           <Link
             href="/calculator"
             onClick={() => setMobileOpen(false)}
-            className="rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+            className="rounded px-3 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
           >
-            Calculator
+            Tank Calculator
           </Link>
 
           <Link
             href="/community"
             onClick={() => setMobileOpen(false)}
-            className="rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+            className="rounded px-3 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
           >
-            Community
+            Community Hub
           </Link>
 
           <Link
             href="/contact"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-2 rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+            className="flex items-center gap-2 rounded px-3 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
           >
             <Headphones size={16} />
-            Contact Us
+            Contact Support
           </Link>
 
           <div className="my-1 border-t border-outline-variant/30 pt-1">
             <Link
               href="/wishlist"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center justify-between rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+              className="flex items-center justify-between rounded px-3 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
             >
               <span className="flex items-center gap-2">
                 <Heart size={18} className={wishlistCount > 0 ? "fill-rose-500 text-rose-500" : ""} />
@@ -465,7 +502,7 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
             <Link
               href="/account"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 rounded px-2 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+              className="flex items-center gap-2 rounded px-3 py-2 font-sans text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
             >
               <User size={18} />
               <span>My Account</span>
@@ -476,7 +513,7 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
             <Link
               href="/manage"
               onClick={() => setMobileOpen(false)}
-              className="rounded px-2 py-2 font-sans text-body-md text-primary font-bold hover:bg-surface-container-low"
+              className="rounded px-3 py-2 font-sans text-body-md text-primary font-bold hover:bg-surface-container-low"
             >
               Admin Dashboard
             </Link>

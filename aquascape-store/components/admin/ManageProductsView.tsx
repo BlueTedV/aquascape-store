@@ -21,6 +21,7 @@ import { ProductDetail } from "@/lib/api/products";
 import { ProductBadge } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import Skeleton from "@/components/ui/Skeleton";
 import ManageHeroSlidesView from "./ManageHeroSlidesView";
 import ManagePromosView from "./ManagePromosView";
 
@@ -353,8 +354,46 @@ export default function ManageProductsView() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex min-h-[460px] max-w-container items-center justify-center text-primary">
-        <Loader2 size={28} className="animate-spin" />
+      <div className="mx-auto max-w-container space-y-6">
+        {/* Sub-navigation Tabs Skeleton */}
+        <div className="flex border-b border-outline-variant/60 gap-4 pb-1">
+          <Skeleton className="h-10 w-36 rounded-t-lg" />
+          <Skeleton className="h-10 w-36 rounded-t-lg" />
+          <Skeleton className="h-10 w-44 rounded-t-lg" />
+        </div>
+
+        {/* Action Header Skeleton */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-44" />
+            <Skeleton className="h-3.5 w-64" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-36 rounded" />
+            <Skeleton className="h-10 w-36 rounded" />
+          </div>
+        </div>
+
+        {/* Filter Bar Skeleton */}
+        <div className="flex gap-3">
+          <Skeleton className="h-11 flex-1 rounded-xl" />
+          <Skeleton className="h-11 w-44 rounded-xl" />
+        </div>
+
+        {/* Table / Cards Skeleton */}
+        <div className="rounded-xl border border-outline-variant/40 bg-background-white p-4 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 py-2 border-b border-outline-variant/20 last:border-0">
+              <Skeleton className="h-14 w-14 rounded-lg shrink-0" />
+              <div className="space-y-1.5 flex-1">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-8 w-20 rounded" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

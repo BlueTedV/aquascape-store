@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -25,15 +26,17 @@ class SupabaseHeroSlideService
 
     public function getSlides(): array
     {
-        $rows = $this->request()
-            ->get('/rest/v1/hero_slides', [
-                'select' => '*',
-                'order' => 'created_at.asc',
-            ])
-            ->throw()
-            ->json();
+        return Cache::remember('hero_slides_list', 600, function () {
+            $rows = $this->request()
+                ->get('/rest/v1/hero_slides', [
+                    'select' => '*',
+                    'order' => 'created_at.asc',
+                ])
+                ->throw()
+                ->json();
 
-        return collect($rows)->map(fn (array $row) => $this->mapSlide($row))->all();
+            return collect($rows)->map(fn (array $row) => $this->mapSlide($row))->all();
+        });
     }
 
     public function createSlide(array $payload): array
@@ -62,6 +65,8 @@ class SupabaseHeroSlideService
             ->throw()
             ->json();
 
+        Cache::forget('hero_slides_list');
+
         $row = $insertedRows[0] ?? $insertedRows;
 
         return $this->mapSlide($row);
@@ -74,6 +79,8 @@ class SupabaseHeroSlideService
             ->delete('/rest/v1/hero_slides')
             ->throw();
 
+        Cache::forget('hero_slides_list');
+
         return true;
     }
 
@@ -83,6 +90,8 @@ class SupabaseHeroSlideService
             ->withQueryParameters(['id' => 'not.is.null'])
             ->delete('/rest/v1/hero_slides')
             ->throw();
+
+        Cache::forget('hero_slides_list');
 
         return true;
     }

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   Check,
   ChevronLeft,
@@ -21,6 +21,7 @@ import { useAuthCart } from "@/lib/use-auth-cart";
 import { useWishlist } from "@/lib/wishlist-context";
 import { DbProduct } from "@/lib/api/products";
 import { getHeroSlides, HeroSlideItem } from "@/lib/api/hero-slides";
+import MobileFilterDrawer from "@/components/shop/MobileFilterDrawer";
 
 type CategorySlug =
   | "all"
@@ -312,27 +313,27 @@ function ProductTile({ product }: { product: CatalogProduct }) {
         type="button"
         aria-label={favorited ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
         onClick={handleToggleWishlist}
-        className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-xs transition-all duration-200 hover:scale-110 ${
-          favorited ? "text-rose-500" : "text-on-surface-variant hover:text-rose-500 opacity-80 group-hover:opacity-100"
+        className={`absolute right-2 top-2 sm:right-3 sm:top-3 z-10 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-xs transition-all duration-200 hover:scale-110 ${
+          favorited ? "text-rose-500" : "text-on-surface-variant hover:text-rose-500 opacity-90 sm:opacity-80 sm:group-hover:opacity-100"
         }`}
       >
-        <Heart size={16} className={favorited ? "fill-rose-500 text-rose-500" : ""} />
+        <Heart size={14} className={`sm:h-4 sm:w-4 ${favorited ? "fill-rose-500 text-rose-500" : ""}`} />
       </button>
 
       <Link
         href={`/product/${product.slug}`}
-        className="relative block aspect-[4/3] overflow-hidden bg-surface-container"
+        className="relative block aspect-square sm:aspect-[4/3] overflow-hidden bg-surface-container"
       >
         <Image
           src={product.image}
           alt={product.name}
           fill
-          sizes="(min-width: 1280px) 260px, (min-width: 768px) 33vw, 100vw"
+          sizes="(min-width: 1280px) 260px, (min-width: 768px) 33vw, 50vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {badge && (
           <span
-            className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase text-white shadow-xs ${
+            className={`absolute left-2 top-2 sm:left-3 sm:top-3 rounded-full px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-bold uppercase text-white shadow-xs ${
               isOutOfStock
                 ? "bg-red-600"
                 : isLowStock
@@ -345,25 +346,25 @@ function ProductTile({ product }: { product: CatalogProduct }) {
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col p-4">
-        <div className="mb-2 flex items-center justify-between gap-2 text-[11px] uppercase text-on-surface-variant">
-          <div className="flex items-center gap-2">
-            <span>{product.category}</span>
-            <span className={`px-1.5 py-0.5 rounded-sm font-medium tracking-wide ${isOutOfStock ? 'bg-red-50 text-red-600' : 'bg-surface-container-highest text-on-surface'}`}>
-              {isOutOfStock ? 'Out of stock' : `Stock: ${product.stock}`}
+      <div className="flex flex-1 flex-col p-2.5 sm:p-4">
+        <div className="mb-1.5 flex items-center justify-between gap-1 text-[10px] sm:text-[11px] uppercase text-on-surface-variant">
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="truncate">{product.category}</span>
+            <span className={`hidden xs:inline-block px-1.5 py-0.5 rounded-sm font-medium tracking-wide ${isOutOfStock ? 'bg-red-50 text-red-600' : 'bg-surface-container-highest text-on-surface'}`}>
+              {isOutOfStock ? 'Out' : `${product.stock}`}
             </span>
           </div>
-          <span className="flex items-center gap-1 text-price-green">
-            <Star size={12} className="fill-price-green" />
+          <span className="flex shrink-0 items-center gap-0.5 text-price-green font-bold">
+            <Star size={11} className="fill-price-green sm:h-3 sm:w-3" />
             {product.rating.toFixed(1)}
           </span>
         </div>
         <Link href={`/product/${product.slug}`}>
-          <h3 className="line-clamp-2 min-h-12 font-display text-body-md font-bold leading-snug text-on-surface transition-colors group-hover:text-primary">
+          <h3 className="line-clamp-2 min-h-8 sm:min-h-12 font-display text-xs sm:text-body-md font-bold leading-snug text-on-surface transition-colors group-hover:text-primary">
             {product.name}
           </h3>
         </Link>
-        <div className="mt-3 flex min-h-[58px] content-start flex-wrap gap-1.5">
+        <div className="hidden sm:flex mt-3 min-h-[58px] content-start flex-wrap gap-1.5">
           {product.tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
@@ -373,18 +374,18 @@ function ProductTile({ product }: { product: CatalogProduct }) {
             </span>
           ))}
         </div>
-        <div className="mt-auto flex min-h-[52px] items-end justify-between gap-3 pt-3">
-          <div>
-            <div className="font-sans text-body-md font-bold text-price-green">
+        <div className="mt-auto flex min-h-[36px] sm:min-h-[52px] items-end justify-between gap-2 sm:gap-3 pt-2 sm:pt-3">
+          <div className="min-w-0">
+            <div className="font-sans text-xs sm:text-body-md font-bold text-price-green truncate">
               {formatIDR(product.price)}
               {product.unit && (
-                <span className="text-xs font-normal text-on-surface-variant">
-                  / {product.unit}
+                <span className="text-[10px] sm:text-xs font-normal text-on-surface-variant">
+                  /{product.unit}
                 </span>
               )}
             </div>
             {product.compareAtPrice && (
-              <div className="mt-1 text-xs text-on-surface-variant line-through">
+              <div className="text-[10px] sm:text-xs text-on-surface-variant line-through truncate">
                 {formatIDR(product.compareAtPrice)}
               </div>
             )}
@@ -394,13 +395,13 @@ function ProductTile({ product }: { product: CatalogProduct }) {
             disabled={isOutOfStock}
             aria-label={isOutOfStock ? `${product.name} is out of stock` : `Add ${product.name} to cart`}
             onClick={handleAddToCart}
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+            className={`flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full transition-colors active:scale-90 ${
               isOutOfStock
                 ? "bg-surface-container text-on-surface-variant/40 cursor-not-allowed"
                 : "bg-primary text-on-primary hover:bg-primary-container"
             }`}
           >
-            {added ? <Check size={18} /> : <ShoppingBasket size={18} />}
+            {added ? <Check size={14} className="sm:h-[18px] sm:w-[18px]" /> : <ShoppingBasket size={14} className="sm:h-[18px] sm:w-[18px]" />}
           </button>
         </div>
       </div>
@@ -427,21 +428,22 @@ export default function ProductCatalog({
 }: ProductCatalogProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
-  const maxCatalogPrice =
-    propMaxPrice ||
-    useMemo(
-      () => Math.max(1000000, ...products.map((product) => product.price)),
-      [products, propMaxPrice],
-    );
+  const fallbackMaxPrice = useMemo(
+    () => Math.max(1000000, ...products.map((product) => product.price)),
+    [products],
+  );
+  const maxCatalogPrice = propMaxPrice || fallbackMaxPrice;
 
+  const fallbackBrands = useMemo(
+    () => Array.from(new Set(products.map((product) => product.brand))).sort(),
+    [products],
+  );
   const brands =
     catalogBrands && catalogBrands.length > 0
       ? catalogBrands
-      : useMemo(
-          () => Array.from(new Set(products.map((product) => product.brand))).sort(),
-          [products, catalogBrands],
-        );
+      : fallbackBrands;
 
   const [category, setCategory] = useState<CategorySlug>(
     getSafeCategory(initialCategory),
@@ -451,6 +453,7 @@ export default function ProductCatalog({
   const [sort, setSort] = useState<SortOption>(initialSort ?? "popular");
   const [maxPrice, setMaxPrice] = useState(initialMaxPrice ?? maxCatalogPrice);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(initialBrands ?? []);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<StatusFilter[]>(
     initialStatuses && initialStatuses.length > 0
       ? initialStatuses
@@ -475,8 +478,36 @@ export default function ProductCatalog({
       current.delete("page");
     }
     const qs = current.toString();
-    router.push(`/shop${qs ? `?${qs}` : ""}`, { scroll: false });
+    startTransition(() => {
+      router.push(`/shop${qs ? `?${qs}` : ""}`, { scroll: false });
+    });
   };
+
+  useEffect(() => {
+    setCategory(getSafeCategory(initialCategory));
+  }, [initialCategory]);
+
+  useEffect(() => {
+    setCollection(initialCollection ?? "all");
+  }, [initialCollection]);
+
+  useEffect(() => {
+    setSelectedBrands(initialBrands ?? []);
+  }, [initialBrands]);
+
+  useEffect(() => {
+    setSelectedStatuses(initialStatuses ?? []);
+  }, [initialStatuses]);
+
+  useEffect(() => {
+    if (initialSort) setSort(initialSort);
+  }, [initialSort]);
+
+  useEffect(() => {
+    if (initialMaxPrice !== undefined) {
+      setMaxPrice(initialMaxPrice);
+    }
+  }, [initialMaxPrice]);
 
   const setCategoryAndReset = (nextCategory: CategorySlug) => {
     setCategory(nextCategory);
@@ -552,8 +583,8 @@ export default function ProductCatalog({
 
       <section className="bg-surface-container-low pb-section-gap-mobile md:pb-section-gap">
         <div className="mx-auto max-w-container px-edge-margin-mobile md:px-edge-margin-desktop">
-          <div className="sticky top-[60px] z-30 -mx-edge-margin-mobile border-b border-outline-variant/40 bg-background-white/95 px-edge-margin-mobile py-3 backdrop-blur md:-mx-edge-margin-desktop md:px-edge-margin-desktop">
-            <div className="no-scrollbar flex items-center gap-3 overflow-x-auto">
+          <div className="sticky top-[60px] z-30 -mx-edge-margin-mobile border-b border-outline-variant/40 bg-background-white/95 px-edge-margin-mobile py-2.5 backdrop-blur md:-mx-edge-margin-desktop md:px-edge-margin-desktop">
+            <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1 sm:gap-3">
               {categoryTabs.map((tab) => {
                 const selected = category === tab.value;
 
@@ -562,9 +593,9 @@ export default function ProductCatalog({
                     key={tab.value}
                     type="button"
                     onClick={() => setCategoryAndReset(tab.value)}
-                    className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold transition-colors ${
                       selected
-                        ? "bg-primary text-on-primary"
+                        ? "bg-primary text-on-primary shadow-xs"
                         : "bg-surface-container-low text-on-surface hover:bg-primary-fixed hover:text-on-primary-fixed"
                     }`}
                   >
@@ -573,10 +604,49 @@ export default function ProductCatalog({
                 );
               })}
             </div>
+
+            {/* Mobile Filter & Sort Bar (Exclusive for mobile, hidden on lg) */}
+            <div className="mt-2 flex items-center justify-between gap-2 border-t border-outline-variant/20 pt-2 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(true)}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95 ${
+                  activeFilterCount > 0
+                    ? "bg-primary text-on-primary shadow-xs"
+                    : "border border-outline-variant/60 bg-surface-container-low text-on-surface"
+                }`}
+              >
+                <SlidersHorizontal size={13} />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-black text-primary">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-on-surface-variant font-medium">
+                  {total} {total === 1 ? "item" : "items"}
+                </span>
+                <select
+                  value={sort}
+                  onChange={(event) => handleSortChange(event.target.value as SortOption)}
+                  className="rounded-full border border-outline-variant/60 bg-surface-container-low px-2.5 py-1 text-xs font-bold text-on-surface outline-none"
+                >
+                  <option value="popular">Popularity</option>
+                  <option value="newest">Newest</option>
+                  <option value="price-asc">Price: Low</option>
+                  <option value="price-desc">Price: High</option>
+                  <option value="rating">Rating</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-gutter pt-stack-lg lg:grid-cols-[240px_1fr]">
-            <aside className="rounded-lg bg-background-white p-stack-md shadow-soft lg:sticky lg:top-32">
+            {/* Desktop-only filter sidebar, hidden on mobile */}
+            <aside className="hidden lg:block lg:sticky lg:top-32 rounded-lg bg-background-white p-stack-md shadow-soft">
               <div className="mb-stack-md flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 font-display text-body-lg font-bold text-on-surface">
                   <SlidersHorizontal size={18} className="text-primary" />
@@ -756,7 +826,7 @@ export default function ProductCatalog({
 
               {products.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 xl:grid-cols-3">
+                  <div className={`grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-gutter xl:grid-cols-3 transition-opacity duration-200 ${isPending ? "opacity-60" : "opacity-100"}`}>
                     {products.map((product) => (
                       <ProductTile key={product.id} product={product} />
                     ))}
@@ -824,6 +894,30 @@ export default function ProductCatalog({
           </div>
         </div>
       </section>
+
+      {/* Slide-Up Mobile Filter Drawer */}
+      <MobileFilterDrawer
+        isOpen={mobileFilterOpen}
+        onClose={() => setMobileFilterOpen(false)}
+        totalProducts={total}
+        collections={collections}
+        selectedCollection={collection}
+        onSelectCollection={setCollectionAndFilter}
+        maxCatalogPrice={maxCatalogPrice}
+        maxPrice={maxPrice}
+        onPriceChange={(val) => {
+          setMaxPrice(val);
+          handlePriceCommit(val);
+        }}
+        brands={brands}
+        selectedBrands={selectedBrands}
+        onToggleBrand={toggleBrand}
+        statusOptions={statusOptions}
+        selectedStatuses={selectedStatuses}
+        onToggleStatus={toggleStatus}
+        activeFilterCount={activeFilterCount}
+        onResetFilters={resetFilters}
+      />
     </>
   );
 }

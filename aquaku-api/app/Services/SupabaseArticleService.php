@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -23,57 +24,76 @@ class SupabaseArticleService
         }
     }
 
+    public function articleVersion(): int
+    {
+        return (int) Cache::get('articles_version', 1);
+    }
+
+    public function clearArticleCache(): void
+    {
+        Cache::increment('articles_version');
+    }
+
     public function getArticles(?string $query = null, ?string $category = null, bool $publishedOnly = true): array
     {
-        $params = [
-            'select' => '*',
-            'order' => 'featured.desc,created_at.desc',
-        ];
+        $v = $this->articleVersion();
+        $cacheKey = "articles_v{$v}_" . md5(json_encode([$query, $category, $publishedOnly]));
 
-        if ($publishedOnly) {
-            $params['is_published'] = 'eq.true';
-        }
+        return Cache::remember($cacheKey, 600, function () use ($query, $category, $publishedOnly) {
+            $params = [
+                'select' => '*',
+                'order' => 'featured.desc,created_at.desc',
+            ];
 
-        if ($category && $category !== 'All') {
-            $params['category'] = "eq.{$category}";
-        }
+            if ($publishedOnly) {
+                $params['is_published'] = 'eq.true';
+            }
 
-        $rows = $this->request()
-            ->get('/rest/v1/articles', $params)
-            ->throw()
-            ->json();
+            if ($category && $category !== 'All') {
+                $params['category'] = "eq.{$category}";
+            }
 
-        $collection = collect($rows)->map(fn (array $row) => $this->mapArticle($row));
+            $rows = $this->request()
+                ->get('/rest/v1/articles', $params)
+                ->throw()
+                ->json();
 
-        if ($query && trim($query) !== '') {
-            $q = mb_strtolower(trim($query));
-            $collection = $collection->filter(function (array $item) use ($q) {
-                return Str::contains(mb_strtolower($item['title']), $q)
-                    || Str::contains(mb_strtolower($item['summary']), $q)
-                    || Str::contains(mb_strtolower($item['category']), $q)
-                    || collect($item['tags'])->some(fn ($t) => Str::contains(mb_strtolower((string) $t), $q));
-            })->values();
-        }
+            $collection = collect($rows)->map(fn (array $row) => $this->mapArticle($row));
 
-        return $collection->all();
+            if ($query && trim($query) !== '') {
+                $q = mb_strtolower(trim($query));
+                $collection = $collection->filter(function (array $item) use ($q) {
+                    return Str::contains(mb_strtolower($item['title']), $q)
+                        || Str::contains(mb_strtolower($item['summary']), $q)
+                        || Str::contains(mb_strtolower($item['category']), $q)
+                        || collect($item['tags'])->some(fn ($t) => Str::contains(mb_strtolower((string) $t), $q));
+                })->values();
+            }
+
+            return $collection->all();
+        });
     }
 
     public function getArticle(string $slug): ?array
     {
-        $rows = $this->request()
-            ->get('/rest/v1/articles', [
-                'select' => '*',
-                'slug' => "eq.{$slug}",
-                'limit' => 1,
-            ])
-            ->throw()
-            ->json();
+        $v = $this->articleVersion();
 
-        if (empty($rows)) {
-            return null;
-        }
+        return Cache::remember("article_v{$v}_{$slug}", 600, function () use ($slug) {
+            $rows = $this->request()
+                ->get('/rest/v1/articles', [
+                    'select' => '*',
+                    'slug' => "eq.{$slug}",
+                    'limit' => 1,
+                ])
+                ->throw()
+                ->json();
 
-        return $this->mapArticle($rows[0]);
+            if (empty($rows)) {
+                return null;
+            }
+
+            return $this->mapArticle($rows[0]);
+        });
     }
 
     public function createArticle(array $payload): array
@@ -116,6 +136,8 @@ class SupabaseArticleService
             ->post('/rest/v1/articles', $insertData)
             ->throw()
             ->json();
+
+        $this->clearArticleCache();
 
         $row = $insertedRows[0] ?? $insertedRows;
 
@@ -166,6 +188,8 @@ class SupabaseArticleService
             ->throw()
             ->json();
 
+        $this->clearArticleCache();
+
         $row = $updatedRows[0] ?? $updatedRows;
 
         return $this->mapArticle($row);
@@ -177,6 +201,8 @@ class SupabaseArticleService
             ->withQueryParameters(['id' => "eq.{$id}"])
             ->delete('/rest/v1/articles')
             ->throw();
+
+        $this->clearArticleCache();
 
         return true;
     }
