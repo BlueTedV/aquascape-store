@@ -19,6 +19,11 @@ import {
   Ticket,
   X,
   Lock,
+  MapPin,
+  Truck,
+  CreditCard,
+  ChevronDown,
+  FileText,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { formatIDR } from "@/lib/format";
@@ -87,11 +92,21 @@ export default function CheckoutView() {
   const [validatingVoucher, setValidatingVoucher] = useState(false);
   const [voucherError, setVoucherError] = useState<string | null>(null);
 
+  // Delivery App Mobile Layout States
+  const [isAddressExpanded, setIsAddressExpanded] = useState(false);
+  const [isPaymentExpanded, setIsPaymentExpanded] = useState(false);
+  const [isOrderSummaryOpen, setIsOrderSummaryOpen] = useState(false);
+
   // Auto-fill logged in user account info
   useEffect(() => {
     getCurrentAccount()
       .then((account) => {
-        if (!account) return;
+        if (!account) {
+          setIsAddressExpanded(true);
+          return;
+        }
+        const hasAddress = Boolean(account.shippingAddress?.addressLine1);
+        setIsAddressExpanded(!hasAddress);
         setFormData((prev) => ({
           ...prev,
           customerName: prev.customerName || account.profile?.fullName || account.user.fullName || "",
@@ -110,7 +125,7 @@ export default function CheckoutView() {
         }));
       })
       .catch(() => {
-        // Guest checkout mode
+        setIsAddressExpanded(true);
       });
   }, []);
 
@@ -274,6 +289,19 @@ export default function CheckoutView() {
       return;
     }
 
+    if (
+      !formData.customerName.trim() ||
+      !formData.customerEmail.trim() ||
+      !formData.customerPhone.trim() ||
+      !formData.shippingAddress.trim() ||
+      !formData.shippingCity.trim() ||
+      !formData.shippingPostalCode.trim()
+    ) {
+      setIsAddressExpanded(true);
+      setErrorMessage("Please complete all required shipping and contact details.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -363,158 +391,207 @@ export default function CheckoutView() {
   }
 
   return (
-    <div className="mx-auto max-w-container px-edge-margin-mobile pb-20 pt-24 md:px-edge-margin-desktop">
+    <div className="mx-auto max-w-container px-3 pb-28 pt-3 sm:px-edge-margin-desktop sm:pt-24 md:pb-20">
       <MidtransSnapScript />
-      <Breadcrumb />
 
-      <h1 className="font-display text-headline-lg text-on-surface">Checkout</h1>
-      <p className="mt-1 text-body-md text-on-surface-variant">
-        Complete your order details below to receive your aquascaping essentials.
-      </p>
+      {/* Compact Mobile Header with Back Button */}
+      <div className="mb-2.5 flex items-center justify-between gap-3 sm:mb-6">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/cart"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-outline-variant/60 bg-background-white text-on-surface shadow-xs transition-all hover:bg-surface-container-low hover:text-primary active:scale-95 sm:hidden"
+            aria-label="Back to Cart"
+          >
+            <ArrowLeft size={16} strokeWidth={2.2} />
+          </Link>
+          <div>
+            <h1 className="font-display text-base sm:text-headline-lg font-bold text-on-surface">
+              Checkout
+            </h1>
+            <p className="text-[10px] sm:text-body-md text-on-surface-variant line-clamp-1">
+              {formData.shippingCity ? `Delivery to ${formData.shippingCity}` : "Complete delivery details"}
+            </p>
+          </div>
+        </div>
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+          {items.reduce((acc, item) => acc + item.quantity, 0)} {items.reduce((acc, item) => acc + item.quantity, 0) === 1 ? "item" : "items"}
+        </span>
+      </div>
+
+      <div className="hidden sm:block">
+        <Breadcrumb />
+      </div>
 
       {!process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY && (
-        <div className="mt-6 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm">
-          <AlertCircle size={20} className="shrink-0 text-amber-600 mt-0.5" />
+        <div className="mb-3 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-2.5 sm:p-4 text-amber-900 shadow-sm">
+          <AlertCircle size={16} className="shrink-0 text-amber-600 mt-0.5" />
           <div className="text-xs">
             <p className="font-bold">Midtrans Client Key Missing</p>
-            <p className="mt-0.5">
+            <p className="mt-0.5 text-[11px]">
               <code>NEXT_PUBLIC_MIDTRANS_CLIENT_KEY</code> is not defined in <code>aquascape-store/.env.local</code>.
-              The Midtrans payment popup cannot load without this client key.
             </p>
           </div>
         </div>
       )}
 
       {errorMessage && (
-        <div className="mt-6 flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-red-900 shadow-sm">
-          <XCircle size={20} className="shrink-0 text-red-600 mt-0.5" />
+        <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-2.5 sm:p-4 text-red-900 shadow-sm">
+          <XCircle size={16} className="shrink-0 text-red-600 mt-0.5" />
           <div className="text-xs">
-            <p className="font-bold">Checkout / Payment Gateway Error</p>
+            <p className="font-bold">Checkout Error</p>
             <p className="mt-0.5 font-mono text-[11px] break-all">{errorMessage}</p>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mt-stack-lg grid gap-gutter lg:grid-cols-[1fr_420px]">
-        {/* Left Column: Form Sections */}
-        <div className="space-y-stack-md">
-          {/* Section 1: Customer Contact Info */}
-          <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
-            <h2 className="font-display text-body-lg font-bold text-on-surface">
-              1. Customer Information
-            </h2>
-
-            <div className="mt-stack-sm grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  name="customerName"
-                  required
-                  placeholder="e.g. Budi Santoso"
-                  value={formData.customerName}
-                  onChange={handleChange}
-                  className="mt-1.5 w-full rounded border border-outline-variant/60 bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface transition-colors focus:border-primary focus:outline-none"
-                />
+      <form id="checkout-form" onSubmit={handleSubmit} className="grid gap-2.5 sm:gap-gutter lg:grid-cols-[1fr_420px]">
+        {/* Left Column: Delivery Form Sections */}
+        <div className="space-y-2 sm:space-y-stack-md">
+          {/* Section 1: Delivery Address & Contact (Compact Delivery App Card) */}
+          <div className="rounded-xl border border-outline-variant/60 bg-background-white p-2.5 sm:p-3.5 shadow-soft">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2 min-w-0">
+                <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary mt-0.5 sm:mt-0">
+                  <MapPin size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                      Delivery Address
+                    </span>
+                    {formData.customerName && (
+                      <span className="truncate text-xs font-bold text-on-surface">
+                        • {formData.customerName}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-on-surface">
+                    {formData.shippingAddress
+                      ? `${formData.shippingAddress}, ${formData.shippingCity}`
+                      : "No address entered yet"}
+                  </p>
+                  <p className="text-[11px] text-on-surface-variant truncate">
+                    {formData.customerPhone || formData.customerEmail || "Tap Change to enter address details"}
+                  </p>
+                </div>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  name="customerEmail"
-                  required
-                  placeholder="name@example.com"
-                  value={formData.customerEmail}
-                  onChange={handleChange}
-                  className="mt-1.5 w-full rounded border border-outline-variant/60 bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface transition-colors focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                  Phone Number (WhatsApp) *
-                </label>
-                <input
-                  type="tel"
-                  name="customerPhone"
-                  required
-                  placeholder="e.g. 081234567890"
-                  value={formData.customerPhone}
-                  onChange={handleChange}
-                  className="mt-1.5 w-full rounded border border-outline-variant/60 bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface transition-colors focus:border-primary focus:outline-none"
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddressExpanded((v) => !v)}
+                className="shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-colors"
+              >
+                {isAddressExpanded ? "Done" : "Change"}
+              </button>
             </div>
-          </div>
 
-          {/* Section 2: Shipping Destination */}
-          <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
-            <h2 className="font-display text-body-lg font-bold text-on-surface">
-              2. Shipping Address
-            </h2>
+            {/* Address & Contact Input Fields */}
+            <div className={`mt-2.5 pt-2.5 border-t border-outline-variant/30 space-y-2.5 ${isAddressExpanded ? "block" : "hidden sm:block"}`}>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div>
+                  <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="customerName"
+                    required
+                    placeholder="Budi Santoso"
+                    value={formData.customerName}
+                    onChange={handleChange}
+                    className="mt-0.5 w-full rounded-lg border border-outline-variant/60 bg-surface-container-low px-2.5 py-1.5 text-xs sm:text-sm text-on-surface focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    name="customerEmail"
+                    required
+                    placeholder="budi@example.com"
+                    value={formData.customerEmail}
+                    onChange={handleChange}
+                    className="mt-0.5 w-full rounded-lg border border-outline-variant/60 bg-surface-container-low px-2.5 py-1.5 text-xs sm:text-sm text-on-surface focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+                    Phone (WhatsApp) *
+                  </label>
+                  <input
+                    type="tel"
+                    name="customerPhone"
+                    required
+                    placeholder="081234567890"
+                    value={formData.customerPhone}
+                    onChange={handleChange}
+                    className="mt-0.5 w-full rounded-lg border border-outline-variant/60 bg-surface-container-low px-2.5 py-1.5 text-xs sm:text-sm text-on-surface focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
 
-            <div className="mt-stack-sm space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
                   Street Address *
                 </label>
                 <textarea
                   name="shippingAddress"
                   required
-                  rows={3}
+                  rows={2}
                   placeholder="Street name, building number, apartment/suite number"
                   value={formData.shippingAddress}
                   onChange={handleChange}
-                  className="mt-1.5 w-full rounded border border-outline-variant/60 bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface transition-colors focus:border-primary focus:outline-none"
+                  className="mt-0.5 w-full rounded-lg border border-outline-variant/60 bg-surface-container-low px-2.5 py-1.5 text-xs sm:text-sm text-on-surface focus:border-primary focus:outline-none"
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2 grid-cols-2">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                  <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
                     City / District *
                   </label>
                   <input
                     type="text"
                     name="shippingCity"
                     required
-                    placeholder="e.g. Jakarta Selatan"
+                    placeholder="Jakarta Selatan"
                     value={formData.shippingCity}
                     onChange={handleChange}
-                    className="mt-1.5 w-full rounded border border-outline-variant/60 bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface transition-colors focus:border-primary focus:outline-none"
+                    className="mt-0.5 w-full rounded-lg border border-outline-variant/60 bg-surface-container-low px-2.5 py-1.5 text-xs sm:text-sm text-on-surface focus:border-primary focus:outline-none"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                  <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
                     Postal Code *
                   </label>
                   <input
                     type="text"
                     name="shippingPostalCode"
                     required
-                    placeholder="e.g. 12190"
+                    placeholder="12190"
                     value={formData.shippingPostalCode}
                     onChange={handleChange}
-                    className="mt-1.5 w-full rounded border border-outline-variant/60 bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface transition-colors focus:border-primary focus:outline-none"
+                    className="mt-0.5 w-full rounded-lg border border-outline-variant/60 bg-surface-container-low px-2.5 py-1.5 text-xs sm:text-sm text-on-surface focus:border-primary focus:outline-none"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 3: Courier Selection */}
-          <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
-            <h2 className="font-display text-body-lg font-bold text-on-surface">
-              3. Select Shipping Courier
-            </h2>
+          {/* Section 2: Courier Option (Compact 3-Column Pill Selector) */}
+          <div className="rounded-xl border border-outline-variant/60 bg-background-white p-2.5 sm:p-3.5 shadow-soft">
+            <div className="mb-1.5 sm:mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Truck size={15} className="text-primary" />
+                <span className="text-xs font-bold text-on-surface">Courier Option</span>
+              </div>
+              <span className="text-[11px] font-bold text-price-green font-mono">
+                {shippingCost === 0 ? "✓ Free Delivery" : formatIDR(shippingCost)}
+              </span>
+            </div>
 
-            <div className="mt-stack-sm space-y-3">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {COURIERS.map((courier) => {
                 const isFree = subtotal >= FREE_SHIPPING_THRESHOLD && courier.id === "standard";
                 const isSelected = formData.courier === courier.id;
@@ -522,108 +599,302 @@ export default function CheckoutView() {
                 return (
                   <label
                     key={courier.id}
-                    className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-all ${
+                    className={`flex cursor-pointer flex-col justify-between rounded-lg sm:rounded-xl border p-1.5 sm:p-2.5 transition-all text-center ${
                       isSelected
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-outline-variant/60 bg-surface-container-low hover:border-primary/40"
+                        ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary"
+                        : "border-outline-variant/50 bg-surface-container-low/60 hover:border-primary/40"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="courier"
-                        value={courier.id}
-                        checked={isSelected}
-                        onChange={handleChange}
-                        className="h-4 w-4 text-primary focus:ring-primary"
-                      />
-                      <div>
-                        <p className="text-sm font-bold text-on-surface">{courier.name}</p>
-                        <p className="text-xs text-on-surface-variant">{courier.eta}</p>
-                      </div>
+                    <input
+                      type="radio"
+                      name="courier"
+                      value={courier.id}
+                      checked={isSelected}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <div>
+                      <p className="line-clamp-1 text-[11px] sm:text-xs font-bold text-on-surface">
+                        {courier.name.split(" ")[0]}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant">
+                        {courier.eta}
+                      </p>
                     </div>
-                    <span className="font-sans text-sm font-bold text-primary">
+                    <p className="mt-1 font-mono text-[11px] sm:text-xs font-bold text-primary">
                       {isFree ? "FREE" : formatIDR(courier.price)}
-                    </span>
+                    </p>
                   </label>
                 );
               })}
             </div>
           </div>
 
-          {/* Section 4: Payment Method */}
-          <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-body-lg font-bold text-on-surface">
-                4. Select Payment Method
-              </h2>
-              <span className="flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
-                <ShieldCheck size={13} /> Midtrans Snap
-              </span>
+          {/* Section 3: Payment Method (Delivery App Style: 1-line selected card with toggle, full grid on desktop) */}
+          <div className="rounded-xl border border-outline-variant/60 bg-background-white p-2.5 sm:p-3.5 shadow-soft">
+            {/* Mobile View: 1-line Compact Selector with Change toggle */}
+            <div className="sm:hidden">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <CreditCard size={15} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-on-surface truncate">
+                        {PAYMENT_METHODS.find((m) => m.id === formData.paymentMethod)?.name.split(" (")[0] || "Payment"}
+                      </span>
+                      {formData.paymentMethod === "midtrans" && (
+                        <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                          Recommended
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-on-surface-variant truncate">
+                      {formData.paymentMethod === "midtrans"
+                        ? "QRIS, VA (BCA/Mandiri/BRI), E-Wallet, Cards"
+                        : PAYMENT_METHODS.find((m) => m.id === formData.paymentMethod)?.description.split(",")[0]}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentExpanded((v) => !v)}
+                  className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-colors"
+                >
+                  {isPaymentExpanded ? "Done" : "Change"}
+                </button>
+              </div>
+
+              {isPaymentExpanded && (
+                <div className="mt-2.5 pt-2.5 border-t border-outline-variant/30 space-y-1.5 animate-in fade-in duration-150">
+                  {PAYMENT_METHODS.map((method) => {
+                    const isSelected = formData.paymentMethod === method.id;
+                    return (
+                      <label
+                        key={method.id}
+                        onClick={() => setIsPaymentExpanded(false)}
+                        className={`flex cursor-pointer items-center justify-between rounded-lg border p-2 transition-all ${
+                          isSelected
+                            ? "border-primary bg-primary/10 ring-1 ring-primary"
+                            : "border-outline-variant/50 bg-surface-container-low/60 hover:border-primary/40"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method.id}
+                          checked={isSelected}
+                          onChange={handleChange}
+                          className="sr-only"
+                        />
+                        <div className="min-w-0 flex-1 pr-2">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-on-surface">{method.name}</p>
+                            {method.badge && (
+                              <span className="rounded bg-emerald-100 px-1 py-0.2 text-[9px] font-bold text-emerald-800">
+                                Best
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-on-surface-variant truncate">{method.description}</p>
+                        </div>
+                        <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? "border-primary bg-primary text-white" : "border-outline-variant"}`}>
+                          {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="mt-stack-sm space-y-3">
-              {PAYMENT_METHODS.map((method) => {
-                const isSelected = formData.paymentMethod === method.id;
+            {/* Desktop View: Full 2x2 Grid */}
+            <div className="hidden sm:block">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard size={16} className="text-primary" />
+                  <span className="text-xs font-bold text-on-surface">Payment Method</span>
+                </div>
+                <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
+                  <ShieldCheck size={12} /> Midtrans Snap
+                </span>
+              </div>
 
-                return (
-                  <label
-                    key={method.id}
-                    className={`flex cursor-pointer items-start justify-between rounded-lg border p-4 transition-all ${
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-outline-variant/60 bg-surface-container-low hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_METHODS.map((method) => {
+                  const isSelected = formData.paymentMethod === method.id;
+
+                  return (
+                    <label
+                      key={method.id}
+                      className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary"
+                          : "border-outline-variant/50 bg-surface-container-low/60 hover:border-primary/40"
+                      }`}
+                    >
                       <input
                         type="radio"
                         name="paymentMethod"
                         value={method.id}
                         checked={isSelected}
                         onChange={handleChange}
-                        className="mt-1 h-4 w-4 text-primary focus:ring-primary"
+                        className="sr-only"
                       />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-on-surface">{method.name}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <p className="truncate text-xs font-bold text-on-surface">{method.name}</p>
                           {method.badge && (
-                            <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                              {method.badge}
+                            <span className="shrink-0 rounded bg-emerald-100 px-1 py-0.2 text-[9px] font-bold text-emerald-800">
+                              Best
                             </span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-xs text-on-surface-variant">{method.description}</p>
+                        <p className="line-clamp-1 text-[10px] text-on-surface-variant">
+                          {method.description.split(",")[0]}
+                        </p>
                       </div>
-                    </div>
-                  </label>
-                );
-              })}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Section 5: Order Notes */}
-          <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
-            <h2 className="font-display text-body-lg font-bold text-on-surface">
-              5. Order Notes (Optional)
-            </h2>
-            <textarea
-              name="notes"
-              rows={2}
-              placeholder="e.g. Please wrap live plants with extra insulation, or leave with security."
-              value={formData.notes}
-              onChange={handleChange}
-              className="mt-stack-sm w-full rounded border border-outline-variant/60 bg-surface-container-low px-3.5 py-2.5 text-sm text-on-surface focus:border-primary focus:outline-none"
-            />
+          {/* Section 4: Promo Voucher & Delivery Notes (Dual Compact Row) */}
+          <div className="grid grid-cols-2 gap-2">
+            {/* Promo Code Card */}
+            <div className="rounded-xl border border-outline-variant/60 bg-background-white p-2 sm:p-3 shadow-soft">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-on-surface">
+                  <Ticket size={13} className="text-primary shrink-0" />
+                  <span>Promo</span>
+                </div>
+                {appliedVoucher && (
+                  <button type="button" onClick={handleRemoveVoucher} className="p-0.5 text-error hover:opacity-80">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {appliedVoucher ? (
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="font-mono text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded truncate">
+                    {appliedVoucher.code}
+                  </span>
+                  <span className="font-mono text-[10px] font-bold text-emerald-700">
+                    -{formatIDR(discountAmount)}
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-1 flex items-center gap-1">
+                  <input
+                    type="text"
+                    placeholder="Code"
+                    value={voucherCodeInput}
+                    onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
+                    className="w-full rounded border border-outline-variant/60 bg-surface-container-low px-1.5 py-1 text-[10px] font-mono uppercase text-on-surface focus:border-primary focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyVoucher}
+                    disabled={validatingVoucher || !voucherCodeInput.trim()}
+                    className="shrink-0 rounded bg-primary px-2 py-1 text-[10px] font-bold text-on-primary hover:bg-primary-container disabled:opacity-40"
+                  >
+                    {validatingVoucher ? <Loader2 size={10} className="animate-spin" /> : "Apply"}
+                  </button>
+                </div>
+              )}
+              {voucherError && <p className="mt-0.5 text-[9px] font-bold text-red-600 truncate">{voucherError}</p>}
+            </div>
+
+            {/* Delivery Note Card */}
+            <div className="rounded-xl border border-outline-variant/60 bg-background-white p-2 sm:p-3 shadow-soft">
+              <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-on-surface">
+                <FileText size={13} className="text-primary shrink-0" />
+                <span>Note</span>
+              </div>
+              <input
+                type="text"
+                name="notes"
+                placeholder="e.g. Leave with guard"
+                value={formData.notes}
+                onChange={handleChange}
+                className="mt-1 w-full rounded border border-outline-variant/60 bg-surface-container-low px-1.5 py-1 text-[10px] sm:text-xs text-on-surface focus:border-primary focus:outline-none placeholder:text-[10px]"
+              />
+            </div>
+          </div>
+
+          {/* Section 5: Order Items Collapsible Accordion (Mobile Only) */}
+          <div className="rounded-xl border border-outline-variant/60 bg-background-white p-2.5 sm:p-3 shadow-soft lg:hidden">
+            <button
+              type="button"
+              onClick={() => setIsOrderSummaryOpen((v) => !v)}
+              className="flex w-full items-center justify-between text-left"
+            >
+              <div className="flex items-center gap-1.5">
+                <Package size={15} className="text-primary" />
+                <span className="text-xs font-bold text-on-surface">
+                  Order Summary ({items.reduce((acc, i) => acc + i.quantity, 0)} items)
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-price-green">
+                <span>{formatIDR(subtotal)}</span>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${isOrderSummaryOpen ? "rotate-180" : ""}`} />
+              </div>
+            </button>
+
+            {isOrderSummaryOpen && (
+              <div className="mt-2.5 divide-y divide-outline-variant/30 border-t border-outline-variant/30 pt-2 animate-in fade-in duration-200">
+                <div className="max-h-48 divide-y divide-outline-variant/20 overflow-y-auto pr-1">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 py-1.5">
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-surface-container">
+                        <Image src={item.image} alt={item.name} fill sizes="40px" className="object-cover" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-1 text-xs font-bold text-on-surface">{item.name}</p>
+                        <p className="font-mono text-[10px] text-on-surface-variant">
+                          {item.quantity} × {formatIDR(item.price)}
+                        </p>
+                      </div>
+                      <span className="font-mono text-xs font-bold text-on-surface">
+                        {formatIDR(item.price * item.quantity)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-2 space-y-1 pt-2 text-[11px]">
+                  <div className="flex justify-between text-on-surface-variant">
+                    <span>Subtotal</span>
+                    <span className="font-mono font-bold text-on-surface">{formatIDR(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-on-surface-variant">
+                    <span>Shipping ({selectedCourierObj.name.split(" ")[0]})</span>
+                    <span className="font-mono font-bold text-on-surface">
+                      {shippingCost === 0 ? "FREE" : formatIDR(shippingCost)}
+                    </span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-emerald-700 font-medium">
+                      <span>Voucher Discount</span>
+                      <span className="font-mono font-bold">-{formatIDR(discountAmount)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right Column: Order Summary & Place Order */}
-        <aside className="h-fit space-y-stack-md lg:sticky lg:top-32">
-          <div className="rounded-lg bg-background-white p-stack-md shadow-soft">
+        {/* Right Column: Desktop Sticky Order Summary */}
+        <aside className="hidden lg:block h-fit space-y-stack-md lg:sticky lg:top-32">
+          <div className="rounded-xl bg-background-white p-stack-md shadow-soft border border-outline-variant/50">
             <h2 className="font-display text-body-lg font-bold text-on-surface">Order Summary</h2>
 
-            {/* Cart Items List */}
+            {/* Desktop Items List */}
             <div className="mt-stack-sm max-h-80 divide-y divide-outline-variant/40 overflow-y-auto pr-1">
               {items.map((item) => {
                 const imageSrc =
@@ -635,7 +906,7 @@ export default function CheckoutView() {
 
                 return (
                   <div key={item.id} className="flex gap-3 py-3">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded bg-surface-container">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-container">
                       <Image src={imageSrc} alt={item.name} fill sizes="56px" className="object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -654,60 +925,7 @@ export default function CheckoutView() {
               })}
             </div>
 
-            {/* Promo Code / Voucher Section */}
-            <div className="mt-4 border-t border-outline-variant/40 pt-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                <Ticket size={14} className="text-primary" />
-                Voucher / Promo Code
-              </label>
-
-              {appliedVoucher ? (
-                <div className="mt-2 rounded-lg bg-emerald-50 p-3 border border-emerald-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Tag size={15} className="text-emerald-600" />
-                      <span className="font-mono text-xs font-bold text-emerald-900">{appliedVoucher.code}</span>
-                      <span className="rounded bg-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-900">
-                        -{formatIDR(appliedVoucher.discountAmount)}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveVoucher}
-                      className="rounded p-1 text-emerald-800 hover:bg-emerald-200"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <p className="mt-1 text-[11px] text-emerald-700">{appliedVoucher.description}</p>
-                </div>
-              ) : (
-                <div className="mt-2 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. AQUA10"
-                      value={voucherCodeInput}
-                      onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
-                      className="w-full rounded border border-outline-variant bg-surface-container-low px-3 py-1.5 text-xs font-mono font-bold text-on-surface outline-none focus:border-primary uppercase"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleApplyVoucher}
-                      disabled={validatingVoucher || !voucherCodeInput.trim()}
-                      className="shrink-0 rounded bg-primary px-3 py-1.5 text-xs font-bold text-on-primary hover:bg-primary-container disabled:opacity-50"
-                    >
-                      {validatingVoucher ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
-                    </button>
-                  </div>
-                  {voucherError && (
-                    <p className="text-[11px] font-bold text-red-600">{voucherError}</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Pricing Breakdown */}
+            {/* Desktop Pricing Breakdown */}
             <div className="mt-stack-md space-y-2.5 border-t border-outline-variant/40 pt-4 text-sm">
               <div className="flex justify-between text-on-surface-variant">
                 <span>Subtotal</span>
@@ -732,11 +950,11 @@ export default function CheckoutView() {
               <span className="font-sans text-headline-sm text-price-green">{formatIDR(grandTotal)}</span>
             </div>
 
-            {/* Submit Button */}
+            {/* Desktop Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
-              className="mt-stack-md flex h-12 w-full items-center justify-center gap-2 rounded bg-primary text-label-md text-on-primary transition-all hover:bg-primary-container disabled:opacity-50"
+              className="mt-stack-md flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-label-md text-on-primary shadow-xs transition-all hover:bg-primary-container disabled:opacity-50"
             >
               {isLoading ? (
                 <>
@@ -768,6 +986,47 @@ export default function CheckoutView() {
           </Link>
         </aside>
       </form>
+
+      {/* Mobile-Exclusive Sticky Pay Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-outline-variant/40 bg-background-white/95 px-4 py-2.5 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase tracking-wider text-on-surface-variant font-medium">
+              Total Payment
+            </span>
+            <p className="font-mono text-base font-bold text-price-green leading-tight">
+              {formatIDR(grandTotal)}
+            </p>
+            {discountAmount > 0 ? (
+              <span className="text-[10px] font-bold text-emerald-600">
+                Saved {formatIDR(discountAmount)}
+              </span>
+            ) : (
+              <span className="text-[10px] text-on-surface-variant">
+                {selectedCourierObj.name.split(" ")[0]} ({shippingCost === 0 ? "Free" : formatIDR(shippingCost)})
+              </span>
+            )}
+          </div>
+          <button
+            type="submit"
+            form="checkout-form"
+            disabled={isLoading}
+            className="flex flex-1 max-w-[180px] items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold uppercase tracking-wider text-on-primary shadow-xs transition-all hover:bg-primary-container disabled:opacity-50 active:scale-[0.98]"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                <Lock size={14} />
+                <span>Place Order</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
 
       {/* CHECKOUT SUCCESSFUL POPUP MODAL */}
       {showSuccessModal && createdOrder && (

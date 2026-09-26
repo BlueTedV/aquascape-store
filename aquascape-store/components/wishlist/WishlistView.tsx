@@ -47,7 +47,7 @@ export default function WishlistView() {
   }
 
   return (
-    <div className="mx-auto max-w-container px-edge-margin-mobile pb-24 pt-24 md:px-edge-margin-desktop">
+    <div className="mx-auto max-w-container px-edge-margin-mobile pb-28 pt-20 sm:pt-24 md:px-edge-margin-desktop">
       {/* Header Banner */}
       <div className="flex flex-col gap-4 border-b border-outline-variant/50 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -57,7 +57,7 @@ export default function WishlistView() {
               My Saved Items
             </span>
           </div>
-          <h1 className="mt-1 font-display text-display-md font-bold text-on-surface">
+          <h1 className="mt-1 font-display text-2xl sm:text-display-md font-bold text-on-surface">
             Wishlist & Favorites
           </h1>
           <p className="mt-1 text-sm text-on-surface-variant">

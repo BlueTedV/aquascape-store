@@ -64,9 +64,9 @@ export default function MarkdownEditor({
   return (
     <div className={`overflow-hidden rounded-xl border border-outline-variant/60 bg-white ${className}`}>
       {/* Toolbar & View Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/40 bg-surface-container-low/60 px-3 py-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-outline-variant/40 bg-surface-container-low/60 px-3 py-2">
         {/* Formatting Buttons */}
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full pb-0.5">
           <button
             type="button"
             title="Heading 2 (##)"

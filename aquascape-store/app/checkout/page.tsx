@@ -12,10 +12,12 @@ export default function CheckoutPage() {
   return (
     <>
       <Navbar />
-      <main className="bg-surface-container-low">
+      <main className="min-h-screen bg-surface-container-low">
         <CheckoutView />
       </main>
-      <Footer />
+      <div className="hidden sm:block">
+        <Footer />
+      </div>
     </>
   );
 }

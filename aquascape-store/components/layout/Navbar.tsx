@@ -163,9 +163,14 @@ export default function Navbar({ activeCategory }: { activeCategory?: string }) 
   };
 
   const isShopActive = pathname.startsWith("/shop") || pathname.startsWith("/product");
+  const isCheckout = pathname.startsWith("/checkout");
 
   return (
-    <nav className="glass-nav fixed top-0 z-50 w-full shadow-md transition-colors duration-300">
+    <nav
+      className={`glass-nav fixed top-0 z-50 w-full shadow-md transition-colors duration-300 ${
+        isCheckout ? "hidden sm:block" : ""
+      }`}
+    >
       <div className="mx-auto flex max-w-container items-center justify-between px-edge-margin-mobile py-stack-sm md:px-edge-margin-desktop">
         <Link
           href="/"

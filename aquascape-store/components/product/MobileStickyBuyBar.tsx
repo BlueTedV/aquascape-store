@@ -45,7 +45,7 @@ export default function MobileStickyBuyBar({
 
     if (sheetMode === "buy") {
       setIsSheetOpen(false);
-      router.push("/cart");
+      router.push("/checkout");
     } else {
       setAdded(true);
       window.setTimeout(() => setAdded(false), 2000);
@@ -133,7 +133,7 @@ export default function MobileStickyBuyBar({
               ) : sheetMode === "buy" ? (
                 <>
                   <Zap size={15} />
-                  <span>Proceed to Cart</span>
+                  <span>Proceed to Checkout</span>
                 </>
               ) : (
                 <>

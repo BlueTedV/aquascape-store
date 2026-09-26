@@ -252,83 +252,83 @@ export default function ManageArticlesView() {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-surface-container p-6 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-surface-container p-4 sm:p-6 shadow-sm">
         <div>
           <div className="flex items-center gap-2 text-primary font-bold">
-            <BookOpen size={24} />
-            <h2 className="font-display text-headline-md font-bold text-on-surface">
+            <BookOpen size={22} />
+            <h2 className="font-display text-lg sm:text-headline-md font-bold text-on-surface">
               Help Articles &amp; Knowledge Base
             </h2>
           </div>
-          <p className="mt-1 text-sm text-on-surface-variant">
+          <p className="mt-1 text-xs sm:text-sm text-on-surface-variant">
             Create and maintain help guides, tutorials, and policy articles accessible from the customer Help Center.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 self-start sm:self-auto">
           <Link
             href="/articles"
             target="_blank"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant/60 bg-white px-4 py-2.5 text-xs font-bold text-on-surface shadow-sm transition-all hover:bg-surface-container hover:text-primary"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-outline-variant/60 bg-white px-3.5 py-2 text-xs font-bold text-on-surface shadow-sm transition-all hover:bg-surface-container hover:text-primary"
           >
-            <ExternalLink size={14} />
-            <span>View Live Articles Page</span>
+            <ExternalLink size={13} />
+            <span>Live Page</span>
           </Link>
 
           <button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-container hover:shadow-md"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-primary-container hover:shadow-md"
           >
-            <Plus size={16} />
-            <span>Create New Article</span>
+            <Plus size={15} />
+            <span>New Article</span>
           </button>
         </div>
       </div>
 
       {/* Notifications */}
       {errorMsg && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-500/10 p-4 text-sm font-semibold text-rose-700">
-          <AlertCircle size={18} className="shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-500/10 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-rose-700">
+          <AlertCircle size={16} className="shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {successMsg && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-800">
-          <CheckCircle2 size={18} className="shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-500/10 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-emerald-800">
+          <CheckCircle2 size={16} className="shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
-      {/* Quick Statistics Row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-outline-variant/50 bg-white p-4 shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+      {/* Quick Statistics Row (2-Col on mobile, 4-Col on desktop) */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-4">
+        <div className="rounded-xl border border-outline-variant/50 bg-white p-3 sm:p-4 shadow-sm">
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-on-surface-variant">
             Total Articles
           </span>
-          <div className="mt-1 text-2xl font-extrabold text-on-surface">{stats.total}</div>
+          <div className="mt-1 text-xl sm:text-2xl font-extrabold text-on-surface">{stats.total}</div>
         </div>
 
-        <div className="rounded-xl border border-outline-variant/50 bg-white p-4 shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+        <div className="rounded-xl border border-outline-variant/50 bg-white p-3 sm:p-4 shadow-sm">
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-700">
             Published
           </span>
-          <div className="mt-1 text-2xl font-extrabold text-emerald-700">{stats.published}</div>
+          <div className="mt-1 text-xl sm:text-2xl font-extrabold text-emerald-700">{stats.published}</div>
         </div>
 
-        <div className="rounded-xl border border-outline-variant/50 bg-white p-4 shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
+        <div className="rounded-xl border border-outline-variant/50 bg-white p-3 sm:p-4 shadow-sm">
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-700">
             Drafts
           </span>
-          <div className="mt-1 text-2xl font-extrabold text-amber-700">{stats.drafts}</div>
+          <div className="mt-1 text-xl sm:text-2xl font-extrabold text-amber-700">{stats.drafts}</div>
         </div>
 
-        <div className="rounded-xl border border-outline-variant/50 bg-white p-4 shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-tertiary">
+        <div className="rounded-xl border border-outline-variant/50 bg-white p-3 sm:p-4 shadow-sm">
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-tertiary">
             Categories
           </span>
-          <div className="mt-1 text-2xl font-extrabold text-tertiary">{stats.categoriesCount}</div>
+          <div className="mt-1 text-xl sm:text-2xl font-extrabold text-tertiary">{stats.categoriesCount}</div>
         </div>
       </div>
 
@@ -517,8 +517,8 @@ export default function ManageArticlesView() {
 
       {/* CREATE / EDIT MODAL */}
       {isEditorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-outline-variant pb-4">
               <div className="flex items-center gap-2 text-primary font-bold">
                 <BookOpen size={20} />
@@ -698,8 +698,8 @@ export default function ManageArticlesView() {
 
       {/* ARTICLE PREVIEW MODAL */}
       {previewArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 md:p-8 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-8 shadow-2xl">
             <button
               type="button"
               onClick={() => setPreviewArticle(null)}

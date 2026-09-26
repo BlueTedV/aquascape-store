@@ -189,17 +189,17 @@ export default function TankCalculatorView() {
   }, [length, width, height, frontSubstrateDepth, backSubstrateDepth, plantType]);
 
   return (
-    <div className="mx-auto max-w-container px-edge-margin-mobile pb-24 pt-24 md:px-edge-margin-desktop">
+    <div className="mx-auto max-w-container px-edge-margin-mobile pb-28 pt-20 sm:pt-24 md:px-edge-margin-desktop">
       {/* Header */}
-      <div className="text-center max-w-2xl mx-auto mb-12">
+      <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
         <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary">
           <Calculator size={15} />
           <span>Interactive Aquascaping Tool</span>
         </div>
-        <h1 className="mt-3 font-display text-display-md font-bold text-on-surface">
+        <h1 className="mt-3 font-display text-2xl sm:text-display-md font-bold text-on-surface">
           Aquascape Tank &amp; Substrate Calculator
         </h1>
-        <p className="mt-2 text-sm text-on-surface-variant leading-relaxed">
+        <p className="mt-2 text-xs sm:text-sm text-on-surface-variant leading-relaxed">
           Accurately calculate tank water volume, substrate bags requirement, canister filter turnover flow, LED lighting PAR/lumens, and CO2 injection rates for your dream scape.
         </p>
       </div>
@@ -470,7 +470,7 @@ export default function TankCalculatorView() {
         </div>
 
         {/* RIGHT COLUMN: Interactive Calculations & Engineering Results */}
-        <div className="lg:col-span-7 space-y-6">
+        <div id="calculator-results" className="scroll-mt-24 lg:col-span-7 space-y-6">
           {/* Main Specs Highlight Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-xl bg-primary p-4 text-on-primary shadow-md">
@@ -641,6 +641,31 @@ export default function TankCalculatorView() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Floating Real-time Specs Bar (Docks right above MobileBottomNav) */}
+      <div className="fixed bottom-[72px] left-3 right-3 z-30 mx-auto max-w-md rounded-2xl border border-white/25 bg-primary/95 p-3 text-on-primary shadow-xl backdrop-blur-md transition-all duration-300 lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+              <Sparkles size={12} />
+              <span>Real-time Specs</span>
+            </div>
+            <p className="mt-0.5 truncate text-xs font-bold text-white font-mono">
+              💧 ~{metrics.netWaterLiters}L • 🪨 {metrics.soil9LBags}x 9L Soil • ⚡ {metrics.idealFilterFlow} L/h
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById("calculator-results")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="flex shrink-0 items-center gap-1 rounded-xl bg-white/20 px-3 py-1.5 text-xs font-bold text-white shadow-xs backdrop-blur-sm transition-all hover:bg-white/30 active:scale-95"
+          >
+            <span>Specs</span>
+            <ArrowRight size={13} className="rotate-90" />
+          </button>
         </div>
       </div>
     </div>

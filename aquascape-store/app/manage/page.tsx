@@ -12,7 +12,7 @@ export default function ManagePage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-surface-container-low px-edge-margin-mobile pb-section-gap-mobile pt-32 md:px-edge-margin-desktop">
+      <main className="min-h-screen bg-surface-container-low px-edge-margin-mobile pb-28 pt-20 sm:pt-28 md:px-edge-margin-desktop">
         <AdminDashboard />
       </main>
       <Footer />

@@ -64,8 +64,10 @@ export default function CartView() {
   }
 
   return (
-    <div className="mx-auto max-w-container px-edge-margin-mobile pb-20 pt-24 md:px-edge-margin-desktop">
-      <Breadcrumb />
+    <div className="mx-auto max-w-container px-edge-margin-mobile pb-28 pt-20 sm:pt-24 md:px-edge-margin-desktop md:pb-20">
+      <div className="hidden sm:block">
+        <Breadcrumb />
+      </div>
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-display text-headline-lg text-on-surface">Your Cart</h1>
@@ -75,7 +77,7 @@ export default function CartView() {
       </div>
 
       <div className="mt-stack-lg grid gap-gutter lg:grid-cols-[1fr_360px]">
-        <div className="space-y-stack-md">
+        <div className="space-y-3 sm:space-y-stack-md">
           {items.map((item) => {
             const imageSrc =
               !item.image ||
@@ -87,88 +89,89 @@ export default function CartView() {
             return (
               <div
                 key={item.id}
-                className="flex flex-col gap-4 rounded-lg bg-background-white p-4 shadow-soft sm:flex-row sm:items-center"
+                className="flex items-center gap-3 rounded-xl border border-outline-variant/40 bg-background-white p-3 shadow-soft sm:p-4"
               >
                 <Link
                   href={`/product/${item.slug}`}
-                  className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-md bg-surface-container"
+                  className="relative block h-18 w-18 shrink-0 overflow-hidden rounded-lg bg-surface-container sm:h-24 sm:w-24"
                 >
                   <Image
                     src={imageSrc}
                     alt={item.name}
                     fill
-                    sizes="96px"
+                    sizes="(max-width: 640px) 72px, 96px"
                     className="object-cover"
                   />
                 </Link>
 
-              <div className="min-w-0 flex-1">
-                {item.category && (
-                  <p className="text-[11px] uppercase text-on-surface-variant">
-                    {item.category}
-                  </p>
-                )}
-                <Link href={`/product/${item.slug}`}>
-                  <h3 className="mt-0.5 line-clamp-1 font-display text-body-lg font-bold text-on-surface hover:text-primary">
-                    {item.name}
-                  </h3>
-                </Link>
-                <p className="mt-1 font-sans text-sm font-bold text-price-green">
-                  {formatIDR(item.price)}
-                  {item.unit && (
-                    <span className="ml-1 text-xs font-normal text-on-surface-variant">
-                      / {item.unit}
-                    </span>
+                <div className="min-w-0 flex-1">
+                  {item.category && (
+                    <p className="text-[10px] sm:text-[11px] uppercase text-on-surface-variant">
+                      {item.category}
+                    </p>
                   )}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center sm:gap-3">
-                <div className="flex h-10 items-center rounded bg-surface-container-low px-1">
-                  <button
-                    type="button"
-                    aria-label={`Decrease quantity of ${item.name}`}
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded text-on-surface-variant hover:bg-background-white hover:text-primary"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="w-8 text-center text-sm font-bold text-on-surface">
-                    {item.quantity}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`Increase quantity of ${item.name}`}
-                    disabled={item.stock !== undefined && item.quantity >= item.stock}
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded text-on-surface-variant hover:bg-background-white hover:text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:cursor-not-allowed"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <p className="font-sans text-sm font-bold text-on-surface">
-                    {formatIDR(item.price * item.quantity)}
+                  <Link href={`/product/${item.slug}`}>
+                    <h3 className="line-clamp-1 font-display text-sm sm:text-body-lg font-bold text-on-surface hover:text-primary">
+                      {item.name}
+                    </h3>
+                  </Link>
+                  <p className="mt-0.5 font-sans text-xs sm:text-sm font-bold text-price-green">
+                    {formatIDR(item.price)}
+                    {item.unit && (
+                      <span className="ml-1 text-[11px] font-normal text-on-surface-variant">
+                        / {item.unit}
+                      </span>
+                    )}
                   </p>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${item.name} from cart`}
-                    onClick={() => removeItem(item.id)}
-                    className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-error-container hover:text-error"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+
+                  {/* Quantity Stepper & Price in Compact Mobile Row */}
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="flex h-8 items-center rounded-lg bg-surface-container-low p-0.5">
+                      <button
+                        type="button"
+                        aria-label={`Decrease quantity of ${item.name}`}
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        className="flex h-7 w-7 items-center justify-center rounded text-on-surface-variant transition-colors hover:bg-background-white hover:text-primary"
+                      >
+                        <Minus size={13} />
+                      </button>
+                      <span className="w-7 text-center font-mono text-xs font-bold text-on-surface">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Increase quantity of ${item.name}`}
+                        disabled={item.stock !== undefined && item.quantity >= item.stock}
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="flex h-7 w-7 items-center justify-center rounded text-on-surface-variant transition-colors hover:bg-background-white hover:text-primary disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant disabled:cursor-not-allowed"
+                      >
+                        <Plus size={13} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-xs sm:text-sm font-bold text-on-surface">
+                        {formatIDR(item.price * item.quantity)}
+                      </p>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${item.name} from cart`}
+                        onClick={() => removeItem(item.id)}
+                        className="rounded-full p-1.5 text-on-surface-variant transition-colors hover:bg-error-container hover:text-error"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
           <div className="flex items-center justify-between gap-4 pt-2">
             <Link
               href="/shop"
-              className="flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-primary hover:underline"
             >
               <ArrowLeft size={15} />
               Continue Shopping
@@ -176,14 +179,15 @@ export default function CartView() {
             <button
               type="button"
               onClick={() => setShowClearModal(true)}
-              className="text-sm font-bold text-on-surface-variant transition-colors hover:text-error"
+              className="text-xs sm:text-sm font-bold text-on-surface-variant transition-colors hover:text-error"
             >
               Clear Cart
             </button>
           </div>
         </div>
 
-        <aside className="h-fit rounded-lg bg-background-white p-stack-md shadow-soft lg:sticky lg:top-32">
+        {/* Desktop Sidebar Summary */}
+        <aside className="h-fit rounded-xl bg-background-white p-stack-md shadow-soft lg:sticky lg:top-32">
           <h2 className="font-display text-body-lg font-bold text-on-surface">
             Order Summary
           </h2>
@@ -217,7 +221,7 @@ export default function CartView() {
 
           <Link
             href="/checkout"
-            className="mt-stack-md flex h-12 w-full items-center justify-center rounded bg-primary text-label-md text-on-primary transition-colors hover:bg-primary-container"
+            className="mt-stack-md flex h-12 w-full items-center justify-center rounded-xl bg-primary text-label-md text-on-primary shadow-xs transition-colors hover:bg-primary-container"
           >
             Proceed to Checkout
           </Link>
@@ -226,6 +230,36 @@ export default function CartView() {
             Taxes calculated at checkout. Ships safely within 24 hours.
           </p>
         </aside>
+      </div>
+
+      {/* Mobile Sticky Checkout Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-outline-variant/40 bg-background-white/95 px-4 py-3 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase tracking-wider text-on-surface-variant">
+              Total ({itemCount} {itemCount === 1 ? "item" : "items"})
+            </span>
+            <p className="font-mono text-base font-bold text-price-green">
+              {formatIDR(total)}
+            </p>
+            {shipping === 0 ? (
+              <span className="text-[10px] font-bold text-emerald-600">
+                ✓ Free Shipping
+              </span>
+            ) : (
+              <span className="text-[10px] text-on-surface-variant">
+                Shipping {formatIDR(shipping)}
+              </span>
+            )}
+          </div>
+          <Link
+            href="/checkout"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold uppercase text-on-primary shadow-xs transition-all hover:bg-primary-container active:scale-[0.98]"
+          >
+            <span>Checkout</span>
+            <ArrowLeft size={14} className="rotate-180" />
+          </Link>
+        </div>
       </div>
 
       {/* Clear Cart Confirmation Modal */}

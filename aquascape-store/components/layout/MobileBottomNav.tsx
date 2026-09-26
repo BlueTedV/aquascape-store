@@ -9,8 +9,12 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const { itemCount: wishlistCount } = useWishlist();
 
-  // Hide persistent bottom navigation on checkout and product detail pages to prevent button clash
-  if (pathname.startsWith("/checkout") || pathname.startsWith("/product")) {
+  // Hide persistent bottom navigation on checkout, cart, and product detail pages to prevent button clash
+  if (
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/product") ||
+    pathname.startsWith("/cart")
+  ) {
     return null;
   }
 

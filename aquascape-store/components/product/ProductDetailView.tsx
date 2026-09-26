@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -97,6 +99,7 @@ function RelatedProductCard({ product }: { product: ProductDetail }) {
 }
 
 export default function ProductDetailView({ product, relatedProducts }: ProductDetailViewProps) {
+  const router = useRouter();
   const [specsOpen, setSpecsOpen] = useState(true);
   const [shippingOpen, setShippingOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -138,7 +141,25 @@ export default function ProductDetailView({ product, relatedProducts }: ProductD
 
   return (
     <div className="mx-auto max-w-[980px] px-4 sm:px-6 pb-28 pt-20 sm:pt-24 md:px-8 md:pb-20">
-      <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
+      {/* Fixed Sticky Circular Back Button (Mobile UI Only) */}
+      <div className="fixed top-16 left-4 z-40 pointer-events-none md:hidden">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) {
+              router.back();
+            } else {
+              router.push("/shop");
+            }
+          }}
+          aria-label="Go back"
+          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-outline-variant/70 bg-background-white/95 text-on-surface shadow-md backdrop-blur-md transition-all hover:bg-background-white hover:text-primary active:scale-90"
+        >
+          <ArrowLeft size={18} strokeWidth={2.2} />
+        </button>
+      </div>
+
+      <nav className="mb-5 flex flex-wrap items-center gap-2 pl-12 text-xs text-on-surface-variant md:pl-0">
         <Link href="/" className="hover:text-primary">Home</Link>
         <span>/</span>
         <Link href={`/shop?category=${product.categorySlug}`} className="hover:text-primary">

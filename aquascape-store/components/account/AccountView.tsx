@@ -308,40 +308,42 @@ export default function AccountView() {
       <MidtransSnapScript />
 
       {/* Header */}
-      <div className="mb-stack-lg flex flex-col gap-stack-md sm:flex-row sm:items-end sm:justify-between border-b border-outline-variant/40 pb-6">
+      <div className="mb-4 sm:mb-stack-lg flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between border-b border-outline-variant/40 pb-4 sm:pb-6">
         <div>
-          <p className="text-label-md uppercase text-tertiary tracking-wider font-bold">My Account</p>
-          <h1 className="mt-1 font-display text-headline-lg text-primary">
+          <p className="text-[11px] sm:text-label-md uppercase text-tertiary tracking-wider font-bold">My Account</p>
+          <h1 className="mt-0.5 font-display text-lg sm:text-headline-lg font-bold text-primary">
             Welcome back, {profile?.fullName || account.user.fullName || "Aquascaping Enthusiast"}
           </h1>
-          <p className="mt-1 text-body-md text-on-surface-variant">
+          <p className="mt-0.5 text-xs sm:text-body-md text-on-surface-variant">
             Signed in as <span className="font-bold text-on-surface">{account.user.email}</span>
           </p>
         </div>
         <button
           type="button"
           onClick={handleLogout}
-          className="flex items-center gap-2 rounded border border-outline-variant/60 bg-background-white px-4 py-2.5 text-label-md text-on-surface transition-colors hover:border-error/40 hover:text-error"
+          className="self-start sm:self-auto flex items-center gap-1.5 rounded-lg border border-outline-variant/60 bg-background-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-label-md text-on-surface transition-colors hover:border-error/40 hover:text-error active:scale-95"
         >
-          <LogOut size={16} />
-          Logout
+          <LogOut size={15} />
+          <span>Logout</span>
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="mb-stack-lg flex gap-3 border-b border-outline-variant/40 pb-3">
+      <div className="mb-4 sm:mb-stack-lg flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-outline-variant/40 pb-2 sm:pb-3">
         <button
           type="button"
           onClick={() => setActiveTab("orders")}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all ${activeTab === "orders"
-              ? "bg-primary text-on-primary shadow-sm"
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "orders"
+              ? "bg-primary text-on-primary shadow-xs"
               : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-            }`}
+          }`}
         >
-          <Package size={18} />
-          Orders & Delivery History
+          <Package size={16} />
+          <span>Orders</span>
+          <span className="hidden sm:inline">&amp; Delivery History</span>
           {activeDeliveries.length > 0 && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[11px] text-white">
+            <span className="flex h-4 min-w-4 sm:h-5 sm:min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] sm:text-[11px] text-white">
               {activeDeliveries.length}
             </span>
           )}
@@ -350,21 +352,23 @@ export default function AccountView() {
         <button
           type="button"
           onClick={() => setActiveTab("settings")}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all ${activeTab === "settings"
-              ? "bg-primary text-on-primary shadow-sm"
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-lg px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "settings"
+              ? "bg-primary text-on-primary shadow-xs"
               : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-            }`}
+          }`}
         >
-          <UserRound size={18} />
-          Profile & Address Settings
+          <UserRound size={16} />
+          <span>Settings</span>
+          <span className="hidden sm:inline">&amp; Addresses</span>
         </button>
 
         <Link
           href="/wishlist"
-          className="flex items-center gap-2 rounded-lg bg-surface-container px-4 py-2.5 text-sm font-bold text-on-surface-variant transition-all hover:bg-rose-50 hover:text-rose-600"
+          className="flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-lg bg-surface-container px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold text-on-surface-variant transition-all hover:bg-rose-50 hover:text-rose-600"
         >
-          <Heart size={18} className="text-rose-500" />
-          My Wishlist
+          <Heart size={16} className="text-rose-500" />
+          <span>Wishlist</span>
         </Link>
       </div>
 
@@ -524,14 +528,14 @@ export default function AccountView() {
                     </div>
 
                     {/* Items Thumbnails */}
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex flex-wrap gap-2">
-                        {order.items.map((item) => (
+                        {order.items.slice(0, 3).map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center gap-2 rounded bg-background-white p-1.5 pr-3 text-xs border border-outline-variant/40"
+                            className="flex items-center gap-2 rounded-lg bg-background-white p-1.5 pr-2.5 text-xs border border-outline-variant/40"
                           >
-                            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded bg-surface-container">
+                            <div className="relative h-8 w-8 sm:h-9 sm:w-9 shrink-0 overflow-hidden rounded bg-surface-container">
                               <Image
                                 src={
                                   !item.productImage || item.productImage.includes("picsum.photos")
@@ -544,41 +548,48 @@ export default function AccountView() {
                                 className="object-cover"
                               />
                             </div>
-                            <div>
-                              <p className="line-clamp-1 max-w-[140px] font-bold text-on-surface">{item.productName}</p>
-                              <p className="text-[10px] text-on-surface-variant">
-                                {item.quantity} x {formatIDR(item.price)}
+                            <div className="min-w-0">
+                              <p className="line-clamp-1 max-w-[120px] sm:max-w-[140px] font-bold text-on-surface text-[11px] sm:text-xs">
+                                {item.productName}
+                              </p>
+                              <p className="text-[10px] text-on-surface-variant font-mono">
+                                {item.quantity} × {formatIDR(item.price)}
                               </p>
                             </div>
                           </div>
                         ))}
+                        {order.items.length > 3 && (
+                          <div className="flex items-center justify-center rounded-lg bg-surface-container px-2 py-1 text-[11px] font-bold text-on-surface-variant">
+                            +{order.items.length - 3} more
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 self-end sm:self-auto">
                         <button
                           type="button"
                           onClick={() => setInvoiceOrder(order)}
-                          className="flex items-center gap-1.5 rounded border border-outline-variant bg-background-white px-3 py-1.5 text-xs font-bold text-on-surface hover:bg-surface-container hover:text-primary transition-colors"
+                          className="flex items-center gap-1 rounded-lg border border-outline-variant bg-background-white px-2.5 py-1.5 text-xs font-bold text-on-surface hover:bg-surface-container hover:text-primary transition-colors"
                         >
                           <Printer size={13} />
-                          Invoice
+                          <span className="hidden sm:inline">Invoice</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleReorder(order)}
-                          className="flex items-center gap-1.5 rounded border border-primary/40 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-on-primary"
+                          className="flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-on-primary"
                         >
                           <RefreshCcw size={13} />
-                          Buy Again
+                          <span>Buy Again</span>
                         </button>
 
                         <Link
                           href={`/checkout/success/${encodeURIComponent(order.orderNumber)}`}
-                          className="flex items-center gap-1 rounded bg-surface-container px-3 py-1.5 text-xs font-bold text-on-surface hover:bg-surface-container-high"
+                          className="flex items-center gap-1 rounded-lg bg-surface-container px-2.5 py-1.5 text-xs font-bold text-on-surface hover:bg-surface-container-high"
                         >
-                          Details
-                          <ChevronRight size={14} />
+                          <span>Details</span>
+                          <ChevronRight size={13} />
                         </Link>
                       </div>
                     </div>
@@ -824,14 +835,14 @@ function ActiveDeliveryCard({
           : 3;
 
   return (
-    <div className="rounded-lg border border-primary/20 bg-surface-container-low p-5 shadow-sm">
+    <div className="rounded-lg border border-primary/20 bg-surface-container-low p-3.5 sm:p-5 shadow-sm">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/40 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/40 pb-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-base font-bold text-primary">#{order.orderNumber}</span>
-            <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-[11px] font-bold text-primary">
-              {order.paymentStatus.toUpperCase()}
+            <span className="font-mono text-sm sm:text-base font-bold text-primary">#{order.orderNumber}</span>
+            <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-[10px] sm:text-[11px] font-bold text-primary uppercase">
+              {order.paymentStatus}
             </span>
           </div>
           <p className="mt-0.5 text-xs text-on-surface-variant">
@@ -839,9 +850,9 @@ function ActiveDeliveryCard({
           </p>
 
           {order.trackingNumber && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="rounded bg-purple-100 px-2.5 py-1 font-mono text-xs font-bold text-purple-900 border border-purple-300 flex items-center gap-1.5">
-                <Truck size={13} className="text-purple-700" />
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="rounded bg-purple-100 px-2 py-0.5 font-mono text-[11px] sm:text-xs font-bold text-purple-900 border border-purple-300 flex items-center gap-1">
+                <Truck size={12} className="text-purple-700" />
                 Resi: {order.trackingNumber}
               </span>
               <button
@@ -853,7 +864,7 @@ function ActiveDeliveryCard({
                     setTimeout(() => setCopied(false), 2000);
                   }
                 }}
-                className="inline-flex items-center gap-1 rounded border border-outline-variant bg-background-white px-2 py-1 text-[11px] font-bold text-on-surface hover:bg-surface-container transition-colors"
+                className="inline-flex items-center gap-1 rounded border border-outline-variant bg-background-white px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-on-surface hover:bg-surface-container transition-colors"
               >
                 {copied ? (
                   <>
@@ -868,23 +879,23 @@ function ActiveDeliveryCard({
                 href={`https://www.cekresi.com/?noresi=${encodeURIComponent(order.trackingNumber)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20"
+                className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-primary hover:bg-primary/20"
               >
-                Track Package <ExternalLink size={11} />
+                Track Package <ExternalLink size={10} />
               </a>
             </div>
           )}
         </div>
 
-        <div className="text-right flex flex-col items-end gap-1">
-          <p className="font-sans text-lg font-bold text-price-green">{formatIDR(order.totalAmount)}</p>
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between sm:flex-col sm:items-end sm:text-right gap-1 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-outline-variant/30">
+          <p className="font-sans text-base sm:text-lg font-bold text-price-green">{formatIDR(order.totalAmount)}</p>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onViewInvoice(order)}
               className="inline-flex items-center gap-1 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors"
             >
-              <Printer size={13} />
+              <Printer size={12} />
               Invoice
             </button>
             <span className="text-outline-variant/60">•</span>
@@ -892,7 +903,7 @@ function ActiveDeliveryCard({
               href={`/checkout/success/${encodeURIComponent(order.orderNumber)}`}
               className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
             >
-              Details <ExternalLink size={12} />
+              Details <ExternalLink size={11} />
             </Link>
           </div>
         </div>

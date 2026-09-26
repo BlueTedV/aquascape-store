@@ -5,7 +5,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    overflow-x: hidden;
+    overflow-x: clip;
     scrollbar-width: none;
   }
 
@@ -16,7 +16,7 @@
 
   body {
     @apply bg-background text-on-background font-sans antialiased;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   ::selection {

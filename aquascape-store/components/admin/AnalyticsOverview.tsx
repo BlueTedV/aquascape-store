@@ -161,56 +161,60 @@ export default function AnalyticsOverview() {
         </button>
       </div>
 
-      {/* 4 Metric Cards Grid */}
-      <div className="grid gap-gutter sm:grid-cols-2 lg:grid-cols-4">
+      {/* 4 Metric Cards Grid (2-Col on mobile, 4-Col on desktop) */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-gutter lg:grid-cols-4">
         {/* Card 1: Total Revenue */}
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-xs">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 sm:p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Total Revenue</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white">
-              <DollarSign size={20} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-800">Total Revenue</span>
+            <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-emerald-600 text-white">
+              <DollarSign size={16} className="sm:hidden" />
+              <DollarSign size={20} className="hidden sm:block" />
             </div>
           </div>
-          <p className="mt-3 font-sans text-2xl font-bold text-emerald-950">{formatIDR(totalRevenue)}</p>
-          <p className="mt-1 flex items-center gap-1 text-[11px] font-bold text-emerald-700">
-            <TrendingUp size={13} /> From completed & paid orders
+          <p className="mt-2 sm:mt-3 font-sans text-base sm:text-2xl font-bold text-emerald-950 truncate">{formatIDR(totalRevenue)}</p>
+          <p className="mt-0.5 sm:mt-1 flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-emerald-700 truncate">
+            <TrendingUp size={12} className="shrink-0" /> Paid orders
           </p>
         </div>
 
         {/* Card 2: Total Orders */}
-        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-5 shadow-xs">
+        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 sm:p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-800">Total Orders</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-              <ShoppingBag size={20} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-blue-800">Total Orders</span>
+            <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
+              <ShoppingBag size={16} className="sm:hidden" />
+              <ShoppingBag size={20} className="hidden sm:block" />
             </div>
           </div>
-          <p className="mt-3 font-sans text-2xl font-bold text-blue-950">{totalOrders} Orders</p>
-          <p className="mt-1 text-[11px] font-bold text-blue-700">All customer purchase requests</p>
+          <p className="mt-2 sm:mt-3 font-sans text-base sm:text-2xl font-bold text-blue-950">{totalOrders}</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] font-bold text-blue-700 truncate">Customer orders</p>
         </div>
 
         {/* Card 3: Avg Order Value */}
-        <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-5 shadow-xs">
+        <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-3 sm:p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-800">Avg Order Value</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-600 text-white">
-              <BarChart3 size={20} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-purple-800">Avg Value</span>
+            <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-purple-600 text-white">
+              <BarChart3 size={16} className="sm:hidden" />
+              <BarChart3 size={20} className="hidden sm:block" />
             </div>
           </div>
-          <p className="mt-3 font-sans text-2xl font-bold text-purple-950">{formatIDR(averageOrderValue)}</p>
-          <p className="mt-1 text-[11px] font-bold text-purple-700">Average spent per transaction</p>
+          <p className="mt-2 sm:mt-3 font-sans text-base sm:text-2xl font-bold text-purple-950 truncate">{formatIDR(averageOrderValue)}</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] font-bold text-purple-700 truncate">Per transaction</p>
         </div>
 
         {/* Card 4: Low Stock Alert */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 shadow-xs">
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 sm:p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Low Stock Items</span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500 text-white">
-              <AlertTriangle size={20} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-800">Low Stock</span>
+            <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-amber-500 text-white">
+              <AlertTriangle size={16} className="sm:hidden" />
+              <AlertTriangle size={20} className="hidden sm:block" />
             </div>
           </div>
-          <p className="mt-3 font-sans text-2xl font-bold text-amber-950">{lowStockCount} Products</p>
-          <p className="mt-1 text-[11px] font-bold text-amber-700">Items with stock $\le 3$ remaining</p>
+          <p className="mt-2 sm:mt-3 font-sans text-base sm:text-2xl font-bold text-amber-950">{lowStockCount} Items</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] font-bold text-amber-700 truncate">Stock &le; 3 left</p>
         </div>
       </div>
 

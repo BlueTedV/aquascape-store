@@ -157,6 +157,7 @@ function inputFromForm(form: FormState): ProductAdminInput {
 export default function ManageProductsView() {
   const router = useRouter();
   const [subTab, setSubTab] = useState<"products" | "slides" | "promos">("products");
+  const [mobileView, setMobileView] = useState<"list" | "form">("list");
   const [products, setProducts] = useState<ProductDetail[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -279,6 +280,7 @@ export default function ManageProductsView() {
     });
     setMessage(null);
     setError(null);
+    setMobileView("form");
   };
 
   const uploadMainImage = async (file: File | undefined) => {
@@ -401,44 +403,44 @@ export default function ManageProductsView() {
   return (
     <div className="mx-auto max-w-container space-y-6">
       {/* Sub-navigation Tabs */}
-      <div className="flex border-b border-outline-variant/60">
+      <div className="flex overflow-x-auto no-scrollbar border-b border-outline-variant/60 gap-1 sm:gap-2 pb-1">
         <button
           type="button"
           onClick={() => setSubTab("products")}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 border-b-2 px-3.5 py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-bold transition-all ${
             subTab === "products"
               ? "border-primary text-primary"
               : "border-transparent text-on-surface-variant hover:text-on-surface"
           }`}
         >
-          <Package size={17} />
-          Catalog Products
+          <Package size={16} />
+          <span>Catalog Products</span>
         </button>
 
         <button
           type="button"
           onClick={() => setSubTab("slides")}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 border-b-2 px-3.5 py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-bold transition-all ${
             subTab === "slides"
               ? "border-primary text-primary"
               : "border-transparent text-on-surface-variant hover:text-on-surface"
           }`}
         >
-          <Sparkles size={17} />
-          Hero Banners
+          <Sparkles size={16} />
+          <span>Hero Banners</span>
         </button>
 
         <button
           type="button"
           onClick={() => setSubTab("promos")}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 border-b-2 px-3.5 py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-bold transition-all ${
             subTab === "promos"
               ? "border-primary text-primary"
               : "border-transparent text-on-surface-variant hover:text-on-surface"
           }`}
         >
-          <Tag size={17} />
-          Promos &amp; Vouchers
+          <Tag size={16} />
+          <span>Promos &amp; Vouchers</span>
         </button>
       </div>
 
@@ -446,15 +448,15 @@ export default function ManageProductsView() {
       {subTab === "promos" && <ManagePromosView />}
       {subTab === "products" && (
         <>
-          <div className="mb-stack-lg flex flex-col gap-stack-md lg:flex-row lg:items-end lg:justify-between">
+          <div className="mb-4 sm:mb-stack-lg flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between border-b border-outline-variant/40 pb-4">
             <div>
-              <p className="text-label-md uppercase text-tertiary">Admin</p>
-              <h1 className="mt-2 font-display text-headline-lg text-primary">Manage Products</h1>
-              <p className="mt-2 max-w-2xl text-body-md text-on-surface-variant">
+              <p className="text-[11px] sm:text-label-md uppercase text-tertiary tracking-wider font-bold">Admin</p>
+              <h2 className="mt-0.5 font-display text-lg sm:text-headline-lg font-bold text-primary">Manage Products</h2>
+              <p className="mt-0.5 text-xs sm:text-body-md text-on-surface-variant">
                 Add products, edit catalog details, mark stock status, and choose featured items.
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
               <button
                 type="button"
                 onClick={() => {
@@ -462,18 +464,18 @@ export default function ManageProductsView() {
                   setDeleteError(null);
                   setShowDeleteModal(true);
                 }}
-                className="flex items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-label-md font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white"
+                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-600 hover:text-white transition-colors"
               >
-                <Trash2 size={18} />
-                Delete All Products
+                <Trash2 size={14} />
+                <span>Delete All</span>
               </button>
               <button
                 type="button"
                 onClick={startNewProduct}
-                className="flex items-center justify-center gap-2 rounded bg-primary px-5 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-on-primary hover:bg-primary-container transition-colors shadow-xs"
               >
-                <PackagePlus size={18} />
-                New Product
+                <PackagePlus size={15} />
+                <span>New Product</span>
               </button>
             </div>
           </div>
@@ -488,8 +490,36 @@ export default function ManageProductsView() {
         </div>
       )}
 
+      {/* Mobile Master-Detail View Switcher (< lg) */}
+      <div className="flex rounded-xl bg-surface-container-high/60 p-1 mb-4 border border-outline-variant/40 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileView("list")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+            mobileView === "list"
+              ? "bg-background-white text-primary shadow-xs ring-1 ring-black/5"
+              : "text-on-surface-variant hover:text-on-surface"
+          }`}
+        >
+          <Package size={14} />
+          <span>Products ({filteredProducts.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView("form")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+            mobileView === "form"
+              ? "bg-background-white text-primary shadow-xs ring-1 ring-black/5"
+              : "text-on-surface-variant hover:text-on-surface"
+          }`}
+        >
+          <Save size={14} />
+          <span>{form.id ? "Edit Details" : "New Product"}</span>
+        </button>
+      </div>
+
       <div className="grid gap-gutter lg:grid-cols-[360px_1fr]">
-        <aside className="rounded-lg bg-background-white p-stack-md shadow-soft lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+        <aside className={`rounded-lg bg-background-white p-3.5 sm:p-stack-md shadow-soft lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto ${mobileView === "form" ? "hidden lg:block" : "block"}`}>
           <label className="mb-stack-md flex items-center gap-2 rounded border border-outline-variant bg-surface-container-low px-3 py-2 focus-within:border-primary">
             <Search size={17} className="text-primary" />
             <input
@@ -508,7 +538,10 @@ export default function ManageProductsView() {
                 <button
                   key={product.id}
                   type="button"
-                  onClick={() => setForm(formFromProduct(product))}
+                  onClick={() => {
+                    setForm(formFromProduct(product));
+                    setMobileView("form");
+                  }}
                   className={`flex w-full gap-3 rounded border p-2 text-left transition-colors ${
                     selected
                       ? "border-primary bg-primary-fixed"
@@ -539,7 +572,26 @@ export default function ManageProductsView() {
           </div>
         </aside>
 
-        <form onSubmit={saveProduct} className="rounded-lg bg-background-white p-stack-lg shadow-soft">
+        <form onSubmit={saveProduct} className={`rounded-lg bg-background-white p-4 sm:p-stack-lg shadow-soft ${mobileView === "list" ? "hidden lg:block" : "block"}`}>
+          {/* Mobile Back to Products Bar */}
+          <div className="mb-4 flex items-center justify-between border-b border-outline-variant/40 pb-3 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileView("list")}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+            >
+              <span>← Back to Products ({filteredProducts.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={startNewProduct}
+              className="inline-flex items-center gap-1 rounded bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary"
+            >
+              <PackagePlus size={13} />
+              <span>New</span>
+            </button>
+          </div>
+
           <div className="mb-stack-lg flex flex-col gap-stack-sm sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-label-md uppercase text-on-surface-variant">
@@ -750,7 +802,7 @@ export default function ManageProductsView() {
                         const updated = textToLines(form.gallery).filter((_, i) => i !== index);
                         setField("gallery", updated.join("\n"));
                       }}
-                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-white opacity-0 transition-opacity group-hover:opacity-100 shadow"
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-white opacity-90 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 shadow"
                       title="Remove image"
                     >
                       <X size={12} />
@@ -783,7 +835,7 @@ export default function ManageProductsView() {
             </label>
           </div>
 
-          <div className="mt-stack-lg flex items-center justify-between">
+          <div className="mt-stack-lg flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/40 pt-4">
             {form.id ? (
               <button
                 type="button"
@@ -793,20 +845,20 @@ export default function ManageProductsView() {
                     setProductToDelete(currentProduct);
                   }
                 }}
-                className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-label-md font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white"
+                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white"
               >
-                <Trash2 size={16} />
-                Delete Product
+                <Trash2 size={14} />
+                <span>Delete Product</span>
               </button>
             ) : <div />}
 
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded bg-primary px-6 py-3 text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-xs sm:text-sm font-bold text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-70 shadow-xs"
             >
-              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              Save Product
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              <span>{form.id ? "Update Product" : "Create Product"}</span>
             </button>
           </div>
         </form>

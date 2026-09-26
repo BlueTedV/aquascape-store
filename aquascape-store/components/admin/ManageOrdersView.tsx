@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Loader2, Lock, RefreshCw, Search, Truck, Trash2, X, Printer } from "lucide-react";
+import { AlertTriangle, Loader2, Lock, RefreshCw, Search, Truck, Trash2, X, Printer, ShoppingBag } from "lucide-react";
 import { Order, deleteAllAdminOrders, getAdminOrders, updateOrderStatus } from "@/lib/api/orders";
 import { formatIDR } from "@/lib/format";
 import OrderInvoiceModal from "@/components/order/OrderInvoiceModal";
@@ -21,6 +21,7 @@ export default function ManageOrdersView() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -225,14 +226,14 @@ export default function ManageOrdersView() {
   return (
     <div className="mx-auto max-w-container">
       {/* Header & Filter Bar */}
-      <div className="mb-stack-md flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="mb-4 sm:mb-stack-md flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
           {ORDER_STATUSES.map((st) => (
             <button
               key={st.value}
               type="button"
               onClick={() => setSelectedStatus(st.value)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
                 selectedStatus === st.value
                   ? "bg-primary text-on-primary shadow-sm"
                   : "bg-background-white text-on-surface-variant hover:bg-surface-container border border-outline-variant/60"
@@ -243,7 +244,7 @@ export default function ManageOrdersView() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => {
@@ -251,19 +252,19 @@ export default function ManageOrdersView() {
               setDeleteError(null);
               setShowDeleteModal(true);
             }}
-            className="flex items-center gap-1.5 rounded border border-red-200 bg-red-50 px-3.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-600 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-600 hover:text-white transition-colors"
           >
-            <Trash2 size={14} />
-            Delete All Orders
+            <Trash2 size={13} />
+            <span>Delete All</span>
           </button>
 
           <button
             type="button"
             onClick={fetchOrders}
-            className="flex items-center gap-1.5 rounded border border-outline-variant/60 bg-background-white px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-surface-container"
+            className="flex items-center gap-1.5 rounded-lg border border-outline-variant/60 bg-background-white px-3 py-1.5 text-xs font-bold text-primary hover:bg-surface-container"
           >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            Refresh
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            <span>Refresh</span>
           </button>
         </div>
       </div>
@@ -278,6 +279,37 @@ export default function ManageOrdersView() {
         </div>
       )}
 
+      {/* Mobile Master-Detail View Switcher (< lg) */}
+      {orders.length > 0 && (
+        <div className="flex rounded-xl bg-surface-container-high/60 p-1 mb-4 border border-outline-variant/40 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileView("list")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+              mobileView === "list"
+                ? "bg-background-white text-primary shadow-xs ring-1 ring-black/5"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            <ShoppingBag size={14} />
+            <span>Orders ({filteredOrders.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileView("detail")}
+            disabled={!selectedOrder}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+              mobileView === "detail"
+                ? "bg-background-white text-primary shadow-xs ring-1 ring-black/5"
+                : "text-on-surface-variant hover:text-on-surface disabled:opacity-50"
+            }`}
+          >
+            <Truck size={14} />
+            <span>{selectedOrder ? `#${selectedOrder.orderNumber}` : "Order Details"}</span>
+          </button>
+        </div>
+      )}
+
       {orders.length === 0 ? (
         <div className="rounded-lg bg-background-white p-stack-lg text-center shadow-soft">
           <Truck size={36} className="mx-auto text-on-surface-variant" />
@@ -287,7 +319,7 @@ export default function ManageOrdersView() {
       ) : (
         <div className="grid gap-gutter lg:grid-cols-[380px_1fr]">
           {/* Order List Sidebar */}
-          <aside className="rounded-lg bg-background-white p-stack-md shadow-soft lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+          <aside className={`rounded-lg bg-background-white p-3.5 sm:p-stack-md shadow-soft lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto ${mobileView === "detail" ? "hidden lg:block" : "block"}`}>
             <label className="mb-stack-md flex items-center gap-2 rounded border border-outline-variant bg-surface-container-low px-3 py-2 focus-within:border-primary">
               <Search size={16} className="text-primary" />
               <input
@@ -306,7 +338,10 @@ export default function ManageOrdersView() {
                   <button
                     key={order.id}
                     type="button"
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setMobileView("detail");
+                    }}
                     className={`w-full rounded border p-3.5 text-left transition-all ${
                       isSelected
                         ? "border-primary bg-primary-fixed/40 shadow-sm"
@@ -334,11 +369,25 @@ export default function ManageOrdersView() {
 
           {/* Order Details Main View */}
           {selectedOrder && (
-            <div className="space-y-stack-md rounded-lg bg-background-white p-stack-lg shadow-soft">
-              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant/40 pb-stack-md">
+            <div className={`space-y-stack-md rounded-lg bg-background-white p-4 sm:p-stack-lg shadow-soft ${mobileView === "list" ? "hidden lg:block" : "block"}`}>
+              {/* Mobile Back to Orders Bar */}
+              <div className="mb-3 flex items-center justify-between border-b border-outline-variant/40 pb-2.5 lg:hidden">
+                <button
+                  type="button"
+                  onClick={() => setMobileView("list")}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                >
+                  <span>← Back to Orders List</span>
+                </button>
+                <span className="font-mono text-xs font-bold text-on-surface-variant">
+                  #{selectedOrder.orderNumber}
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 border-b border-outline-variant/40 pb-stack-md">
                 <div>
                   <p className="font-mono text-xs font-bold text-primary">Order #{selectedOrder.orderNumber}</p>
-                  <h2 className="mt-1 font-display text-headline-sm text-on-surface">
+                  <h2 className="mt-1 font-display text-base sm:text-headline-sm font-bold text-on-surface">
                     {selectedOrder.customerName}
                   </h2>
                   <p className="mt-0.5 text-xs text-on-surface-variant">
@@ -347,23 +396,23 @@ export default function ManageOrdersView() {
                 </div>
 
                 {/* Status Update Dropdown & Actions */}
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setShowInvoiceModal(true)}
-                    className="flex items-center gap-1.5 rounded border border-outline-variant bg-background-white px-3 py-1.5 text-xs font-bold text-on-surface shadow-xs hover:bg-surface-container hover:text-primary transition-colors"
+                    className="flex items-center gap-1.5 rounded-lg border border-outline-variant bg-background-white px-3 py-1.5 text-xs font-bold text-on-surface shadow-xs hover:bg-surface-container hover:text-primary transition-colors"
                   >
                     <Printer size={14} className="text-primary" />
                     <span>Print Invoice</span>
                   </button>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-on-surface-variant">Set Status:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-on-surface-variant">Status:</span>
                     <select
                       disabled={updating}
                       value={selectedOrder.orderStatus}
                       onChange={(e) => handleStatusChange(e.target.value)}
-                      className="rounded border border-primary bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary focus:outline-none disabled:opacity-50"
+                      className="rounded-lg border border-primary bg-primary/5 px-2.5 py-1.5 text-xs font-bold text-primary focus:outline-none disabled:opacity-50"
                     >
                       <option value="pending">Pending</option>
                       <option value="processing">Processing</option>
