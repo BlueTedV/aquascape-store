@@ -15,6 +15,15 @@ class PromoController extends Controller
         private readonly SupabaseAuthService $auth,
     ) {}
 
+    public function publicIndex(): JsonResponse
+    {
+        return $this->respond(
+            fn () => $this->promos->getPromos(activeOnly: true),
+            200,
+            'Failed to retrieve promos.'
+        );
+    }
+
     public function adminIndex(Request $request): JsonResponse
     {
         return $this->respond(

@@ -14,14 +14,25 @@ import {
   Lock,
   Flame,
   Clock,
+  MessageSquare,
+  Send,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SectionReveal from "@/components/ui/SectionReveal";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import Skeleton from "@/components/ui/Skeleton";
-import { GalleryPost } from "@/lib/types";
-import { getGalleryPosts, createGalleryPost, likeGalleryPost } from "@/lib/api/gallery";
+import { GalleryPost, GalleryComment } from "@/lib/types";
+import {
+  getGalleryPosts,
+  createGalleryPost,
+  likeGalleryPost,
+  getGalleryComments,
+  createGalleryComment,
+  deleteGalleryComment,
+} from "@/lib/api/gallery";
 import { getStoredSession } from "@/lib/api/auth";
 
 export default function CommunityPage() {
@@ -47,6 +58,16 @@ export default function CommunityPage() {
     image: "",
     size: "wide" as "tall" | "wide" | "square",
   });
+
+  // Comments state for selectedPost
+  const [comments, setComments] = useState<GalleryComment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentContent, setCommentContent] = useState("");
+  const [commentAuthor, setCommentAuthor] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState("");
+  const [currentUserIsAdmin, setCurrentUserIsAdmin] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -80,6 +101,106 @@ export default function CommunityPage() {
     const session = getStoredSession();
     setIsLoggedIn(Boolean(session?.accessToken));
     setShowCreateModal(true);
+  };
+
+  // Load comments whenever a post is selected
+  useEffect(() => {
+    if (!selectedPost) {
+      setComments([]);
+      setCommentContent("");
+      setCommentError("");
+      return;
+    }
+    let isMounted = true;
+    setLoadingComments(true);
+    const session = getStoredSession();
+    if (session?.accessToken) {
+      setIsLoggedIn(true);
+      setCurrentUserIsAdmin(Boolean(session.isAdmin));
+      if (session.user?.fullName) {
+        setCommentAuthor(session.user.fullName);
+      }
+    }
+    getGalleryComments(selectedPost.id, session?.accessToken)
+      .then((data) => {
+        if (isMounted) setComments(data);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingComments(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPost?.id]);
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPost || !commentContent.trim() || submittingComment) return;
+
+    setSubmittingComment(true);
+    setCommentError("");
+    const session = getStoredSession();
+
+    try {
+      const newComment = await createGalleryComment(
+        selectedPost.id,
+        {
+          content: commentContent.trim(),
+          authorName: commentAuthor.trim() || undefined,
+        },
+        session?.accessToken,
+      );
+
+      setComments((prev) => [...prev, newComment]);
+      setCommentContent("");
+
+      // Increment comments count on selected post and grid
+      setSelectedPost((prev) =>
+        prev ? { ...prev, commentsCount: (prev.commentsCount || 0) + 1 } : null,
+      );
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === selectedPost.id
+            ? { ...p, commentsCount: (p.commentsCount || 0) + 1 }
+            : p,
+        ),
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to post comment.";
+      setCommentError(msg);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!selectedPost || deletingCommentId) return;
+    setDeletingCommentId(commentId);
+    const session = getStoredSession();
+
+    try {
+      await deleteGalleryComment(commentId, session?.accessToken);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+
+      // Decrement comments count
+      setSelectedPost((prev) =>
+        prev
+          ? { ...prev, commentsCount: Math.max(0, (prev.commentsCount || 1) - 1) }
+          : null,
+      );
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === selectedPost.id
+            ? { ...p, commentsCount: Math.max(0, (p.commentsCount || 1) - 1) }
+            : p,
+        ),
+      );
+    } catch (err: unknown) {
+      console.error("Failed to delete comment:", err);
+    } finally {
+      setDeletingCommentId(null);
+    }
   };
 
   const handleLike = async (postId: string, e?: React.MouseEvent) => {
@@ -307,8 +428,14 @@ export default function CommunityPage() {
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                       />
 
-                      {/* Top Right Heart Badge */}
-                      <div className="absolute right-3 top-3 z-10">
+                      {/* Top Right Badges */}
+                      <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5">
+                        {Boolean(item.commentsCount && item.commentsCount > 0) && (
+                          <div className="flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1.5 text-xs font-bold text-white backdrop-blur-md">
+                            <MessageSquare size={12} />
+                            <span>{item.commentsCount}</span>
+                          </div>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => handleLike(item.id, e)}
@@ -349,30 +476,46 @@ export default function CommunityPage() {
 
         {/* Post Detail Modal */}
         {selectedPost && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-            <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-surface-container-low shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 sm:p-4 backdrop-blur-sm">
+            <div className="relative max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-surface-container-low shadow-2xl flex flex-col">
               <button
                 type="button"
                 onClick={() => setSelectedPost(null)}
-                className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black"
+                className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black transition-colors"
+                aria-label="Close modal"
               >
                 <X size={20} />
               </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 max-h-[90vh] overflow-y-auto">
-                <div className="relative min-h-[320px] bg-black md:min-h-[480px]">
-                  <Image
-                    src={selectedPost.image}
-                    alt={selectedPost.title}
-                    fill
-                    sizes="(min-width: 768px) 380px, 100vw"
-                    className="object-cover"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 max-h-[92vh] overflow-y-auto">
+                {/* Left Column: Image & Equipment Specs */}
+                <div className="flex flex-col bg-black/5 border-b md:border-b-0 md:border-r border-outline-variant/30">
+                  <div className="relative min-h-[280px] sm:min-h-[360px] bg-black">
+                    <Image
+                      src={selectedPost.image}
+                      alt={selectedPost.title}
+                      fill
+                      sizes="(min-width: 768px) 450px, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  {selectedPost.tankSpecs && (
+                    <div className="p-4 sm:p-5 bg-background-white/70">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-tertiary flex items-center gap-1.5">
+                        <span>🌿</span> Equipment &amp; Tank Specifications
+                      </div>
+                      <div className="mt-1.5 font-sans text-xs sm:text-sm text-on-surface font-medium leading-relaxed">
+                        {selectedPost.tankSpecs}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex flex-col justify-between p-6 space-y-4">
+                {/* Right Column: Details & Comments Thread */}
+                <div className="flex flex-col h-full justify-between p-5 sm:p-6 space-y-4">
                   <div>
-                    <div className="flex items-center justify-between">
+                    {/* Header badges */}
+                    <div className="flex items-center justify-between pr-8">
                       <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                         Community Showcase
                       </span>
@@ -393,36 +536,134 @@ export default function CommunityPage() {
                       </button>
                     </div>
 
-                    <h2 className="mt-4 font-display text-headline-md font-bold text-on-surface">
+                    <h2 className="mt-3 font-display text-lg sm:text-headline-md font-bold text-on-surface">
                       {selectedPost.title}
                     </h2>
-                    <p className="font-sans text-body-md font-semibold text-tertiary">
+                    <p className="font-sans text-xs sm:text-body-md font-semibold text-tertiary">
                       Created by {selectedPost.authorName}
                     </p>
 
                     {selectedPost.description && (
-                      <p className="mt-4 font-sans text-body-md text-on-surface-variant leading-relaxed">
+                      <p className="mt-2.5 font-sans text-xs sm:text-body-sm text-on-surface-variant leading-relaxed">
                         {selectedPost.description}
                       </p>
                     )}
 
-                    {selectedPost.tankSpecs && (
-                      <div className="mt-4 rounded-xl bg-background-white p-4 border border-outline-variant">
-                        <div className="text-xs font-bold uppercase tracking-wider text-tertiary">
-                          Equipment &amp; Tank Specifications
+                    {/* Comments Thread Section */}
+                    <div className="mt-5 border-t border-outline-variant/40 pt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-1.5 font-sans text-xs sm:text-sm font-bold text-on-surface">
+                          <MessageSquare size={16} className="text-primary" />
+                          <span>Discussion ({comments.length})</span>
                         </div>
-                        <div className="mt-1 font-sans text-body-md text-on-surface font-medium">
-                          {selectedPost.tankSpecs}
-                        </div>
+                        {loadingComments && (
+                          <Loader2 size={14} className="animate-spin text-primary" />
+                        )}
                       </div>
-                    )}
+
+                      {/* Comments Stream */}
+                      <div className="space-y-2.5 max-h-52 sm:max-h-60 overflow-y-auto pr-1 no-scrollbar">
+                        {loadingComments && comments.length === 0 ? (
+                          <div className="space-y-2 py-2">
+                            <Skeleton className="h-10 w-full rounded-xl" />
+                            <Skeleton className="h-10 w-full rounded-xl" />
+                          </div>
+                        ) : comments.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-outline-variant/50 p-4 text-center text-xs text-on-surface-variant">
+                            No comments yet. Be the first to ask about plants, hardscape, or share tips!
+                          </div>
+                        ) : (
+                          comments.map((comment) => (
+                            <div
+                              key={comment.id}
+                              className="group relative rounded-xl bg-surface-container/60 p-3 text-xs border border-outline-variant/20 hover:border-outline-variant/40 transition-colors"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary uppercase">
+                                    {comment.authorName.charAt(0) || "A"}
+                                  </div>
+                                  <span className="font-bold text-on-surface">
+                                    {comment.authorName}
+                                  </span>
+                                  <span className="text-[10px] text-on-surface-variant/70">
+                                    {new Date(comment.createdAt).toLocaleDateString("id-ID", {
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </span>
+                                </div>
+
+                                {(comment.isOwner || currentUserIsAdmin) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteComment(comment.id)}
+                                    disabled={deletingCommentId === comment.id}
+                                    className="text-on-surface-variant/50 hover:text-rose-500 transition-colors p-1"
+                                    title="Delete comment"
+                                  >
+                                    {deletingCommentId === comment.id ? (
+                                      <Loader2 size={12} className="animate-spin text-rose-500" />
+                                    ) : (
+                                      <Trash2 size={12} />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                              <p className="mt-1.5 text-on-surface-variant leading-relaxed pl-8">
+                                {comment.content}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Comment submission form */}
+                      <form onSubmit={handleAddComment} className="mt-3.5 space-y-2">
+                        {!isLoggedIn && (
+                          <input
+                            type="text"
+                            value={commentAuthor}
+                            onChange={(e) => setCommentAuthor(e.target.value)}
+                            placeholder="Your Name (Optional)"
+                            maxLength={50}
+                            className="w-full rounded-lg border border-outline-variant/50 bg-background-white px-3 py-1.5 text-xs text-on-surface focus:border-primary focus:outline-none"
+                          />
+                        )}
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            value={commentContent}
+                            onChange={(e) => setCommentContent(e.target.value)}
+                            placeholder="Write a comment or question..."
+                            maxLength={500}
+                            className="w-full rounded-xl border border-outline-variant/60 bg-background-white px-3.5 py-2.5 pr-10 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!commentContent.trim() || submittingComment}
+                            className="absolute right-1.5 flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-white transition-opacity disabled:opacity-40 hover:opacity-90"
+                            title="Send comment"
+                          >
+                            {submittingComment ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <Send size={13} />
+                            )}
+                          </button>
+                        </div>
+                        {commentError && (
+                          <p className="text-[11px] text-rose-500">{commentError}</p>
+                        )}
+                      </form>
+                    </div>
                   </div>
 
-                  <div className="border-t border-outline-variant pt-4 flex items-center justify-end">
+                  <div className="border-t border-outline-variant/40 pt-3 flex items-center justify-end">
                     <button
                       type="button"
                       onClick={() => setSelectedPost(null)}
-                      className="rounded-md bg-surface-container px-5 py-2 font-sans text-body-md font-semibold text-on-surface hover:bg-surface-container-high"
+                      className="rounded-md bg-surface-container px-4 py-1.5 font-sans text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors"
                     >
                       Close
                     </button>

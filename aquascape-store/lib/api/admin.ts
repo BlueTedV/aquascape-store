@@ -1,4 +1,4 @@
-import { ProductBadge } from "@/lib/types";
+import { ProductBadge, GalleryPost } from "@/lib/types";
 import { ProductDetail } from "./products";
 import { authenticatedRequest, publicRequest } from "./auth";
 
@@ -116,4 +116,20 @@ export interface AdminAnalytics {
 
 export async function getAdminAnalytics() {
   return authenticatedRequest<AdminAnalytics>("/api/admin/analytics");
+}
+
+export async function getAdminGalleryPosts() {
+  return authenticatedRequest<GalleryPost[]>("/api/admin/gallery");
+}
+
+export async function deleteAdminGalleryPost(id: string) {
+  return authenticatedRequest<{ message: string }>(`/api/admin/gallery/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteAdminGalleryComment(commentId: string) {
+  return authenticatedRequest<{ message: string }>(`/api/admin/gallery/comments/${encodeURIComponent(commentId)}`, {
+    method: "DELETE",
+  });
 }

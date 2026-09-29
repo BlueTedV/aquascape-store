@@ -32,12 +32,6 @@ export default function Hero() {
             >
               Shop Now
             </Link>
-            <Link
-              href="/styles"
-              className="rounded border-2 border-white/50 px-10 py-4 font-sans text-label-md text-white backdrop-blur-sm transition-colors hover:bg-white hover:text-primary"
-            >
-              Explore Aquascapes
-            </Link>
           </div>
         </div>
       </div>

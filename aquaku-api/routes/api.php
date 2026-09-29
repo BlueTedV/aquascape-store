@@ -36,6 +36,7 @@ Route::middleware('auth.supabase')->group(function () {
     });
 
     Route::post('gallery/{id}/like', [GalleryController::class, 'like']);
+    Route::delete('gallery/comments/{commentId}', [GalleryController::class, 'destroyComment']);
 });
 
 // Admin Routes (implicitly requires auth + admin via EnsureUserIsAdmin)
@@ -76,10 +77,17 @@ Route::middleware('admin.supabase')->group(function () {
         Route::put('/{id}', [ArticleController::class, 'update']);
         Route::delete('/{id}', [ArticleController::class, 'destroy']);
     });
+
+    Route::prefix('admin/gallery')->group(function (): void {
+        Route::get('/', [GalleryController::class, 'adminIndex']);
+        Route::delete('/{id}', [GalleryController::class, 'adminDestroy']);
+        Route::delete('/comments/{commentId}', [GalleryController::class, 'adminDestroyComment']);
+    });
 });
 
 // Public API Routes
 Route::get('/hero-slides', [HeroSlideController::class, 'index']);
+Route::get('/promos', [PromoController::class, 'publicIndex']);
 
 Route::prefix('articles')->group(function (): void {
     Route::get('/', [ArticleController::class, 'index']);
@@ -98,6 +106,8 @@ Route::prefix('products')->group(function (): void {
 Route::prefix('gallery')->group(function (): void {
     Route::get('/', [GalleryController::class, 'index']);
     Route::post('/', [GalleryController::class, 'store']);
+    Route::get('/{id}/comments', [GalleryController::class, 'comments']);
+    Route::post('/{id}/comments', [GalleryController::class, 'storeComment']);
 });
 
 Route::post('/vouchers/validate', [OrderController::class, 'validateVoucher']);

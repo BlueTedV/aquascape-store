@@ -70,7 +70,9 @@ export default function AboutPage() {
                   alt="Aquaku Nursery and Aquascape Gallery"
                   width={900}
                   height={700}
-                  className="h-full w-full object-cover"
+                  sizes="(min-width: 768px) 50vw, 100vw"
+                  className="h-auto w-full object-cover"
+                  style={{ width: "100%", height: "auto" }}
                 />
               </div>
 

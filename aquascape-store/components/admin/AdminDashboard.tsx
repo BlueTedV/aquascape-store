@@ -1,14 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, Package, ShoppingBag, BookOpen } from "lucide-react";
+import {
+  BarChart3,
+  Package,
+  ShoppingBag,
+  BookOpen,
+  Sparkles,
+  SlidersHorizontal,
+  Tag,
+} from "lucide-react";
 import ManageProductsView from "./ManageProductsView";
 import ManageOrdersView from "./ManageOrdersView";
 import AnalyticsOverview from "./AnalyticsOverview";
 import ManageArticlesView from "./ManageArticlesView";
+import ManageGalleryView from "./ManageGalleryView";
+import ManageHeroSlidesView from "./ManageHeroSlidesView";
+import ManagePromosView from "./ManagePromosView";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"analytics" | "products" | "orders" | "articles">("analytics");
+  const [activeTab, setActiveTab] = useState<
+    "analytics" | "products" | "orders" | "articles" | "gallery" | "slides" | "promos"
+  >("analytics");
 
   return (
     <div className="mx-auto max-w-container">
@@ -29,20 +42,20 @@ export default function AdminDashboard() {
         <button
           type="button"
           onClick={() => setActiveTab("analytics")}
-          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
             activeTab === "analytics"
               ? "bg-primary text-on-primary shadow-xs"
               : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
           }`}
         >
           <BarChart3 size={16} />
-          <span>Sales &amp; Analytics</span>
+          <span>Analytics</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("products")}
-          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
             activeTab === "products"
               ? "bg-primary text-on-primary shadow-xs"
               : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
@@ -50,33 +63,71 @@ export default function AdminDashboard() {
         >
           <Package size={16} />
           <span>Products</span>
-          <span className="hidden sm:inline">Catalog</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("orders")}
-          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
             activeTab === "orders"
               ? "bg-primary text-on-primary shadow-xs"
               : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
           }`}
         >
           <ShoppingBag size={16} />
-          <span>Customer Orders</span>
+          <span>Orders</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("articles")}
-          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
             activeTab === "articles"
               ? "bg-primary text-on-primary shadow-xs"
               : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
           }`}
         >
           <BookOpen size={16} />
-          <span>Help Articles</span>
+          <span>Articles</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("gallery")}
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "gallery"
+              ? "bg-primary text-on-primary shadow-xs"
+              : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+          }`}
+        >
+          <Sparkles size={16} />
+          <span>Community Gallery</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("slides")}
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "slides"
+              ? "bg-primary text-on-primary shadow-xs"
+              : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+          }`}
+        >
+          <SlidersHorizontal size={16} />
+          <span>Hero Banners</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("promos")}
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeTab === "promos"
+              ? "bg-primary text-on-primary shadow-xs"
+              : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+          }`}
+        >
+          <Tag size={16} />
+          <span>Vouchers &amp; Promos</span>
         </button>
       </div>
 
@@ -84,6 +135,9 @@ export default function AdminDashboard() {
       {activeTab === "products" && <ManageProductsView />}
       {activeTab === "orders" && <ManageOrdersView />}
       {activeTab === "articles" && <ManageArticlesView />}
+      {activeTab === "gallery" && <ManageGalleryView />}
+      {activeTab === "slides" && <ManageHeroSlidesView />}
+      {activeTab === "promos" && <ManagePromosView />}
     </div>
   );
 }

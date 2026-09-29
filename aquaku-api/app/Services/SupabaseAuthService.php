@@ -21,12 +21,15 @@ class SupabaseAuthService
 
     private string $publishableKey;
 
+    private string $anonKey;
+
     private string $serviceRoleKey;
 
     public function __construct()
     {
         $this->url = rtrim((string) config('services.supabase.url'), '/');
         $this->publishableKey = (string) config('services.supabase.publishable_key');
+        $this->anonKey = (string) config('services.supabase.anon_key', $this->publishableKey);
         $this->serviceRoleKey = (string) config('services.supabase.service_role_key');
 
         if ($this->url === '' || $this->publishableKey === '') {
@@ -444,8 +447,8 @@ class SupabaseAuthService
         return Http::baseUrl($this->url)
             ->acceptJson()
             ->withHeaders([
-                'apikey' => $this->publishableKey,
-                'Authorization' => 'Bearer '.($accessToken ?: $this->publishableKey),
+                'apikey' => $this->anonKey,
+                'Authorization' => 'Bearer '.($accessToken ?: $this->anonKey),
             ]);
     }
 

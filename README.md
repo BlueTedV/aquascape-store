@@ -31,7 +31,7 @@ The architecture consists of a **Next.js 16 (App Router)** storefront paired wit
 
 ### 5. Setup Guides & Community Showcase
 - **Aquascape Setup Masterclass (`/guides`)**: Curated step-by-step guides covering hardscape placement, substrate layering, aquatic planting, water cycling, CO2 injection, and algae prevention.
-- **Community Aquascape Gallery (`/community`)**: Community showcase featuring user-submitted aquarium setups, complete equipment/flora/fauna specifications, and interactive like counts.
+- **Community Aquascape Gallery (`/community`)**: Community showcase featuring user-submitted aquarium setups, complete equipment/flora/fauna specifications, interactive like counts, and real-time discussion comment section.
 
 ### 6. Help Center & Knowledge Base
 - **Knowledge Base & Search (`/articles`, `/contact`)**: Browse and search support articles by topic, keywords, or tags.
@@ -48,8 +48,9 @@ The architecture consists of a **Next.js 16 (App Router)** storefront paired wit
 - **Product Catalog Management**: Create, edit, and delete products, manage stock levels, assign categories and badges, configure specifications JSON, and upload product gallery images.
 - **Order Processing**: Filter orders by status, update delivery states, assign courier tracking numbers (resi), view customer invoices, and execute bulk cleanup.
 - **Article Management**: Create, edit, tag, and publish help articles using the integrated Markdown editor.
-- **Promotions & Vouchers**: Create promotional discount codes with custom rules and track usage limits.
+- **Community Gallery Manager**: Monitor user showcase creations, review engagement metrics (hearts and comments count), and moderate/delete inappropriate posts or comments.
 - **Hero Carousel Banners**: Customize homepage hero carousel banners, call-to-action buttons, links, and slide ordering.
+- **Promotions & Vouchers**: Create promotional discount codes with custom rules and track usage limits.
 - **Media Uploads**: Direct image uploads to Supabase Storage with automatic URL generation and fallback protection.
 
 ---
@@ -183,6 +184,7 @@ Log in to your [Supabase Dashboard](https://supabase.com/dashboard) and run the 
 8. `add-voucher-discount-to-orders.sql` — Adds voucher code and discount tracking columns to orders.
 9. `admin-support.sql` — Installs admin role validation functions and security policies.
 10. `fix-product-read-grants.sql` — Grants public read access for catalog browsing.
+11. `gallery-comments.sql` — Creates `gallery_post_comments` table with cascade deletes, RLS policies, and `comments_count` tracking.
 
 > [!NOTE]
 > Make sure to create a public storage bucket named `product-images` in Supabase Storage with public read permissions for product and banner media uploads.
@@ -325,6 +327,9 @@ Log in to your [Supabase Dashboard](https://supabase.com/dashboard) and run the 
 | `GET` | `/api/gallery` | List community aquascape setups |
 | `POST` | `/api/gallery` | Submit a user aquascape setup |
 | `POST` | `/api/gallery/{id}/like` | Increment like count for a community setup |
+| `GET` | `/api/gallery/{id}/comments` | Retrieve comments and discussions for a showcase |
+| `POST` | `/api/gallery/{id}/comments` | Post a comment or question on an aquascape showcase |
+| `DELETE`| `/api/gallery/comments/{commentId}` | Delete user's own comment |
 | `POST` | `/api/vouchers/validate` | Validate promo code and calculate discount values |
 | `POST` | `/api/orders/checkout` | Create order and generate Midtrans Snap payment token |
 | `GET` | `/api/orders/{orderNumber}` | Retrieve order details and invoice data |
@@ -366,6 +371,9 @@ Log in to your [Supabase Dashboard](https://supabase.com/dashboard) and run the 
 | `POST` | `/api/admin/articles` | Create a knowledge base article |
 | `PUT` | `/api/admin/articles/{id}` | Update article content and metadata |
 | `DELETE`| `/api/admin/articles/{id}` | Delete a knowledge base article |
+| `GET` | `/api/admin/gallery` | List community showcases with likes and comments metrics |
+| `DELETE`| `/api/admin/gallery/{id}` | Permanently delete a showcase post |
+| `DELETE`| `/api/admin/gallery/comments/{commentId}` | Moderate / delete inappropriate comment |
 | `POST` | `/api/admin/uploads/images` | Upload image files directly to Supabase Storage |
 
 ---

@@ -1,4 +1,4 @@
-import { GalleryPost } from "@/lib/types";
+import { GalleryPost, GalleryComment } from "@/lib/types";
 import { getValidAccessToken } from "@/lib/api/auth";
 
 const API_URL = (process.env.NEXT_PUBLIC_AQUAKU_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
@@ -114,3 +114,94 @@ export async function likeGalleryPost(
 
   throw new Error(payload.message || "Failed to update like.");
 }
+
+export async function getGalleryComments(
+  postId: string,
+  accessToken?: string | null,
+): Promise<GalleryComment[]> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+
+  const token = accessToken || (await getValidAccessToken());
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/api/gallery/${encodeURIComponent(postId)}/comments`, {
+      headers,
+      cache: "no-store",
+    });
+
+    if (response.ok) {
+      const payload = (await response.json()) as ApiResponse<GalleryComment[]>;
+      if (Array.isArray(payload.data)) {
+        return payload.data;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch gallery comments:", error);
+  }
+
+  return [];
+}
+
+export async function createGalleryComment(
+  postId: string,
+  payload: { content: string; authorName?: string },
+  accessToken?: string | null,
+): Promise<GalleryComment> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
+  const token = accessToken || (await getValidAccessToken());
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}/api/gallery/${encodeURIComponent(postId)}/comments`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const body = (await response.json().catch(() => ({}))) as ApiResponse<GalleryComment>;
+
+  if (response.ok && body.data) {
+    return body.data;
+  }
+
+  throw new Error(body.message || `Failed to post comment (${response.status})`);
+}
+
+export async function deleteGalleryComment(
+  commentId: string,
+  accessToken?: string | null,
+): Promise<boolean> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+
+  const token = accessToken || (await getValidAccessToken());
+  if (!token) {
+    throw new Error("Authentication required to delete comments.");
+  }
+
+  headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_URL}/api/gallery/comments/${encodeURIComponent(commentId)}`, {
+    method: "DELETE",
+    headers,
+  });
+
+  if (response.ok) {
+    return true;
+  }
+
+  const body = await response.json().catch(() => ({}));
+  throw new Error(body.message || "Failed to delete comment.");
+}
+

@@ -1,10 +1,17 @@
 export const revalidate = 60; // Cache shop page queries for 60 seconds
 
+import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductCatalog from "@/components/shop/ProductCatalog";
 import { getProducts } from "@/lib/api/products";
 import { ProductBadge } from "@/lib/types";
+
+export const metadata: Metadata = {
+  title: "Shop | Aquaku — Aquatic Plants, Hardscape & Equipment",
+  description:
+    "Browse 300+ premium aquatic plants, hardscape stones, fish, shrimp, and professional aquascaping equipment. Filter by category, brand, and price.",
+};
 
 type ShopPageProps = {
   searchParams?: Promise<{

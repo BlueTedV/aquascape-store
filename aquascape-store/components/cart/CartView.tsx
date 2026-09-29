@@ -93,7 +93,7 @@ export default function CartView() {
               >
                 <Link
                   href={`/product/${item.slug}`}
-                  className="relative block h-18 w-18 shrink-0 overflow-hidden rounded-lg bg-surface-container sm:h-24 sm:w-24"
+                  className="relative block h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-container sm:h-24 sm:w-24"
                 >
                   <Image
                     src={imageSrc}

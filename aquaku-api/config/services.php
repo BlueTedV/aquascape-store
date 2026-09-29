@@ -38,6 +38,7 @@ return [
     'supabase' => [
         'url' => env('SUPABASE_URL'),
         'publishable_key' => env('SUPABASE_PUBLISHABLE_KEY'),
+        'anon_key' => env('SUPABASE_ANON_KEY', env('SUPABASE_PUBLISHABLE_KEY')),
         'service_role_key' => env('SUPABASE_SERVICE_ROLE_KEY'),
         'key' => env('SUPABASE_SERVICE_ROLE_KEY', env('SUPABASE_PUBLISHABLE_KEY')),
         'admin_emails' => array_filter(array_map('trim', explode(',', env('ADMIN_EMAILS', '')))),

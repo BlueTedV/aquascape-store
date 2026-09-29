@@ -79,4 +79,99 @@ class GalleryController extends Controller
             'Failed to update like on gallery post.'
         );
     }
+
+    public function comments(string $id, Request $request): JsonResponse
+    {
+        $userId = null;
+        if ($request->hasHeader('Authorization')) {
+            try {
+                $account = $this->auth->accountFromRequest($request);
+                $userId = $account['user']['id'] ?? null;
+            } catch (Throwable) {
+                // Anonymous guest
+            }
+        }
+
+        return $this->respond(
+            fn () => $this->gallery->getComments($id, $userId),
+            200,
+            'Failed to retrieve comments.'
+        );
+    }
+
+    public function storeComment(string $id, Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'content' => ['required', 'string', 'max:1000'],
+            'authorName' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        $userId = null;
+        $userName = null;
+
+        if ($request->hasHeader('Authorization')) {
+            try {
+                $account = $this->auth->accountFromRequest($request);
+                $userId = $account['user']['id'] ?? null;
+                $userName = $account['user']['fullName'] ?? $account['profile']['fullName'] ?? $account['user']['email'] ?? null;
+            } catch (Throwable) {
+                // Anonymous fallback
+            }
+        }
+
+        return $this->respond(
+            fn () => $this->gallery->createComment($id, $validated, $userId, $userName),
+            201,
+            'Failed to post comment.'
+        );
+    }
+
+    public function destroyComment(string $commentId, Request $request): JsonResponse
+    {
+        $account = $this->auth->accountFromRequest($request);
+        $userId = (string) $account['user']['id'];
+        $isAdmin = (bool) ($account['isAdmin'] ?? false);
+
+        return $this->respond(
+            function () use ($commentId, $userId, $isAdmin) {
+                $this->gallery->deleteComment($commentId, $userId, $isAdmin);
+                return ['message' => 'Comment deleted successfully.'];
+            },
+            200,
+            'Failed to delete comment.'
+        );
+    }
+
+    public function adminIndex(Request $request): JsonResponse
+    {
+        return $this->respond(
+            fn () => $this->gallery->getAdminPosts(),
+            200,
+            'Failed to retrieve admin gallery posts.'
+        );
+    }
+
+    public function adminDestroy(string $id): JsonResponse
+    {
+        return $this->respond(
+            function () use ($id) {
+                $this->gallery->deletePost($id);
+                return ['message' => 'Gallery showcase post deleted successfully.'];
+            },
+            200,
+            'Failed to delete gallery post.'
+        );
+    }
+
+    public function adminDestroyComment(string $commentId): JsonResponse
+    {
+        return $this->respond(
+            function () use ($commentId) {
+                $this->gallery->deleteComment($commentId, null, true);
+                return ['message' => 'Comment deleted successfully.'];
+            },
+            200,
+            'Failed to delete comment.'
+        );
+    }
 }

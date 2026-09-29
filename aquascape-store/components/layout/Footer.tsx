@@ -12,7 +12,6 @@ const quickLinks = [
   { label: "Contact Support", href: "/contact" },
 ];
 
-
 const legalLinks = [
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Service", href: "/terms" },
@@ -23,6 +22,7 @@ export default function Footer() {
     <footer className="mt-section-gap bg-inverse-surface text-inverse-on-surface">
       <div className="mx-auto max-w-container px-edge-margin-mobile py-stack-lg md:px-edge-margin-desktop">
         <div className="grid grid-cols-1 gap-gutter md:grid-cols-4">
+          {/* Brand */}
           <div className="space-y-stack-md">
             <div className="font-display text-headline-md font-bold text-primary-fixed">
               AQUAKU SHOP
@@ -31,8 +31,21 @@ export default function Footer() {
               Premium aquascaping materials and biological integrity. Designing
               living art for modern spaces, shipped across Indonesia.
             </p>
+            {/* Social */}
+            <div className="flex gap-4 pt-1">
+              <a href="#" aria-label="Instagram" className="opacity-70 transition-opacity hover:opacity-100">
+                <Instagram size={20} />
+              </a>
+              <a href="#" aria-label="Facebook" className="opacity-70 transition-opacity hover:opacity-100">
+                <Facebook size={20} />
+              </a>
+              <a href="#" aria-label="YouTube" className="opacity-70 transition-opacity hover:opacity-100">
+                <Youtube size={20} />
+              </a>
+            </div>
           </div>
 
+          {/* Quick Links */}
           <div className="space-y-4">
             <h5 className="font-sans text-label-md uppercase tracking-wider">
               Quick Links
@@ -51,35 +64,25 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Follow Us */}
           <div className="space-y-4">
             <h5 className="font-sans text-label-md uppercase tracking-wider">
               Follow Us
             </h5>
             <div className="flex gap-4">
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="opacity-70 transition-opacity hover:opacity-100"
-              >
+              <a href="#" aria-label="Instagram" className="opacity-70 transition-opacity hover:opacity-100">
                 <Instagram size={20} />
               </a>
-              <a
-                href="#"
-                aria-label="Facebook"
-                className="opacity-70 transition-opacity hover:opacity-100"
-              >
+              <a href="#" aria-label="Facebook" className="opacity-70 transition-opacity hover:opacity-100">
                 <Facebook size={20} />
               </a>
-              <a
-                href="#"
-                aria-label="YouTube"
-                className="opacity-70 transition-opacity hover:opacity-100"
-              >
+              <a href="#" aria-label="YouTube" className="opacity-70 transition-opacity hover:opacity-100">
                 <Youtube size={20} />
               </a>
             </div>
           </div>
 
+          {/* Payment Methods */}
           <div className="space-y-4">
             <h5 className="font-sans text-label-md uppercase tracking-wider">
               Payment Methods

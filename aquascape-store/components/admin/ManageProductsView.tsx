@@ -548,7 +548,7 @@ export default function ManageProductsView() {
                       : "border-outline-variant bg-background-white hover:border-primary"
                   }`}
                 >
-                  <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded bg-surface-container">
+                  <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded bg-surface-container">
                     <Image
                       src={product.image || "/images/products/product-placeholder.svg"}
                       alt=""

@@ -15,3 +15,11 @@ export default function Badge({ type }: { type: ProductBadge }) {
     </span>
   );
 }
+
+export function SaleBadge() {
+  return (
+    <span className="absolute left-4 top-4 z-10 rounded-full bg-error text-on-error px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider">
+      Sale
+    </span>
+  );
+}

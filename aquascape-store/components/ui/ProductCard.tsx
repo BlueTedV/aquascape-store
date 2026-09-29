@@ -8,12 +8,14 @@ import { Product } from "@/lib/types";
 import { formatIDR } from "@/lib/format";
 import { useAuthCart } from "@/lib/use-auth-cart";
 import { useWishlist } from "@/lib/wishlist-context";
+import { useToast } from "@/lib/toast-context";
 import StarRating from "./StarRating";
-import Badge from "./Badge";
+import Badge, { SaleBadge } from "./Badge";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { addItem } = useAuthCart();
   const { toggleItem, isFavorited } = useWishlist();
+  const { addToast } = useToast();
   const [added, setAdded] = useState(false);
   const favorited = isFavorited(product.id);
 
@@ -38,13 +40,14 @@ export default function ProductCard({ product }: { product: Product }) {
 
     if (!wasAdded) return;
 
+    addToast(`${product.name} added to cart`, "success");
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1800);
   };
 
   return (
     <div className="group relative flex h-full flex-col rounded-lg bg-background-white p-stack-md shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-hover">
-      {product.badge && <Badge type={product.badge} />}
+      {product.badge ? <Badge type={product.badge} /> : (product as any).onSale ? <SaleBadge /> : null}
 
       {/* Wishlist Button */}
       <button
@@ -87,6 +90,11 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
+      {(product as any).compareAtPrice && (product as any).compareAtPrice > product.price && (
+        <p className="font-sans text-sm text-on-surface-variant line-through mb-0.5">
+          {formatIDR((product as any).compareAtPrice)}
+        </p>
+      )}
       <p className="mt-auto pr-12 font-sans text-price-display text-price-green">
         {formatIDR(product.price)}
       </p>

@@ -42,8 +42,19 @@ export interface GalleryPost {
   alt?: string;
   size?: "tall" | "square" | "wide";
   likesCount: number;
+  commentsCount?: number;
   isLiked?: boolean;
   createdAt?: string;
+}
+
+export interface GalleryComment {
+  id: string;
+  postId: string;
+  userId?: string | null;
+  authorName: string;
+  content: string;
+  createdAt: string;
+  isOwner?: boolean;
 }
 
 export type GalleryItem = GalleryPost;

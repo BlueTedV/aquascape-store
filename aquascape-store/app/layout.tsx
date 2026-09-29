@@ -3,8 +3,11 @@ import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
 import { WishlistProvider } from "@/lib/wishlist-context";
+import { ToastProvider } from "@/lib/toast-context";
 import AuthHashHandler from "@/components/auth/AuthHashHandler";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import PromoBanner from "@/components/layout/PromoBanner";
+import ToastContainer from "@/components/ui/ToastContainer";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -40,12 +43,16 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <AuthHashHandler />
         </Suspense>
-        <CartProvider>
-          <WishlistProvider>
-            {children}
-            <MobileBottomNav />
-          </WishlistProvider>
-        </CartProvider>
+        <ToastProvider>
+          <CartProvider>
+            <WishlistProvider>
+              {/* <PromoBanner /> */}{/* Temporarily disabled — overlaps with fixed navbar */}
+              {children}
+              <MobileBottomNav />
+              <ToastContainer />
+            </WishlistProvider>
+          </CartProvider>
+        </ToastProvider>
       </body>
     </html>
   );
